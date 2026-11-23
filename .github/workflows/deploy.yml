@@ -1,92 +1,153 @@
-name: Deploy to EC2 with Docker
+name: Deploy to OCI
 
 on:
     push:
         branches: [ "dev" ]
+    workflow_dispatch:
 
 # 권한 설정 (GHCR 패키지 업로드용)
 permissions:
     contents: read
     packages: write
 
+# 배포가 겹치면 서버에서 compose가 서로 덮어쓴다. 앞선 배포가 끝난 뒤에 다음 배포를 돌린다.
+concurrency:
+    group: deploy-oci
+    cancel-in-progress: false
+
+env:
+    DEPLOY_DIR: /opt/stargazer
+    SSH_USER: ubuntu
+
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
         steps:
-            # 환경변수 소문자로 변환 및 설정
+            # GHCR은 소문자 이름만 받는다
             - name: Set lowercase image name
               run: |
                   echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/stargazer-server:latest" >> $GITHUB_ENV
               shell: bash
 
             - name: Checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Set up JDK 17
-              uses: actions/setup-java@v3
+              uses: actions/setup-java@v4
               with:
                   java-version: '17'
                   distribution: 'temurin'
 
-            # Gradle 빌드 (테스트 제외)
-            - name: Build with Gradle
+            # 테스트까지 통과해야 배포한다. 통합 테스트는 러너의 Docker로 MySQL과 Redis를 띄운다.
+            - name: Build and test with Gradle
               run: |
                   chmod +x gradlew
-                  ./gradlew clean build -x test
+                  ./gradlew clean build
 
-            # Docker 이미지 빌드 및 GHCR 푸시
-            - name: Build and Push Docker Image
+            - name: Build and push Docker image
               run: |
-                  docker build -t ${{ env.IMAGE_NAME }} .
-                  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-                  docker push ${{ env.IMAGE_NAME }}
+                  docker build -t "$IMAGE_NAME" .
+                  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+                  docker push "$IMAGE_NAME"
 
-            # EC2에 배포 (SSH 접속)
-            - name: Deploy to EC2
-              uses: appleboy/ssh-action@master
-              with:
-                  host: ${{ secrets.EC2_HOST }}     # EC2 퍼블릭 IP
-                  username: ubuntu
-                  key: ${{ secrets.EC2_KEY }}       # pem 키 내용
-                  port: 22
+            # 호스트 키는 secret에 고정해 둔 것만 믿는다
+            - name: Set up SSH
+              env:
+                  OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+                  OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+              run: |
+                  install -m 700 -d ~/.ssh
+                  printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/deploy_key
+                  chmod 600 ~/.ssh/deploy_key
+                  printf '%s\n' "$OCI_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-                  # EC2 내부에서 실행될 스크립트
-                  script: |
-                      # GHCR 로그인
-                      echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-                      
-                      # 최신 이미지 Pull
-                      docker pull ${{ env.IMAGE_NAME }}
-                      
-                      # 기존 컨테이너 중지 및 삭제 (없으면 에러 무시)
-                      docker stop stargazer-app || true
-                      docker rm stargazer-app || true
-                      
-                      # 앱 로그 디렉터리 (CloudWatch Agent 수집용)
-                      mkdir -p /home/ubuntu/app-logs
-                      
-                      # 새 컨테이너 실행 (환경변수 주입, 로그 볼륨 마운트)
-                      docker run -d \
-                        --name stargazer-app \
-                        -p 8080:8080 \
-                        -v /home/ubuntu/app-logs:/app/logs \
-                        -e LOG_PATH=/app/logs \
-                        -e RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }} \
-                        -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
-                        -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-                        -e REDIS_ENDPOINT=${{ secrets.REDIS_ENDPOINT }} \
-                        -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
-                        -e GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
-                        -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-                        -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-                        -e KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
-                        -e KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }} \
-                        -e NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }} \
-                        -e NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
-                        -e SERVER_BASE_URL=${{ secrets.SERVER_BASE_URL }} \
-                        -e JWT_KEY=${{ secrets.JWT_KEY }} \
-                        -e CLIENT_REDIRECT_BASE_URL=${{ secrets.CLIENT_REDIRECT_BASE_URL }} \
-                        ${{ env.IMAGE_NAME }}
-                      
-                      # 미사용 이미지 정리 (공간 확보)
-                      docker image prune -f
+            # 서버의 .env는 여기서 만든 것으로 매번 덮어쓴다. 서버에서 손으로 고친 값은 남지 않는다.
+            - name: Render server .env
+              env:
+                  SITE_ADDRESS: ${{ vars.SITE_ADDRESS }}
+                  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+                  JWT_KEY: ${{ secrets.JWT_KEY }}
+                  WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+                  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+                  MET_NORWAY_USER_AGENT: ${{ vars.MET_NORWAY_USER_AGENT }}
+                  SERVER_BASE_URL: ${{ secrets.SERVER_BASE_URL }}
+                  CLIENT_REDIRECT_BASE_URL: ${{ secrets.CLIENT_REDIRECT_BASE_URL }}
+                  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+                  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+                  KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+                  KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+                  NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+                  NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+              run: |
+                  umask 077
+                  : > deploy.env
+                  # 작은따옴표로 감싸야 compose가 값 안의 $나 #을 해석하지 않는다
+                  put() {
+                      case "$2" in
+                          *"'"*|*$'\n'*)
+                              echo "::error::$1 값에 작은따옴표나 줄바꿈이 있어 .env에 쓸 수 없습니다."
+                              exit 1
+                              ;;
+                      esac
+                      printf "%s='%s'\n" "$1" "$2" >> deploy.env
+                  }
+                  put APP_IMAGE "$IMAGE_NAME"
+                  put SITE_ADDRESS "${SITE_ADDRESS:-:80}"
+                  put DB_USERNAME stargazer
+                  put DB_PASSWORD "$DB_PASSWORD"
+                  put JWT_KEY "$JWT_KEY"
+                  put WEATHER_API_KEY "$WEATHER_API_KEY"
+                  put GEMINI_API_KEY "$GEMINI_API_KEY"
+                  put MET_NORWAY_USER_AGENT "$MET_NORWAY_USER_AGENT"
+                  put SERVER_BASE_URL "$SERVER_BASE_URL"
+                  put CLIENT_REDIRECT_BASE_URL "$CLIENT_REDIRECT_BASE_URL"
+                  put GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+                  put GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+                  put KAKAO_CLIENT_ID "$KAKAO_CLIENT_ID"
+                  put KAKAO_CLIENT_SECRET "$KAKAO_CLIENT_SECRET"
+                  put NAVER_CLIENT_ID "$NAVER_CLIENT_ID"
+                  put NAVER_CLIENT_SECRET "$NAVER_CLIENT_SECRET"
+
+            - name: Upload compose files
+              env:
+                  OCI_HOST: ${{ secrets.OCI_HOST }}
+              run: |
+                  target="$SSH_USER@$OCI_HOST"
+                  scp -i ~/.ssh/deploy_key infra/oci/deploy/docker-compose.yml infra/oci/deploy/Caddyfile "$target:$DEPLOY_DIR/"
+                  scp -p -i ~/.ssh/deploy_key deploy.env "$target:$DEPLOY_DIR/.env"
+                  rm deploy.env
+
+            - name: Deploy
+              env:
+                  OCI_HOST: ${{ secrets.OCI_HOST }}
+              run: |
+                  target="$SSH_USER@$OCI_HOST"
+                  # 이미지가 비공개라 pull하는 동안만 이 작업의 토큰으로 로그인한다
+                  echo "${{ secrets.GITHUB_TOKEN }}" \
+                      | ssh -i ~/.ssh/deploy_key "$target" "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+                  ssh -i ~/.ssh/deploy_key "$target" "cd '$DEPLOY_DIR' && bash -s" <<'EOF'
+                  set -euo pipefail
+                  trap 'docker logout ghcr.io > /dev/null' EXIT
+
+                  docker compose pull --quiet app
+                  docker compose up -d --remove-orphans
+
+                  # 앱 컨테이너에는 HTTP 클라이언트가 없어서 같은 네트워크의 caddy에서 확인한다
+                  up=false
+                  for attempt in $(seq 1 72); do
+                      if docker compose exec -T caddy wget -q -O /dev/null http://app:8080/v3/api-docs 2> /dev/null; then
+                          up=true
+                          break
+                      fi
+                      sleep 5
+                  done
+
+                  docker compose ps
+                  if [ "$up" != true ]; then
+                      echo "앱이 6분 안에 응답하지 않았습니다."
+                      docker compose logs --tail 60 app
+                      exit 1
+                  fi
+
+                  docker image prune -f
+                  EOF
