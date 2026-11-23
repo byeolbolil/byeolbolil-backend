@@ -138,7 +138,9 @@ Refresh Token은 **1회용(RTR)** 이므로, Access Token 만료 시 여러 요�
 | PATCH | `/api/v1/bookmarks/{bookmarkId}` | JWT | 북마크 수정 |
 | DELETE | `/api/v1/bookmarks/{bookmarkId}` | JWT | 북마크 삭제 |
 | **추천** |
-| GET | `/api/v1/recommends/bookmarks/today` | JWT | 오늘 관측 추천 북마크 (상위 5개) |
+| GET | `/api/v1/recommends/bookmarks/today` | JWT | 오늘 관측 추천 북마크 (상위 5개). 아래 밤 추천으로 대체될 예정 |
+| GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 추천. 장소별 추천 시간대와 등급 |
+| GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 (오늘 밤부터 7일) |
 
 ---
 
@@ -185,6 +187,36 @@ Refresh Token은 **1회용(RTR)** 이므로, Access Token 만료 시 여러 요�
 ### 5.9 GET /api/v1/recommends/bookmarks/today
 - **Header:** `Authorization: Bearer {accessToken}`
 - **응답 data:** 오늘 밤 관측 추천 북마크 리스트 (최대 5개). 첫 조회 시 5~7초 소요 가능 → 로딩 UI 권장.
+
+### 5.10 밤 추천
+- **GET /api/v1/recommendations/tonight**, **GET /api/v1/recommendations/nights/{date}** (`date`는 yyyy-MM-dd)
+- **Header:** `Authorization: Bearer {accessToken}`은 선택이다. 없으면 기본 추천 명소만, 있으면 내 장소(북마크)도 함께 평가한다.
+- **Query (모두 선택):**
+  - `lat`, `lon`: 출발지. 둘을 함께 보내면 이동 시간을 추정해 순서에 반영한다
+  - `minClearHours`: 맑은 시간이 이만큼 이어지면 `STRONG`. 1~8, 기본 3
+  - `preferBefore`: 이 시각 전에 맑은 시간을 우선한다. HH:mm, 기본 02:00
+  - `maxTravelMinutes`: 이보다 오래 걸리는 장소는 뺀다. 출발지를 보냈을 때만 쓴다
+- **응답 data:**
+  - `date`: 밤이 시작하는 날짜. 새벽 4시 전에 `tonight`을 부르면 전날 날짜가 나온다
+  - `criteria`: 적용한 기준 (`minClearHours`, `preferBefore`, `maxTravelMinutes`)
+  - `candidateCount`, `evaluatedCount`, `excludedByTravelCount`: 후보 수, 예보를 받아 평가한 수, 이동 시간 한도로 뺀 수.
+    `evaluatedCount`가 `candidateCount`보다 작으면 일부 장소의 예보를 받지 못한 것이다
+  - `places`: 추천 순서대로. 첫 번째가 가장 좋은 곳이다
+- **places의 각 항목:**
+  - `type` (`SPOT` 기본 명소, `BOOKMARK` 내 장소), `id`, `spotId`, `name`, `address`, `latitude`, `longitude`
+  - `level`: `STRONG` 꼭 가볼 만해요, `GOOD` 가볼 만해요, `MAYBE` 잠깐 볼 수 있어요, `NO` 오늘은 쉬어가요
+  - `pattern`: `CLEAR_ALL_NIGHT` 밤새 맑아요, `CLEAR_EARLY` 초저녁이 가장 맑아요, `CLEARS_LATE` 늦은 밤에 개요,
+    `CLEARS_AGAIN` 흐렸다가 다시 개요, `BRIEF_CLEAR` 잠깐 맑은 틈이 있어요, `CLOUDY_ALL_NIGHT` 밤새 흐려요
+  - `notes`: `CLEARS_LATE` 추천 시간이 모두 선호 시각 뒤, `BRIGHT_MOON` 달이 밝아요, `CITY_LIGHTS` 도시 불빛이 강해요, `DEW` 이슬 주의
+  - `bestWindow`: 추천 시간대 `{ start, end, hours }`. 맑은 시간이 없으면 빠진다
+  - `travel`: `{ distanceKm, minutes }`. 직선거리로 어림한 값이고, 출발지를 보내지 않으면 빠진다
+  - `bortleClass`, `moonBrightness` (보름달을 1로 본 밝기)
+  - `forecastSource` (`OPEN_METEO` 또는 `MET_NORWAY`), `forecastIssuedAt`. 화면에 예보 출처를 표기해야 한다(CC BY 4.0)
+  - `hours`: 해가 진 뒤부터 뜨기 전까지의 시간 칸. `time`, `dark`, `clear`, `cloudCover`, `cloudCoverLow`, `cloudCoverMid`,
+    `cloudCoverHigh`, `relativeHumidity`, `moonUp`, `score`
+- 시각은 모두 한국 시간의 ISO 8601 문자열이다 (예: `2026-11-24T19:00:00+09:00`).
+- 예보를 처음 받는 칸이 많으면 몇 초 걸릴 수 있다. 같은 모델 실행 안에서는 캐시로 답한다.
+- `MET_NORWAY`로 받은 장소는 이틀 반쯤 뒤의 밤부터 `hours`가 비어 평가에서 빠질 수 있다.
 
 ---
 

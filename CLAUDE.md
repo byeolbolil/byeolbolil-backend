@@ -98,8 +98,11 @@ Cross-domain communication always goes through Application-layer orchestration �
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.
-- `recommend/` — "today's recommendation": top-5 scored bookmarks for the logged-in member, computed via a
-  dedicated executor (`global/config/RecommendExecutorConfig`).
+- `recommend/` — tonight's recommendation. `engine/NightAssessmentEngine` evaluates one night per place from the
+  hourly forecast (dark hours, clear windows, night pattern, level); `NightRecommendationApplicationService` gathers
+  default spots plus the member's bookmarks, ranks them, and serves `GET /api/v1/recommendations/tonight` and
+  `/nights/{date}` (public; bookmarks only when logged in). Thresholds cite `docs/SCORING.md` at the point of use.
+  The older `RecommendApplicationService` (top-5 bookmarks, old engine) stays until the frontend moves over.
 
 ### Global layer (`global/`)
 
