@@ -143,8 +143,9 @@ if they appear as untracked local files.
   - Split commits by logical change. Write Korean Conventional Commits in the existing style: a subject line, then
     a bullet body that says why. Add no AI co-author trailer, since the history must not read as machine-generated.
   - After committing, tell the user in a few Korean lines what each commit changed.
-  - `git push`, `gh pr create`, `gh issue create`, and anything else that publishes to GitHub still need the
-    user's go-ahead.
+  - GitHub issues are Claude's too (since 2026-11-24): comment, edit bodies and checklists, close, and create
+    issues without asking, following the issue conventions below.
+  - `git push`, `gh pr create`, and anything else that publishes code to GitHub still need the user's go-ahead.
   - Never commit secrets or the gitignored `infra/` files described above.
 - **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
   `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
