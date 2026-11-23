@@ -513,3 +513,64 @@ Open-Meteo로 바꾸기로 한 결정을 구현하면서 정해야 할 것이 �
   느리면 Open-Meteo의 여러 좌표 한 번에 받기로 묶는다.
 - 날짜 형식이 틀린 경로 변수가 500이 아니라 400으로 나가도록 공통 예외 처리에 `MethodArgumentTypeMismatchException`을 추가했다.
   다른 API의 경로 변수와 쿼리 파라미터에도 적용된다.
+
+## 2026-11-24 배포: OCI VM 한 대와 GitHub Actions
+
+### 배경
+
+AWS 프리티어가 끝나 EC2와 RDS를 지웠다. 배포 워크플로는 없는 EC2에 SSH로 붙으려다 `dev`에 push할 때마다 실패했고,
+`api.byeolbolil.xyz`의 A 레코드도 지워진 EC2 주소를 가리키고 있었다. 운영 서버가 없는 상태였다.
+
+OCI에는 6월에 만들어 둔 VM(`VM.Standard.E2.1.Micro`, 메모리 1GB, Always Free)이 있었다. 9월에 Caddy, 앱, MySQL, Redis를
+compose로 띄우는 구성을 서버의 `/opt/stargazer`에 올려 두었지만 `.env`를 채우지 않아 기동한 적은 없었다.
+
+### 선택
+
+- 그 VM 한 대에 compose로 전부 띄운다. 구성은 `infra/oci/deploy/`에 두고 저장소에서 관리한다.
+- `dev`에 push하면 GitHub Actions가 빌드하고, 이미지를 GHCR에 올리고, SSH로 compose 파일과 `.env`를 서버에 올린 뒤
+  `docker compose up -d`를 실행한다.
+- 서버의 `.env`는 워크플로가 GitHub secrets와 variables로 만들어 매번 덮어쓴다. 값을 바꾸려면 GitHub에서 바꾼다.
+- 빌드에 테스트를 넣는다. 테스트가 깨진 커밋은 이미지도 만들어지지 않는다.
+- 서버 접속에는 배포 전용 SSH 키를 쓴다. 서버 쪽에는 포워딩과 터미널 할당을 막는 `restrict` 옵션으로 등록했다.
+  호스트 키는 secret에 넣어 둔 값과 일치할 때만 접속한다.
+- SSH 접속은 서드파티 액션 대신 러너에 있는 `ssh`와 `scp`로 한다. 전에 쓰던 `appleboy/ssh-action@master`는 버전이
+  고정돼 있지 않아서, 액션 저장소가 바뀌면 서버 키와 비밀값이 그 코드에 그대로 넘어간다.
+- 도메인은 `api.byeolbolil.xyz`를 그대로 쓴다. 인증서는 Caddy가 Let's Encrypt에서 받는다.
+- 기동 확인은 같은 compose 네트워크의 caddy 컨테이너에서 앱의 `/v3/api-docs`를 불러서 한다. 6분 안에 응답이 없으면
+  배포를 실패로 처리하고 앱 로그 끝부분을 남긴다.
+
+### 버린 대안
+
+- OCI 관리형 MySQL: `feature/oci-migration` 브랜치의 Terraform은 이 구성이었고 6월에 DB 시스템도 만들었다. 지금은 VM에서
+  그 주소의 3306 포트가 응답하지 않는다. 왜 그런지는 OCI 콘솔을 보지 못해 확인하지 못했다. 사용자가 없는 단계에서
+  상태를 모르는 외부 DB에 기대기보다 VM 안의 컨테이너로 두는 쪽을 골랐다. 대신 백업은 직접 챙겨야 한다.
+- 서버가 새 이미지를 주기적으로 당겨 오는 방식(watchtower): 서버에 SSH 키를 줄 필요가 없다. 하지만 `.env`를 서버에서
+  손으로 관리해야 하고, 이미지가 비공개라 서버에 오래 사는 토큰을 둬야 하고, 반영 시점을 알 수 없다.
+- 손으로 배포: 한 사람이 하는 프로젝트에서 가장 먼저 밀리는 일이다.
+- 배포 빌드에서 테스트를 계속 건너뛰기: 배포가 1~2분 빨라지지만 `dev`에 올라온 것이 곧 운영이라 걸러 줄 단계가 없다.
+
+### 적용 상태
+
+적용. 2026-11-24 첫 배포가 성공했다. 워크플로는 테스트를 포함해 7분 걸렸다. 배포 뒤 `https://api.byeolbolil.xyz`에서
+`/v3/api-docs`, `/api/v1/recommendations/tonight`, `/api/v1/analyze`, `/api/v1/spots`가 200으로 답하는 것을 확인했다.
+
+VM에서 잰 값은 다음과 같다.
+
+- 앱 기동 54초
+- 광해 CSV 첫 적재 20분 21초. 그동안 MySQL이 CPU를 거의 다 써서 밤 추천 API가 14초 넘게 걸렸다.
+- 적재가 끝난 뒤 밤 추천 API는 캐시가 비어 있을 때 7.7초, 캐시가 있을 때 0.6초
+
+### 영향
+
+- 클라이언트: API 주소는 그대로 `https://api.byeolbolil.xyz`다. DB를 새로 만들었기 때문에 이전 회원과 북마크는 없다.
+  다시 가입해야 한다.
+- 새 MySQL은 빈 상태에서 시작한다. 처음 기동할 때 광해 CSV 58만 행을 적재하는데, 그동안에도 요청은 받는다.
+  적재가 끝나기 전에는 광해 등급이 채워진 범위 안에서만 나온다.
+- 광해 적재는 `light_pollution` 테이블이 비어 있을 때만 돈다. 적재 도중에 앱이 내려가면 다음 기동에서는 일부만
+  들어간 채로 건너뛴다. 새 DB에 처음 띄울 때는 적재가 끝난 것을 확인한 뒤에 다음 배포를 해야 한다.
+  적재 방식은 광해 데이터를 다시 만들 때(로드맵 4단계) 함께 고친다.
+- 메모리가 1GB라 앱 힙을 320MB로 묶어 두었다(`docker-compose.yml`의 `JAVA_TOOL_OPTIONS`). 부족하면 스왑을 쓴다.
+- MySQL 데이터는 VM 디스크(`/opt/stargazer/mysql-data`)에만 있다. 백업이 없다.
+- 운영 주소가 `dev` 브랜치를 따라간다. 사용자가 생기면 배포 브랜치를 나눠야 한다.
+- 이전 secrets 가운데 `EC2_HOST`, `EC2_KEY`, `RDS_ENDPOINT`, `REDIS_ENDPOINT`, `DB_USERNAME`은 이제 쓰지 않는다.
+- `docs/MONITORING_AND_ALERTS.md`와 `infra/` 바로 아래의 Terraform은 AWS 기준이라 지금 구성과 맞지 않는다.

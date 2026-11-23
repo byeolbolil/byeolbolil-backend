@@ -93,17 +93,17 @@
 
 만든 것은 실제로 배포해서 쓴다. 백엔드는 OCI, 프론트엔드는 Vercel에 올린다. 2026-11-24 기준 상태는 다음과 같다.
 
-- `.github/workflows/deploy.yml`은 `dev`에 push하면 EC2로 배포하던 AWS 시절 파이프라인이다. OCI로 바꿔야 한다.
-- OCI 쪽은 VM 한 대에 Caddy, 앱, MySQL, Redis를 compose로 띄우는 구성이 `infra/oci/deploy/`에 있다.
-  아직 저장소에 올라가 있지 않고, 배포는 손으로 한다.
-- 배포 빌드는 테스트를 건너뛴다(`-x test`).
-- 프론트엔드는 이 저장소 밖에 있다.
+- 백엔드: `dev`에 push하면 `.github/workflows/deploy.yml`이 테스트를 돌리고, 통과하면 OCI VM에 반영한다.
+  VM 한 대에 Caddy, 앱, MySQL, Redis가 compose로 떠 있다(`infra/oci/deploy/`). 주소는 `https://api.byeolbolil.xyz`다.
+  정한 내용과 버린 대안은 `docs/decisions.md`의 2026-11-24 배포 항목에 있다.
+- 프론트엔드: 저장소가 따로 있고 Vercel이 `www.byeolbolil.xyz`로 내보낸다. 지금 떠 있는 것은 이전 화면이다.
+  5단계에서 새 화면으로 바꾼다.
 
-정해야 할 것:
+남은 일:
 
-- 백엔드를 언제부터 올릴지. 새 API가 생기는 3단계가 끝난 뒤가 첫 시점으로 적당하다.
-- OCI 배포를 GitHub Actions로 자동화할지, 지금처럼 손으로 할지.
-- 배포 전에 CI에서 테스트를 돌릴지.
+- MySQL 데이터가 VM 디스크에만 있다. 백업을 정한다.
+- 모니터링 문서(`docs/MONITORING_AND_ALERTS.md`)와 `infra/`의 Terraform은 AWS 기준이다. OCI 기준으로 다시 쓰거나 지운다.
+- 운영 주소가 개발 브랜치인 `dev`를 따라간다. 사용자가 생기면 배포 브랜치를 나눈다.
 
 ## 이후
 

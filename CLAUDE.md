@@ -129,11 +129,17 @@ Cross-domain communication always goes through Application-layer orchestration �
 
 ### Infrastructure (`infra/`)
 
-The project is mid-migration from AWS (`infra/aws/`, EC2 + Terraform, being removed) to Oracle Cloud Infrastructure
-(`infra/oci/`, Terraform) — current branch is `feature/oci-migration`. `.github/workflows/deploy.yml` currently
-deploys to EC2 via SSH/Docker on push to `dev`; treat this as the AWS-era pipeline that will need updating once the
-OCI migration lands. `*.pem`, `*.tfstate*`, and `*.tfvars` under `infra/` are gitignored — never commit these even
-if they appear as untracked local files.
+The backend runs on one Oracle Cloud VM (1 GB, `VM.Standard.E2.1.Micro`) as a docker compose stack: Caddy
+(HTTPS for `api.byeolbolil.xyz`), the app, MySQL, and Redis. `infra/oci/deploy/` holds the compose file and Caddyfile.
+`.github/workflows/deploy.yml` runs on every push to `dev`: build with tests, push the image to GHCR, copy the
+compose files and a `.env` rendered from GitHub secrets to `/opt/stargazer` on the VM, then `docker compose up -d`.
+The server's `.env` is overwritten on each deploy, so change values in GitHub secrets or variables, never on the VM.
+The frontend is a separate repository deployed by Vercel at `www.byeolbolil.xyz`.
+
+The Terraform files directly under `infra/` are from the AWS setup, which no longer exists (free tier ended).
+The OCI Terraform lives only on the unmerged `feature/oci-migration` branch and describes an earlier design with a
+managed MySQL. `*.pem`, `*.tfstate*`, and `*.tfvars` under `infra/` are gitignored — never commit these even if
+they appear as untracked local files.
 
 ## Conventions
 
