@@ -116,6 +116,39 @@ if they appear as untracked local files.
   changed in each commit so the user can review the diff without re-deriving it. The same applies to
   `git push`, `gh pr create`, and anything else that publishes work — propose, don't execute.
   Staging (`git add`) also waits for the user unless they ask otherwise.
+- **Decisions and trade-offs have to end up somewhere the repo can see.** Whenever work involves a real choice —
+  a policy, a threshold, an approach with a discarded alternative — say so and point at the right home instead of
+  leaving the reasoning in chat or in a GitHub issue that will be closed. A cloned repo must still explain itself.
+  - scoring numbers and their sources → `docs/SCORING.md`, plus the citation comment at the point of use
+    (see the domain-value rule below)
+  - everything else — policy, architecture, performance, deployment → `docs/decisions.md`, one dated entry per
+    decision: what was chosen, why, what was rejected, and what it affects. Call out client-facing impact
+    explicitly so `docs/MOBILE_DEVELOPER_GUIDE.md` can be updated.
+  - the deliberation itself (options weighed, things tried, dead ends) belongs in the GitHub issue comments;
+    append the conclusion to the issue body so it isn't buried under comments
+- **Codebase investigations are organised by area.** Each area pairs a write-up at `docs/issues/{area}.md`
+  (constant inventory, conflict checks, findings with `file:line` evidence pinned to permalinks) with a one-shot
+  `gh issue create` script at `scripts/issues/{area}.sh`. Index and conventions live in `docs/issues/README.md`.
+  Investigation docs are point-in-time snapshots and are not retro-edited as work lands.
+  Priority (P0–P4) and Size (XS–XL) are **org-level Issue fields, never labels or title prefixes** — duplicating
+  them guarantees drift. Only `area:*` is a repo label. `gh issue create` has no flag for these fields, but the
+  script sets them via the GraphQL `setIssueFieldValue` mutation, resolving field and option IDs by name
+  (never hardcode the IDs — they change if a field is recreated). Issue dependencies use `--blocked-by` with
+  captured issue numbers, not free text. Areas: `scoring` (investigated and registered);
+  `architecture`, `security`, `infra` planned. `scripts/issues/scoring.sh` and `scripts/issues/scoring/*.md`
+  are the reference implementation — match their shape when adding an area. Always run
+  `gh issue list --state all` before writing a new area's script, and fold findings that overlap an
+  already-registered issue into that issue instead of creating a duplicate one.
+- **This is a portfolio project — nothing should read as machine-generated.** That applies to issue bodies, docs,
+  and commit messages alike. Concretely, from feedback already given:
+  - Issue titles are a short noun phrase with no `[P1]` prefix and no `— subtitle` tail
+    ("광해 데이터 파이프라인 재작업", not "[P1] 광해 데이터 파이프라인 재작업 — 등급 변환을 코드로 이관").
+  - Avoid the tells: em dashes used as connectors mid-sentence, bold scattered through paragraphs, `⚠`-style
+    marker glyphs, and headings that presuppose an AI/human split (write "결정 필요", never "사람이 결정해야 할 것").
+  - Korean particles attach directly to code spans: `` `radiance`를 ``, not `` `radiance` 를 ``.
+  - Checklist items end in a verb so they read as work, not as an inventory.
+  - Bare URLs on their own line do **not** render as GitHub code previews inside list items — always use
+    `[`File.java#L10-L20`](url)` markdown links.
 - **Domain-science values require a citation.** Any numeric threshold, coefficient, or classification table derived
   from astronomy/photometry domain knowledge (e.g. Bortle class boundaries, VIIRS radiance→Bortle mapping, scoring
   deduction weights such as `(Bortle-1)*6.25` or the moon-brightness `×30` factor, twilight altitude cutoffs) must
