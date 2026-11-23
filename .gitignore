@@ -84,3 +84,10 @@ terraform.rc
 infra/reword-msg.ps1
 infra/reword-seq.ps1
 infra/msgs/
+# 로컬 전용: 이슈 추출 세션 프롬프트 (저장소에 두지 않음)
+issue_extraction_prompts.md
+
+# JVM 크래시 덤프와 로컬 실행 로그
+hs_err_pid*.log
+replay_pid*.log
+logs/
