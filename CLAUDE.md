@@ -23,7 +23,7 @@ observation spots, bookmarks, and a "today's recommendation" feature.
 # Build (skip tests, matches CI)
 ./gradlew clean build -x test
 
-# Run all tests
+# Run all tests (Docker must be running: integration tests start MySQL and Redis via Testcontainers)
 ./gradlew test
 
 # Run a single test class
@@ -42,6 +42,21 @@ docker-compose -f docker-compose.dev.yml up -d
 Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/USERNAME/PASSWORD`, `REDIS_HOST/PORT`,
 `JWT_KEY`, `WEATHER_API_KEY`, `GEMINI_API_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
+
+### Tests
+
+Tests need neither `.env` nor the dev containers; `src/test/resources/application-test.yml` supplies fake values.
+
+- Integration tests extend `support/IntegrationTestSupport` (full context, Testcontainers MySQL + Redis, `MockMvcTester`).
+  Keep one shared context: a test with different context configuration starts a second set of containers.
+- External APIs are never called. `support/ExternalApiStubs` binds a `MockRestServiceServer` to the app's `RestTemplate`
+  and serves JSON from `src/test/resources/fixtures/`; an unstubbed call fails the test.
+- `LightPollutionMigrationRunner` is mocked out in tests. Insert the few grid points a test needs with
+  `support/LightPollutionFixture`.
+- Redis cache writes are asynchronous (Spring Data Redis 4 default), so a test that reads Redis directly must wait for
+  the key instead of asserting right after the call.
+- The engine, grade-table, and API tests are characterization tests: they pin what the code does today, not what is
+  correct. When a scoring value changes on purpose, update the expectation in the same change and say so.
 
 ## Architecture
 

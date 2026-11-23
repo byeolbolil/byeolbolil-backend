@@ -1,0 +1,23 @@
+# 테스트 프로필. application.yml이 환경변수로 받는 값을 같은 이름으로 채운다.
+# 모두 가짜 값이다. MySQL과 Redis 접속 정보는 Testcontainers가 덮어쓰고,
+# 외부 API는 ExternalApiStubs가 가로채므로 키가 실제로 쓰이지 않는다.
+
+MYSQL_ENDPOINT: overridden-by-testcontainers
+MYSQL_USERNAME: test
+MYSQL_PASSWORD: test
+
+# Base64로 인코딩한 39바이트 문자열. HS256에 필요한 32바이트를 넘긴다.
+JWT_KEY: c3RhcmdhemVyLXRlc3Qtb25seS1qd3Qtc2VjcmV0LWtleS0wMDAw
+
+WEATHER_API_KEY: test-weather-key
+GEMINI_API_KEY: test-gemini-key
+
+GOOGLE_CLIENT_ID: test-google-id
+GOOGLE_CLIENT_SECRET: test-google-secret
+KAKAO_CLIENT_ID: test-kakao-id
+KAKAO_CLIENT_SECRET: test-kakao-secret
+NAVER_CLIENT_ID: test-naver-id
+NAVER_CLIENT_SECRET: test-naver-secret
+
+SERVER_BASE_URL: http://localhost:8080
+CLIENT_REDIRECT_BASE_URL: http://localhost:3000

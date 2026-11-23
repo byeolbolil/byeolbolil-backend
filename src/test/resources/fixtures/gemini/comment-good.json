@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "```json\n{\n  \"final_score\": 94,\n  \"comment\": \"하늘이 맑고 어두워서 은하수까지 기대해 볼 만한 밤이에요.\",\n  \"bortle\": \"Class 2\",\n  \"brightness\": \"매우 어두움\",\n  \"limiting_mag\": \"6.5등급\"\n}\n```"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 512,
+    "candidatesTokenCount": 86,
+    "totalTokenCount": 598
+  },
+  "modelVersion": "gemini-3.7-flash"
+}
