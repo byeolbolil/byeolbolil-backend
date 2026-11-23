@@ -1,10 +1,10 @@
 package xyz.ncookie.stargazer;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class StargazerApplicationTests {
+import xyz.ncookie.stargazer.support.IntegrationTestSupport;
+
+class StargazerApplicationTests extends IntegrationTestSupport {
 
 	@Test
 	void contextLoads() {
