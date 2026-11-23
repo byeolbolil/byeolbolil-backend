@@ -10,6 +10,7 @@ import xyz.ncookie.stargazer.domain.stargazing.engine.StargazingScoringEngine;
 import xyz.ncookie.stargazer.domain.stargazing.enums.MoonPhase;
 import xyz.ncookie.stargazer.domain.stargazing.model.HourlyForecastData;
 import xyz.ncookie.stargazer.domain.stargazing.model.RawAstronomyData;
+import xyz.ncookie.stargazer.domain.stargazing.provider.LightPollutionDataProvider;
 import xyz.ncookie.stargazer.domain.stargazing.provider.WeatherDataProvider;
 import xyz.ncookie.stargazer.domain.stargazing.model.GeminiAnalysisResult;
 import xyz.ncookie.stargazer.domain.stargazing.model.StarAnalysisResult;
@@ -25,6 +26,14 @@ public class StargazingDomainService {
 	private final WeatherDataProvider weatherDataProvider;
 	private final StargazingScoringEngine scoringEngine;
 	private final GeminiAnalysisClient geminiAnalysisClient;
+	private final LightPollutionDataProvider lightPollutionDataProvider;
+
+	/**
+	 * 좌표의 광해 등급(Bortle 1~9). 근처에 광해 데이터가 없으면 4를 돌려준다.
+	 */
+	public int getBortleClass(double lat, double lon) {
+		return lightPollutionDataProvider.getBortleClass(lat, lon);
+	}
 
 	public OpenWeatherResponse fetchWeatherData(double lat, double lon, ZonedDateTime targetDateTime) {
 		return weatherDataProvider.fetchWeatherData(lat, lon, targetDateTime);

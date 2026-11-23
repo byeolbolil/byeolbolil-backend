@@ -63,6 +63,7 @@ public class SecurityConfig {
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
 				.requestMatchers("/api/v1/spots/**", "/api/v1/analyze", "/api/v1/forecast").permitAll() 	// 대부분의 기능은 인증 없이 사용 가능
+				.requestMatchers("/api/v1/recommendations/**").permitAll()	// 밤 추천은 로그인하지 않아도 기본 명소로 볼 수 있다
 				.requestMatchers("/api/v1/auth/**", "/login/**", "/oauth2/**").permitAll()
 
 				.anyRequest().authenticated() // 나머지는 인증 필요

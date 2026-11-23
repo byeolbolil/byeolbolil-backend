@@ -57,10 +57,12 @@
 - 오늘 밤 추천 API와 날짜별 추천 API를 만든다.
 - 끝나는 조건: 목업의 세 시나리오(좋은 밤, 보름달 밤, 전국 흐림)를 고정 데이터로 재현하는 통합 테스트가 통과한다.
 
-상태: 2026-11-24 진행 중.
+상태: 2026-11-24 완료. 세 시나리오 통합 테스트(`NightRecommendationApiTest`)가 통과한다.
 
-- 끝난 것: 기준값 확정과 출처 주석, 시간별 점수, 맑은 연속 구간, 밤 패턴, 추천 등급(`NightAssessmentEngine`).
-- 남은 것: 장소 후보 모으기와 순위, 이동 시간 추정, 오늘 밤 추천 API와 날짜별 추천 API, 세 시나리오 통합 테스트.
+- 기준값과 정책값은 `docs/SCORING.md`, 평가 방식과 API를 정한 이유는 `docs/decisions.md`에 있다.
+- 새 API는 `GET /api/v1/recommendations/tonight`과 `GET /api/v1/recommendations/nights/{date}`다.
+- 기존 분석, 예보, 북마크 추천 API는 이전 엔진 그대로 남아 있다. 5단계에서 프론트엔드가 옮겨 가면 지운다.
+- 광해 등급은 아직 Bortle 정수다. 4단계에서 연속값으로 바꾼다.
 
 ## 4단계. 광해 데이터 재구축
 

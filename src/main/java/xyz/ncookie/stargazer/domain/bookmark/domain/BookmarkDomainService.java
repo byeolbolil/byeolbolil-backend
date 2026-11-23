@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.domain.bookmark.domain;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,10 @@ public class BookmarkDomainService {
 
 		return bookmarkRepository.findById(bookmarkId)
 			.orElseThrow(() -> new BookmarkException(BookmarkErrorCode.BOOKMARK_NOT_FOUND, bookmarkId.toString()));
+	}
+
+	public List<Bookmark> findAllByMemberId(Long memberId) {
+		return bookmarkRepository.findAllByMember_Id(memberId);
 	}
 
 	public void validateOwner(Long memberId, Bookmark bookmark) {

@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.support;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -13,6 +15,8 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestTemplate;
+
+import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 
 /**
  * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway)를 기록해 둔 응답으로 대체한다.
@@ -77,6 +81,23 @@ public class ExternalApiStubs {
 
 	public void openMeteoForecastReturns(String fixture) {
 		stub(HttpMethod.GET, OPEN_METEO_FORECAST, json("openmeteo/" + fixture));
+	}
+
+	/**
+	 * 한 좌표가 속한 예보 칸에만 주는 응답. 칸마다 다른 날씨를 줄 때 쓴다.
+	 * 먼저 등록한 응답이 먼저 맞춰지므로, openMeteoForecastReturnsBodyForOthers보다 앞에 등록해야 한다.
+	 */
+	public void openMeteoForecastReturnsBodyFor(double latitude, double longitude, String body) {
+		ForecastCell cell = ForecastCell.of(latitude, longitude);
+		String query = "latitude=" + cell.latitudeParam() + "&longitude=" + cell.longitudeParam() + "&";
+		server.expect(ExpectedCount.manyTimes(), requestTo(allOf(startsWith(OPEN_METEO_FORECAST), containsString(query))))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+	}
+
+	/** 따로 응답을 정하지 않은 나머지 모든 칸에 주는 응답. */
+	public void openMeteoForecastReturnsBodyForOthers(String body) {
+		stub(HttpMethod.GET, OPEN_METEO_FORECAST, withSuccess(body, MediaType.APPLICATION_JSON));
 	}
 
 	public void openMeteoForecastFails() {

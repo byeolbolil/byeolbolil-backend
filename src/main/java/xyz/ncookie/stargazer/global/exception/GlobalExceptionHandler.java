@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.global.dto.CommonResponse;
@@ -57,6 +58,20 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 			.status(HttpStatus.BAD_REQUEST)
 			.body(CommonResponse.error(HttpStatus.BAD_REQUEST.value(), "유효성 검사에 실패하였습니다.", errorMap));
+	}
+
+	/**
+	 * 경로 변수나 쿼리 파라미터를 선언한 타입으로 바꾸지 못했을 때 (예: 날짜 자리에 날짜가 아닌 값)
+	 */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<CommonResponse<Map<String, String>>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(CommonResponse.error(
+				HttpStatus.BAD_REQUEST.value(),
+				"유효성 검사에 실패하였습니다.",
+				Map.of(e.getName(), "입력 형식이 올바르지 않습니다.")));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
