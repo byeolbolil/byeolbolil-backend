@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>별볼일</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;800&family=Gothic+A1:wght@400;600;800&family=Nanum+Myeongjo:wght@700;800&family=Hahmlet:wght@500;700&family=Orbit&family=Do+Hyeon&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: 모바일은 한 줄(최대 720px), PC(1080px 이상)는 왼쪽 야간광 지도 + 오른쪽 추천 패널. 세부 정보는 접어 둠.
+   밤하늘 서비스라 다크 단일 테마로 고정. 목업 도구는 오른쪽 아래 떠 있는 버튼 안. */
+:root {
+  color-scheme: dark;
+  --night-0: oklch(0.12 0.03 268);
+  --night-1: oklch(0.155 0.04 268);
+  --night-2: oklch(0.2 0.045 270);
+  --night-3: oklch(0.25 0.05 272);
+  --hair: oklch(0.34 0.04 270 / 0.55);
+  --ink: oklch(0.96 0.012 90);
+  --ink-2: oklch(0.8 0.02 265);
+  --ink-3: oklch(0.62 0.03 265);
+  --star: oklch(0.88 0.12 86);
+  --star-dim: oklch(0.88 0.12 86 / 0.22);
+  --dusk: oklch(0.42 0.11 305);
+  --sky-clear: oklch(0.8 0.09 210);
+  --cloud: oklch(0.74 0.02 262);
+  --warn: oklch(0.8 0.11 62);
+  --scrim: oklch(0.1 0.03 268 / 0.85);
+  --font-display: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-ui: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+.app[data-red="1"] {
+  --night-0: oklch(0.08 0.02 28);
+  --night-1: oklch(0.1 0.03 28);
+  --night-2: oklch(0.13 0.04 28);
+  --night-3: oklch(0.16 0.05 28);
+  --hair: oklch(0.28 0.07 28 / 0.6);
+  --ink: oklch(0.66 0.19 28);
+  --ink-2: oklch(0.54 0.16 28);
+  --ink-3: oklch(0.44 0.12 28);
+  --star: oklch(0.64 0.21 28);
+  --star-dim: oklch(0.64 0.21 28 / 0.25);
+  --dusk: oklch(0.3 0.1 28);
+  --sky-clear: oklch(0.58 0.18 28);
+  --cloud: oklch(0.42 0.1 28);
+  --warn: oklch(0.6 0.2 28);
+}
+.app[data-red="1"] canvas { filter: grayscale(1) sepia(1) saturate(6) hue-rotate(-40deg) brightness(.7); }
+
+* { box-sizing: border-box; }
+html, body { background: var(--night-0); color: var(--ink); }
+body { font-family: var(--font-ui); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--star); outline-offset: 3px; border-radius: 6px; }
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 8px 96px;
+  background: var(--night-0);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* header */
+.top { display: flex; align-items: center; gap: 12px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
+.brand svg { width: 20px; height: 20px; }
+.where { margin-left: auto; border: 0; background: var(--night-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--ink-2); cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.gear { border: 0; background: var(--night-2); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+.gear svg { width: 18px; height: 18px; }
+.nav { display: flex; gap: 22px; border-bottom: 1px solid var(--hair); margin-bottom: 18px; }
+.nav button { border: 0; background: none; padding: 8px 0 10px; font-size: 14.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.nav button[aria-selected="true"] { color: var(--ink); border-color: var(--star); font-weight: 600; }
+
+.view { display: flex; flex-direction: column; gap: 22px; }
+
+/* night picker */
+.nights { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.nights button { flex: 0 0 auto; border: 0; background: none; padding: 6px 12px; border-radius: 999px; font-size: 13.5px; color: var(--ink-3); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.nights button[aria-pressed="true"] { background: var(--night-2); color: var(--ink); }
+.nights .mini-stars { display: inline-flex; gap: 1px; }
+.nights .mini-stars svg { width: 8px; height: 8px; }
+
+/* tonight card */
+.tonight { border-radius: 22px; overflow: hidden; background: var(--night-1); box-shadow: 0 1px 0 var(--hair) inset, 0 30px 60px -30px oklch(0.05 0.03 268 / .8); }
+.sky { position: relative; aspect-ratio: 16 / 10; max-height: 360px; width: 100%; max-width: 100%; background: var(--night-0); }
+@media (max-width: 520px) { .sky { aspect-ratio: 4 / 3.6; } }
+.sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sky .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; display: block; }
+.sky .photo-credit { text-decoration: none; z-index: 1; }
+.sky .photo-credit { position: absolute; right: 10px; top: 10px; font-size: 10px; color: oklch(0.9 0.01 265 / .7); background: oklch(0.1 0.03 268 / .45); padding: 1px 7px; border-radius: 999px; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app[data-red="1"] .sky .photo { filter: grayscale(1) sepia(1) saturate(6) hue-rotate(-40deg) brightness(.6); }
+.sky-text { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; flex-direction: column; gap: 4px; text-shadow: 0 1px 12px oklch(0.08 0.03 268); }
+.eyebrow { font-size: 12.5px; color: var(--ink-2); letter-spacing: 0.06em; }
+.sky-text h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6.4vw, 44px); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance; }
+.sky-text .sub { font-size: 13.5px; color: var(--ink-2); }
+.rating { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--star); font-weight: 500; }
+.rating .stars { display: inline-flex; gap: 2px; }
+.rating .stars svg { width: 15px; height: 15px; }
+.rating.cloudy { color: var(--ink-2); }
+.sky .rating { position: absolute; top: 18px; left: 22px; background: var(--scrim); padding: 5px 12px 5px 10px; border-radius: 999px; backdrop-filter: blur(6px); }
+
+.tonight-body { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
+.time-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.time-row .label { font-size: 13px; color: var(--ink-3); }
+.bigtime { font-family: var(--font-display); font-size: clamp(24px, 5vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.hours { font-size: 14px; color: var(--sky-clear); }
+
+.band svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.band-axis { position: relative; height: 18px; font-size: 12px; color: var(--ink-3); }
+.band-axis span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.band-axis span:first-child { transform: none; left: 0 !important; }
+.band-axis span:last-child { transform: none; left: auto !important; right: 0; }
+@media (max-width: 420px) { .band-axis span:nth-child(2), .band-axis span:nth-child(4) { display: none; } }
+
+.quick { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .quick { grid-template-columns: minmax(0, 1fr); } }
+.quick li { display: flex; gap: 10px; align-items: center; font-size: 13.5px; color: var(--ink-2); background: var(--night-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.quick svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--star); }
+.quick b { color: var(--ink); font-weight: 600; display: block; font-size: 13.5px; }
+.quick span { display: block; font-size: 12px; color: var(--ink-3); }
+
+.tip { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.7; max-width: 62ch; }
+.tip::before { content: "오늘의 한마디"; display: block; font-size: 12px; color: var(--ink-3); margin-bottom: 2px; }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 0; border-radius: 12px; padding: 11px 18px; font-size: 14px; cursor: pointer; background: var(--night-2); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.btn.primary { background: var(--star); color: var(--night-0); font-weight: 600; }
+.btn.ghost { background: none; color: var(--ink-2); padding-inline: 8px; }
+.btn.ghost svg { width: 14px; height: 14px; transition: transform .2s; }
+.btn.ghost[aria-expanded="true"] svg { transform: rotate(180deg); }
+.actions .spacer { flex: 1; }
+
+/* expert area */
+.more { border-top: 1px solid var(--hair); padding-top: 18px; display: flex; flex-direction: column; gap: 16px; }
+.more h3 { margin: 0; font-size: 13px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.02em; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fact { background: var(--night-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.fact .k { font-size: 12px; color: var(--ink-3); }
+.fact .v { font-family: var(--font-num); font-size: 16px; font-weight: 500; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.fact .s { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.chart-wrap { overflow-x: auto; }
+.chart-wrap svg { display: block; width: 100%; min-width: 540px; height: auto; }
+.rule { font-size: 13px; color: var(--ink-2); background: var(--night-2); border-radius: 12px; padding: 12px 14px; margin: 0; line-height: 1.7; }
+.rule b { color: var(--ink); font-weight: 600; }
+.linkish { border: 0; background: none; color: var(--star); padding: 0; cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* list */
+.sec { display: flex; flex-direction: column; gap: 6px; }
+.sec-title { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.sec-title h2 { margin: 0; font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+.sec-title p { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+.rows { display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; width: 100%; text-align: left; border: 0; background: none; border-bottom: 1px solid var(--hair); padding: 14px 2px; cursor: pointer; }
+.row:hover .row-name { color: var(--star); }
+.row-name { font-size: 15.5px; font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row-sub { font-size: 13px; color: var(--ink-3); }
+.row .rating { justify-self: end; font-size: 12.5px; }
+.row .rating .stars svg { width: 13px; height: 13px; }
+.row .x { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-top: 8px; }
+.row .score { font-family: var(--font-num); font-size: 12px; color: var(--ink-3); }
+.mine { font-size: 11px; font-weight: 500; color: var(--star); border: 1px solid var(--star-dim); padding: 0 7px; border-radius: 999px; }
+.note { font-size: 12px; color: var(--warn); }
+.showmore { align-self: flex-start; border: 0; background: none; color: var(--ink-2); font-size: 13.5px; cursor: pointer; padding: 12px 2px; }
+.strip { display: grid; grid-template-columns: repeat(13, minmax(8px, 1fr)); gap: 2px; }
+.strip i { height: 10px; border-radius: 2px; background: var(--night-3); display: block; }
+
+/* empty */
+.calm { margin: 0; font-size: 14.5px; color: var(--ink-2); line-height: 1.7; }
+
+/* desktop: 왼쪽 야간광 지도, 오른쪽 추천 패널 */
+.mapcol { display: none; }
+@media (min-width: 1080px) {
+  .app { max-width: 1480px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 28px; align-items: start; }
+  .mapcol { display: block; position: sticky; top: 12px; height: calc(100vh - 120px); min-height: 560px; }
+  .nav [data-tab="map"] { display: none; }
+  .quick { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .quick li { padding: 8px 12px; }
+  .quick li div { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+}
+
+/* map */
+.mapwrap { position: relative; border-radius: 22px; overflow: hidden; background: #060916; box-shadow: 0 1px 0 var(--hair) inset; }
+.mapcol .mapwrap { height: 100%; container-type: size; display: grid; place-items: center; }
+.mapimg { position: relative; width: 100%; aspect-ratio: 1100 / 1203; cursor: crosshair; }
+.mapcol .mapimg { width: min(100cqw, calc(100cqh * 1100 / 1203)); }
+.mapimg > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
+.pin { position: absolute; border: 0; background: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; transform: translate(-10px, -50%); color: var(--ink); }
+.pin.l { flex-direction: row-reverse; transform: translate(calc(-100% + 10px), -50%); }
+.pin .mk { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; position: relative; }
+.pin .mk svg { width: 100%; height: 100%; filter: drop-shadow(0 0 5px oklch(0.88 0.12 86 / .8)); }
+.pin .dot0 { width: 8px; height: 8px; border-radius: 50%; background: var(--cloud); opacity: .7; }
+.pin .pl { font-size: 12px; font-weight: 500; background: oklch(0.11 0.03 268 / .8); border-radius: 999px; padding: 2px 9px; white-space: nowrap; backdrop-filter: blur(4px); }
+.pin.ru .pl { transform: translateY(-11px); }
+.pin.rd .pl { transform: translateY(11px); }
+.pin.sel .mk { width: 30px; height: 30px; }
+.pin.sel { transform: translate(-15px, -50%); }
+.pin.sel.l { transform: translate(calc(-100% + 15px), -50%); }
+.pin.sel .pl { background: var(--star); color: var(--night-0); font-weight: 600; }
+.pin.sel .mk::before { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 1.5px solid var(--star); opacity: .6; }
+@media (prefers-reduced-motion: no-preference) { .pin.sel .mk::before { animation: ping 2.4s ease-out infinite; } }
+@keyframes ping { from { transform: scale(.6); opacity: .8; } to { transform: scale(1.6); opacity: 0; } }
+.pin:hover .pl { color: var(--star); }
+.pin.sel:hover .pl { color: var(--night-0); }
+.pick { position: absolute; width: 14px; height: 14px; border: 2px solid var(--sky-clear); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.map-card { position: absolute; background: oklch(0.11 0.03 268 / .78); backdrop-filter: blur(8px); border-radius: 14px; padding: 10px 14px; font-size: 12.5px; color: var(--ink-2); max-width: min(320px, calc(100% - 28px)); }
+.map-card b { color: var(--ink); font-weight: 600; }
+.map-card.tl { top: 14px; left: 14px; }
+.map-card.bl { bottom: 14px; left: 14px; }
+.map-card .ramp { height: 6px; border-radius: 3px; margin: 6px 0 4px; background: linear-gradient(90deg, #0b0f22, #3a2c22, #b8814a, #ffe9c9); }
+.map-card .rl { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); }
+.map-card .credit { font-size: 10.5px; color: var(--ink-3); margin-top: 4px; }
+@media (max-width: 720px) {
+  .map-card.tl { display: none; }
+  .map-card.bl { font-size: 11.5px; padding: 8px 10px; }
+  .pin .pl { font-size: 11px; padding: 1px 7px; }
+  .pin:not(.sel):not(.top) .pl { display: none; }
+}
+
+/* 지도 확대/이동, 레이어 */
+.mapimg { overflow: hidden; touch-action: pan-y; }
+.mapimg.zoomed { touch-action: none; cursor: grab; }
+.mapimg.dragging { cursor: grabbing; }
+.mapzoom { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+.mapzoom.anim { transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+.mapzoom > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; transition: opacity .5s ease; }
+.mapzoom > img.base { opacity: 0; }
+.mapimg[data-layer="base"] .mapzoom > img.base { opacity: 1; }
+.mapimg[data-layer="base"] .mapzoom > img.night { opacity: 0; }
+.pin, .city { scale: var(--iz, 1); }
+.pin { transform-origin: 10px 50%; }
+.pin.l { transform-origin: calc(100% - 10px) 50%; }
+.city { position: absolute; transform: translate(-50%, -50%); font-size: 11px; color: #4a5568; font-weight: 600; pointer-events: none; opacity: 0; transition: opacity .4s; text-shadow: 0 0 3px #f3f0e9, 0 0 3px #f3f0e9; white-space: nowrap; }
+.city.c2 { font-size: 10px; font-weight: 500; color: #6b7280; }
+.mapimg[data-layer="base"] .city { opacity: 1; }
+.mapimg[data-layer="base"] .pin .pl { background: oklch(0.2 0.04 268 / .85); }
+.map-ctl { position: absolute; top: 14px; right: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; z-index: 2; pointer-events: none; }
+.map-ctl > * { pointer-events: auto; }
+.mapcol .map-ctl { top: auto; bottom: 14px; flex-direction: column-reverse; }
+@media (max-width: 1079px) { .map-ctl .seg { flex-direction: column; border-radius: 14px; } .map-ctl .seg button { border-radius: 10px; } }
+.map-ctl .seg { background: oklch(0.11 0.03 268 / .8); backdrop-filter: blur(8px); border-radius: 999px; padding: 3px; gap: 2px; }
+.map-ctl .seg button { border: 0; padding: 5px 12px; font-size: 12px; }
+.zoom-btns { display: flex; flex-direction: column; background: oklch(0.11 0.03 268 / .8); backdrop-filter: blur(8px); border-radius: 12px; overflow: hidden; }
+.zoom-btns button { border: 0; background: none; width: 34px; height: 32px; font-size: 16px; cursor: pointer; color: var(--ink); }
+.zoom-btns button + button { border-top: 1px solid var(--hair); }
+.zoom-btns button:hover { background: var(--night-3); }
+.peek { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--night-1); border-radius: 16px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; box-shadow: 0 10px 30px oklch(0.05 0.02 268 / .6); z-index: 3; }
+@media (prefers-reduced-motion: no-preference) { .peek { animation: up .3s cubic-bezier(.2,.7,.2,1); } @keyframes up { from { transform: translateY(30px); opacity: 0; } } }
+.peek .nm { font-weight: 600; font-size: 16px; }
+.mapwrap:has(.peek) .map-card.bl { display: none; }
+.peek .sb { font-size: 13px; color: var(--ink-3); grid-column: 1; }
+.peek .btn { grid-row: 1 / 3; grid-column: 2; }
+
+/* 구름 지도 */
+.mapstack { display: flex; flex-direction: column; gap: 10px; }
+.mapcol .mapstack { height: 100%; }
+.mapcol .mapstack .mapwrap { flex: 1; min-height: 0; }
+.cloudcv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .5s; filter: blur(2px); }
+.mapimg[data-layer="cloud"] .cloudcv { opacity: 1; }
+.mapimg[data-layer="cloud"] .mapzoom > img.night { opacity: .55; filter: saturate(.5) brightness(.75); }
+.route { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; display: none; }
+.mapimg[data-layer="cloud"] .route { display: block; }
+.car, .origin { position: absolute; transform: translate(-50%, -50%); pointer-events: none; display: none; scale: var(--iz, 1); }
+.mapimg[data-layer="cloud"] .car.on, .mapimg[data-layer="cloud"] .origin { display: block; }
+.car { width: 14px; height: 14px; border-radius: 50%; background: var(--sky-clear); box-shadow: 0 0 0 4px oklch(0.8 0.09 210 / .3), 0 0 14px var(--sky-clear); }
+.origin { font-size: 11px; background: var(--ink); color: var(--night-0); padding: 1px 7px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.pin .cc { display: none; margin-left: 6px; font-family: var(--font-num); font-size: 10.5px; color: var(--sky-clear); }
+.mapimg[data-layer="cloud"] .pin .cc { display: inline; }
+.timebar { display: none; align-items: center; gap: 12px; background: var(--night-1); border-radius: 14px; padding: 10px 14px; }
+.mapstack.cloud .timebar { display: flex; }
+.timebar button { border: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--star); color: var(--night-0); cursor: pointer; font-size: 13px; flex: 0 0 auto; }
+.timebar input { flex: 1; min-width: 0; accent-color: var(--sky-clear); }
+.timebar .tl { font-size: 13px; min-width: 92px; text-align: right; font-variant-numeric: tabular-nums; }
+.route-card { max-width: min(340px, calc(100% - 28px)); display: flex; flex-direction: column; gap: 6px; }
+.route-card .rt { font-size: 14px; color: var(--ink); font-weight: 600; }
+.route-card .row3 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.route-card .btn { padding: 7px 12px; font-size: 12.5px; border-radius: 10px; }
+.route-card .alert { color: var(--warn); font-weight: 700; font-size: 14px; }
+.route-card .alt { background: var(--night-2); border-radius: 10px; padding: 8px 10px; color: var(--ink-2); }
+.route-card .alt b { color: var(--ink); }
+.route-card .tiny { font-size: 11px; color: var(--ink-3); }
+.route-static { max-width: none; background: var(--night-1); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+@media (prefers-reduced-motion: no-preference) { .route-card .alert { animation: pulse 1.6s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .55; } } }
+
+/* 이번 주 */
+.week { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; }
+.wk { flex: 0 0 108px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; border: 1px solid var(--hair); background: var(--night-1); border-radius: 14px; padding: 10px 12px; cursor: pointer; transition: transform .15s, border-color .2s; }
+.wk:hover { transform: translateY(-2px); border-color: var(--ink-3); }
+.wk.on { border-color: var(--ink-2); }
+.wk.best { border-color: var(--star); box-shadow: 0 0 0 1px var(--star) inset, 0 8px 24px -12px var(--star); }
+.wk .wd { font-weight: 700; font-size: 15px; display: flex; gap: 6px; align-items: baseline; }
+.wk .wd small { font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+.wk .ws { display: inline-flex; gap: 1px; height: 14px; color: var(--ink-3); }
+.wk .ws svg { width: 13px; height: 13px; }
+.wk .wp { font-size: 12.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.wk .wt { font-size: 11.5px; color: var(--ink-3); min-height: 1em; }
+.wk .wc { font-size: 10.5px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--hair); color: var(--ink-3); }
+.wk .wc.c-높음 { color: var(--sky-clear); border-color: oklch(from var(--sky-clear) l c h / .4); }
+.wk .wc.c-낮음 { color: var(--warn); border-color: oklch(from var(--warn) l c h / .4); }
+
+/* 밤 띠 훑기 */
+.band { position: relative; cursor: ew-resize; touch-action: pan-y; }
+.band-cursor { position: absolute; top: 14px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; pointer-events: none; opacity: .9; }
+.band-tip { position: absolute; bottom: calc(100% + 2px); transform: translateX(-50%); background: var(--ink); color: var(--night-0); font-size: 12.5px; padding: 5px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none; font-weight: 500; box-shadow: 0 6px 16px oklch(0.05 0.02 268 / .5); }
+.band-tip b { font-weight: 700; }
+.band-hint { font-size: 11.5px; color: var(--ink-3); text-align: right; margin-top: 2px; }
+
+/* 하늘 시차 효과, 등장 효과 */
+.sky .photo, .sky canvas { transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.sky:hover .photo, .sky:hover canvas { transform: scale(1.05) translate(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -8px)); }
+@media (prefers-reduced-motion: no-preference) {
+  .rating .stars svg { animation: pop .5s cubic-bezier(.3,1.6,.5,1) both; }
+  .rating .stars svg:nth-child(2) { animation-delay: .08s; }
+  .rating .stars svg:nth-child(3) { animation-delay: .16s; }
+  @keyframes pop { from { transform: scale(0) rotate(-40deg); opacity: 0; } }
+  .pin { animation: pinin .5s cubic-bezier(.3,1.4,.5,1) both; }
+  @keyframes pinin { from { opacity: 0; scale: .3; } }
+  .row { transition: background .2s, padding .2s; }
+  .row:hover { background: oklch(from var(--night-2) l c h / .5); padding-inline: 10px; border-radius: 10px; }
+  .bigtime { animation: rise .5s .1s both; }
+  .btn { transition: transform .15s, filter .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn.primary:hover { filter: brightness(1.08); }
+}
+
+/* 모바일 하단 탭 */
+.nav .ico { display: none; }
+@media (max-width: 1079px) {
+  .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; margin: 0; border: 0; border-top: 1px solid var(--hair); background: oklch(0.12 0.03 268 / .92); backdrop-filter: blur(14px); justify-content: space-around; gap: 0; padding: 6px max(12px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+  .nav button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; padding: 4px 14px; border: 0; margin: 0; }
+  .nav .ico { display: block; width: 22px; height: 22px; }
+  .nav button[aria-selected="true"] { color: var(--star); font-weight: 600; }
+  body .tools-btn { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .map-ctl { top: 10px; right: 10px; }
+  .map-ctl .seg button { padding: 4px 10px; font-size: 11.5px; }
+  .zoom-btns button { width: 30px; height: 28px; }
+  .app { padding-bottom: 120px; }
+}
+@media (min-width: 1080px) { .nav .only-m { display: none; } }
+
+/* sheets */
+.sheet-back { position: fixed; inset: 0; background: oklch(0.05 0.02 268 / 0.6); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+@media (min-width: 720px) { .sheet-back { align-items: center; } }
+.sheet {
+  background: var(--night-1); color: var(--ink);
+  width: min(560px, 100%); max-height: 86vh; overflow: auto;
+  border-radius: 22px 22px 0 0;
+  padding: 22px max(20px, env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 20px;
+}
+@media (min-width: 720px) { .sheet { border-radius: 22px; } }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.sheet-head h2 { margin: 0; font-family: var(--font-display); font-size: 21px; }
+.x-btn { border: 0; background: var(--night-2); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; color: var(--ink-2); font-size: 16px; }
+.q { display: flex; flex-direction: column; gap: 8px; }
+.q > label, .q > .ql { font-size: 14px; font-weight: 600; }
+.q .hint { font-size: 12.5px; color: var(--ink-3); margin-top: -4px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--hair); background: none; border-radius: 999px; padding: 6px 13px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--night-0); border-color: var(--ink); font-weight: 600; }
+details.adv { border-top: 1px solid var(--hair); padding-top: 14px; }
+details.adv summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+details.adv[open] summary { margin-bottom: 14px; }
+.ctrl { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.ctrl label { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.ctrl output { font-family: var(--font-num); color: var(--ink); font-size: 12.5px; }
+.ctrl input { width: 100%; accent-color: var(--star); }
+.src { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.src li { background: var(--night-2); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.src li b { color: var(--ink); display: block; font-size: 13.5px; margin-bottom: 2px; }
+.src .tag { font-size: 11px; color: var(--warn); border: 1px solid oklch(from var(--warn) l c h / .4); border-radius: 4px; padding: 0 5px; margin-left: 6px; font-weight: 500; }
+.src a { color: var(--star); }
+
+/* mock tools */
+.tools-btn { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30; border: 1px dashed var(--ink-3); background: var(--night-1); color: var(--ink-3); border-radius: 999px; padding: 6px 11px; font-size: 11.5px; cursor: pointer; opacity: .85; }
+.tools .qs { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.mock-note { font-size: 12.5px; color: var(--ink-3); margin: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .view > * { animation: rise .35s ease-out both; }
+  .view > *:nth-child(2) { animation-delay: .05s; }
+  .view > *:nth-child(3) { animation-delay: .1s; }
+  @keyframes rise { from { opacity: .3; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+<div class="app" id="app" data-red="0">
+  <header class="top">
+    <div class="brand"><svg viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0,-9 L2.2,-2.2 L9,0 L2.2,2.2 L0,9 L-2.2,2.2 L-9,0 L-2.2,-2.2 Z" fill="var(--star)"/></svg>별볼일</div>
+    <button class="where" id="whereBtn" title="출발 위치">서울 마포 기준</button>
+    <button class="gear" id="gearBtn" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+  </header>
+  <nav class="nav" id="nav" role="tablist">
+    <button role="tab" data-tab="tonight" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/><path d="M17 3v3M15.5 4.5h3"/></svg>오늘 밤</button>
+    <button role="tab" data-tab="map" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 4-5 2v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>지도</button>
+    <button role="tab" data-tab="mine" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>내 장소</button>
+    <button class="only-m" data-sheet="settings"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>설정</button>
+  </nav>
+  <div class="stage">
+    <section class="mapcol" id="mapcol" aria-label="광해 지도"></section>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+
+<!-- 설정 시트 (정적, 값만 동기화) -->
+<div class="sheet-back" id="settings" hidden>
+  <div class="sheet" role="dialog" aria-label="설정">
+    <div class="sheet-head"><h2>나에게 맞추기</h2><button class="x-btn" data-close aria-label="닫기">✕</button></div>
+    <div class="q"><div class="ql">보기 방식</div><div class="hint">자세히를 고르면 점수, 구름량, 광해 등급 같은 숫자를 함께 보여줘요.</div>
+      <div class="seg" id="segExpert"><button data-expert="0">간단히</button><button data-expert="1">자세히</button></div></div>
+    <div class="q"><div class="ql">몇 시까지 볼 수 있나요?</div><div class="hint">이 시간 전에 맑은 곳을 더 높게 추천해요.</div>
+      <div class="seg" id="segCut"><button data-cut="0">자정</button><button data-cut="1">새벽 1시</button><button data-cut="2">새벽 2시</button><button data-cut="3">새벽 3시</button><button data-cut="7">밤새</button></div></div>
+    <div class="q"><div class="ql">얼마나 멀리 갈 수 있나요?</div><div class="hint">출발 위치에서 차로 걸리는 시간이에요.</div>
+      <div class="seg" id="segTravel"><button data-travel="1">1시간</button><button data-travel="2">2시간</button><button data-travel="3">3시간</button><button data-travel="9">상관없어요</button></div></div>
+    <details class="adv">
+      <summary>고급 기준</summary>
+      <div class="ctrl"><label for="rClear">맑다고 볼 구름량 <output id="oClear"></output></label><input type="range" id="rClear" min="10" max="60" step="5" value="30"></div>
+      <div class="ctrl"><label for="rRun">"꼭 가볼 만해요"에 필요한 맑은 시간 <output id="oRun"></output></label><input type="range" id="rRun" min="1" max="6" step="1" value="3"></div>
+      <div class="ctrl"><label for="rPen">거리 감점 (1시간당) <output id="oPen"></output></label><input type="range" id="rPen" min="0" max="12" step="1" value="4"></div>
+      <div class="q"><div class="ql">적색 화면</div><div class="hint">현장에서 어둠에 익은 눈을 지켜줘요.</div><div class="seg" id="segRed"><button data-red="0">끄기</button><button data-red="1">켜기</button></div></div>
+    </details>
+    <button class="linkish" data-sheet="sources">추천 기준과 출처 보기</button>
+  </div>
+</div>
+
+<!-- 기준과 출처 시트 -->
+<div class="sheet-back" id="sources" hidden>
+  <div class="sheet" role="dialog" aria-label="추천 기준과 출처">
+    <div class="sheet-head"><h2>추천 기준과 출처</h2><button class="x-btn" data-close aria-label="닫기">✕</button></div>
+    <p class="mock-note">별볼일이 쓰는 기준값과 그 근거예요. 근거를 찾지 못한 값은 그렇다고 표시해요.</p>
+    <ul class="src" id="srcList"></ul>
+  </div>
+</div>
+
+<!-- 목업 도구 -->
+<button class="tools-btn" id="toolsBtn">목업 도구</button>
+<div class="sheet-back" id="tools" hidden>
+  <div class="sheet tools" role="dialog" aria-label="목업 도구">
+    <div class="sheet-head"><h2>목업 도구</h2><button class="x-btn" data-close aria-label="닫기">✕</button></div>
+    <p class="mock-note">실제 서비스에는 없는 패널이에요. 장소 이름은 실제지만 구름, 이동 시간, 점수는 예시예요.</p>
+    <div class="q"><div class="ql">시나리오</div><div class="seg" id="segScn"><button data-scn="good">좋은 밤 (그믐 무렵)</button><button data-scn="full">보름달 밤 (11/24 실제)</button><button data-scn="cloudy">전국 흐림</button></div></div>
+    <div class="q"><div class="ql">로그인</div><div class="seg" id="segLogin"><button data-login="1">로그인</button><button data-login="0">비로그인</button></div></div>
+    <div class="q"><div class="ql">예보 단위</div><div class="hint">지금 쓰는 OpenWeather 무료 예보는 3시간 간격이라 맑은 구간이 뭉개져요.</div><div class="seg" id="segRes"><button data-res="1">1시간</button><button data-res="3">3시간 (현재)</button></div></div>
+    <div class="q"><div class="ql">글꼴 고르기</div><div class="hint">마음에 드는 조합을 알려주세요. 실제 서비스에서는 Pretendard처럼 Google Fonts에 없는 글꼴도 쓸 수 있어요.</div><div class="seg" id="segFont"><button data-font="b">노토 산스</button><button data-font="a">고운바탕 + 플렉스</button><button data-font="c">고딕 A1</button><button data-font="d">나눔명조 + 노토</button><button data-font="e">함렛 + 노토</button><button data-font="f">오르빗</button><button data-font="g">도현 + 고운돋움</button></div></div>
+    <div class="q"><div class="ql">피드백 받고 싶은 것</div>
+      <ol class="qs">
+        <li>첫 화면에 1곳만 크게 보여주고 나머지는 3곳 목록으로 줄였어요. 정보량이 이 정도면 괜찮나요?</li>
+        <li>점수(0–100) 대신 별 3개 등급과 "꼭 가볼 만해요" 같은 말을 썼어요. 점수는 "자세히"에서만 보여요.</li>
+        <li>설정에서 "몇 시까지 볼 수 있나요?", "얼마나 멀리 갈 수 있나요?"처럼 질문으로 묻는 방식은 어떤가요?</li>
+        <li>밤하늘 그림은 광해, 달, 구름에 따라 별의 수와 은하수가 달라져요. 더 강조할까요, 줄일까요?</li>
+        <li>비로그인 사용자에게도 추천 명소 순위를 보여줄까요?</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- 예시 데이터 ----------
+  const H = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6];
+  // 11월 말 서울: 천문박명 끝 약 18:45, 시작 약 05:47 → 19~05시 칸을 어두운 시간으로 봄
+  const DARK = H.map((h, i) => i >= 1 && i <= 11);
+  const NIGHTS = ["오늘 밤", "내일 밤", "목요일", "금요일", "토요일", "일요일", "월요일"];
+  const DATES = ["11/24", "11/25", "11/26", "11/27", "11/28", "11/29", "11/30"];
+  // 멀리 볼수록 구름 예보 오차가 커짐 (Ye & Chen 2013). 구간 나누기는 별볼일 정책
+  const confOf = (d) => (d <= 1 ? "높음" : d <= 3 ? "보통" : "낮음");
+
+  const PLACES = [
+    { id: "jkc", name: "조경철천문대", region: "강원 화천", type: "spot", lat: 38.12, lon: 127.43, bortle: 3, travel: 130, hum: 58, cloud: [5, 5, 10, 10, 15, 10, 20, 25, 35, 45, 55, 60, 70] },
+    { id: "mhj", name: "만항재", region: "강원 정선", type: "spot", lat: 37.15, lon: 128.92, bortle: 3, travel: 210, hum: 62, cloud: [80, 70, 60, 40, 20, 10, 5, 5, 5, 0, 0, 5, 10] },
+    { id: "abd", name: "안반데기", region: "강원 강릉", type: "spot", lat: 37.62, lon: 128.74, bortle: 3, travel: 170, hum: 66, cloud: [20, 15, 10, 25, 60, 80, 80, 70, 40, 20, 10, 10, 15] },
+    { id: "yy", name: "반딧불이천문대", region: "경북 영양", type: "spot", lat: 36.65, lon: 129.12, bortle: 2, travel: 260, hum: 55, cloud: [10, 5, 5, 0, 0, 5, 10, 10, 20, 40, 60, 70, 70] },
+    { id: "jms", name: "중미산천문대", region: "경기 양평", type: "spot", lat: 37.59, lon: 127.42, bortle: 5, travel: 70, hum: 71, cloud: [40, 30, 20, 20, 25, 40, 60, 70, 80, 80, 90, 90, 90] },
+    { id: "bhs", name: "보현산천문대", region: "경북 영천", type: "spot", lat: 36.16, lon: 128.98, bortle: 3, travel: 240, hum: 80, cloud: [90, 90, 90, 85, 80, 85, 90, 90, 95, 95, 90, 90, 90] },
+    { id: "hmh", name: "호명호수", region: "경기 가평", type: "bookmark", lat: 37.73, lon: 127.48, bortle: 4, travel: 90, hum: 64, cloud: [10, 10, 15, 20, 25, 35, 50, 60, 70, 80, 80, 85, 90] },
+    { id: "home", name: "우리집 옥상", region: "서울 마포", type: "bookmark", custom: true, lat: 37.55, lon: 126.91, bortle: 8, travel: 0, hum: 60, cloud: [5, 5, 5, 10, 10, 10, 15, 15, 20, 20, 20, 20, 25] },
+    { id: "sdr", name: "신두리 해안사구", region: "충남 태안", type: "bookmark", lat: 36.84, lon: 126.20, bortle: 4, travel: 140, hum: 78, cloud: [60, 70, 80, 90, 90, 90, 80, 70, 50, 25, 20, 10, 10] }
+  ];
+
+  // Bortle(2001)이 붙인 등급 이름을 우리말로 옮김
+  const BORTLE_NAME = ["", "아주 어두운 하늘", "진짜 어두운 하늘", "시골 하늘", "시골과 교외 사이", "교외 하늘", "밝은 교외 하늘", "교외와 도시 사이", "도시 하늘", "도심 하늘"];
+
+  // 기준값과 근거. 상태: "" 출처 있음, 근사, 추정, 정책, 출처 없음
+  const SOURCES = [
+    { k: "어두운 시간", v: "태양이 지평선 아래 12°보다 낮아지면 대부분의 사람에게 하늘이 어둡게 느껴지고 밝은 별과 별자리가 잘 보여요. 은하수나 성운처럼 희미하게 퍼진 대상은 18° 아래(천문박명이 끝난 뒤)까지 기다려야 해요.", links: [["U.S. Naval Observatory, Rise, Set, and Twilight Definitions", "https://aa.usno.navy.mil/faq/RST_defs"], ["NOAA National Weather Service, Twilight", "https://www.weather.gov/fsd/twilight"]], status: "" },
+    { k: "맑다고 볼 구름량: 30% 이하", v: "Clear Sky Chart는 구름이 30% 이하인 시간만 관측 가능한 시간으로 세요. 별볼일도 같은 기준을 써요.", links: [["Clear Sky Chart, 기후 통계 설명", "https://server1.cleardarksky.com/clmt/c/Dallasct.html"]], status: "" },
+    { k: "\"구름 거의 없음\": 20% 미만", v: "7Timer!가 구름 20% 미만을 '맑음'으로 분류해요.", links: [["7Timer! 문서", "https://www.7timer.info/doc.php?lang=en"]], status: "" },
+    { k: "예보를 얼마나 믿을 수 있나", v: "구름 예보의 오차가 30% 안에 들 확률은 예보 시점이 멀어질수록 73%에서 58%로 떨어지고, 층별(하층, 중층, 상층) 구름은 더 부정확해요. 그래서 이틀 뒤부터는 '참고용'으로 표시할 계획이에요.", links: [["Ye & Chen, How Good is the Cloud Cover Forecast?, MNRAS 428, 2013", "https://arxiv.org/abs/1104.1700"]], status: "" },
+    { k: "달빛의 밝기", v: "달빛은 빛나는 면적에 비례하지 않아요. 반달은 면적이 절반이지만 밝기는 보름달의 약 9%예요. 위상각으로 보름 대비 밝기를 계산해서 써요.", links: [["Krisciunas & Schaefer, A Model of the Brightness of Moonlight, PASP 103, 1991", "https://doi.org/10.1086/132921"]], status: "" },
+    { k: "\"달이 밝아요\"로 한 단계 낮추는 기준", v: "보름 대비 밝기 25% 이상인 달이 추천 시간의 절반 넘게 떠 있으면 등급을 한 단계 내려요. 밝기 계산은 위 논문을 따르지만 25%라는 경계는 별볼일이 정했어요.", links: [], status: "정책" },
+    { k: "하늘 밝기 등급 이름", v: "광해 정도를 1(가장 어두움)부터 9(도심)까지 나눈 Bortle 등급과 등급별 이름을 우리말로 옮겨 써요.", links: [["Bortle, Gauging Light Pollution: The Bortle Dark-Sky Scale, Sky & Telescope, 2001", "https://en.wikipedia.org/wiki/Bortle_scale"]], status: "" },
+    { k: "등급 ↔ 하늘 밝기(SQM) 대응", v: "Bortle은 원래 숫자 기준 없이 눈으로 본 모습으로 등급을 정했어요. 숫자 대응표는 여러 버전이 있고 서로 조금씩 달라서, 자연 하늘 대비 인공 밝기 비율로 정의된 Clear Sky Chart 표를 근사값으로 써요.", links: [["Clear Sky Chart, Bortle/SQM 표", "https://server1.cleardarksky.com/csk/faq/2.html"]], status: "근사" },
+    { k: "위성 야간광 → 광해 등급", v: "위성 값을 Bortle 등급으로 바로 바꾸는 공인된 표는 없어요. 위성 값은 그 자리에서 위로 나가는 빛이고, 하늘 밝기는 멀리 있는 도시 불빛까지 합친 값이라서 달라요. 인공 밝기 비율로 등급을 나누는 이 논문의 방식으로 바꾸는 것을 검토하고 있어요.", links: [["Falchi et al., The new world atlas of artificial night sky brightness, Science Advances, 2016", "https://pmc.ncbi.nlm.nih.gov/articles/PMC4928945/"]], status: "교체 검토" },
+    { k: "눈으로 보이는 별 개수", v: "하늘 밝기로 눈의 한계등급을 계산하고, 그보다 밝은 별 개수를 별 목록에서 세요. 한 번에 보이는 하늘(고도 10° 이상)만큼 비율을 곱한 값이라 실제와 차이가 있을 수 있어요.", links: [["Unihedron, NELM 계산식 (Schaefer 1990 기반)", "https://www.unihedron.com/projects/darksky/NELM2BCalc.html"], ["Yale Bright Star Catalogue 5판 (Hoffleit & Warren 1991)", "http://tdc-www.harvard.edu/catalogs/bsc5.html"]], status: "추정" },
+    { k: "습도와 이슬: 80% 이상이면 주의", v: "7Timer!는 습도 80%, 90%, 95%에서 단계별로 경고해요. 별볼일은 80%부터 이슬 주의를 띄워요.", links: [["7Timer! 문서", "https://www.7timer.info/doc.php?lang=en"], ["Celestron, Dew point and astronomy", "https://www.celestron.com/blogs/knowledgebase/what-is-the-dew-point-and-why-does-it-matter-for-astronomy"]], status: "" },
+    { k: "눈이 어둠에 익는 시간", v: "어둠에 들어가면 5~8분 뒤 눈의 감도가 크게 바뀌고, 완전히 적응하는 데 40분쯤 걸려요.", links: [["Kalloniatis & Luu, Light and Dark Adaptation, Webvision", "https://www.webvision.pitt.edu/book/part-viii-psychophysics-of-vision/light-and-dark-adaptation/"]], status: "" },
+    { k: "이번 주 예보 신뢰도", v: "내일까지는 높음, 사흘 뒤까지는 보통, 그 뒤는 낮음으로 표시해요. 구름 예보는 멀리 볼수록 오차가 커진다는 연구를 근거로 했고, 구간을 나누는 기준은 별볼일이 정했어요.", links: [["Ye & Chen, How Good is the Cloud Cover Forecast?, MNRAS 428, 2013", "https://arxiv.org/abs/1104.1700"]], status: "정책" },
+    { k: "3시간 이상 맑으면 \"꼭 가볼 만해요\"", v: "맑은 시간 몇 시간 이상을 추천 기준으로 쓰는 서비스나 근거는 찾지 못했어요. 눈이 적응하는 40분쯤을 빼고도 2시간 넘게 볼 수 있도록 별볼일이 정한 값이고, 설정에서 바꿀 수 있어요.", links: [], status: "정책" },
+    { k: "새벽 2시 전 선호", v: "입문자가 무리 없이 다녀올 수 있는 시간대로 정한 값이에요. 설정에서 바꿀 수 있어요.", links: [], status: "정책" },
+    { k: "사진과 지도 데이터", v: "화면에 쓴 사진과 지도는 모두 재사용이 허락된 자료예요. 야간광 지도는 VIIRS 원본 값으로, 일반 지도는 Natural Earth로 별볼일이 직접 그렸어요.", links: [["사진: \"밤하늘의 은하수\", 이원웅(INSOLMAE), CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:%EB%B0%A4%ED%95%98%EB%8A%98%EC%9D%98_%EC%9D%80%ED%95%98%EC%88%98.jpg"], ["사진: \"덕유산의 밤\", Mg shin, CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:%EB%8D%95%EC%9C%A0%EC%82%B0%EC%9D%98_%EB%B0%A4.jpg"], ["사진: \"Night Clouds\", BLM Oregon and Washington, 퍼블릭 도메인", "https://commons.wikimedia.org/wiki/File:Night_Clouds_(11424694453).jpg"], ["야간광: VIIRS Nighttime Lights 2024, Earth Observation Group, Payne Institute", "https://eogdata.mines.edu/products/vnl/"], ["지도: Natural Earth (퍼블릭 도메인)", "https://www.naturalearthdata.com/"]], status: "" },
+    { k: "시간별 점수 계산식", v: "지금 목업의 점수는 기존 엔진의 계수(광해 6.25, 달 30 등)를 흉내 낸 값이에요. 이 계수들은 출처를 찾지 못해서 위 근거들로 다시 만들 예정이에요.", links: [], status: "출처 없음" }
+  ];
+
+  const S = { scenario: "good", login: true, res: 1, clear: 30, minRun: 3, cutoff: 2, maxTravel: 3, travelPen: 4, day: 0, tab: "tonight", detail: null, red: false, expert: false, more: false, showAll: false, pick: null };
+  S.layer = "night"; S.mz = { z: 1, tx: 0, ty: 0 }; S.peek = null; S.font = "b"; S.ct = null; S.playing = false; S.trip = null;
+  const FONTS = {
+    a: ['"Gowun Batang", serif', '"IBM Plex Sans KR", sans-serif'],
+    b: ['"Noto Sans KR", sans-serif', '"Noto Sans KR", sans-serif'],
+    c: ['"Gothic A1", sans-serif', '"Gothic A1", sans-serif'],
+    d: ['"Nanum Myeongjo", serif', '"Noto Sans KR", sans-serif'],
+    e: ['"Hahmlet", serif', '"Noto Sans KR", sans-serif'],
+    f: ['"Orbit", sans-serif', '"Orbit", sans-serif'],
+    g: ['"Do Hyeon", sans-serif', '"Gowun Dodum", sans-serif']
+  };
+  const CITIES = [["서울", 37.568, 126.998, 1], ["부산", 35.097, 129.008, 1], ["인천", 37.478, 126.64, 1], ["대구", 35.869, 128.605, 1], ["대전", 36.337, 127.423, 1], ["광주", 35.173, 126.908, 1], ["창원", 35.219, 128.584, 1], ["수원", 37.26, 127.009, 1], ["울산", 35.549, 129.315, 1], ["청주", 36.644, 127.501, 2], ["전주", 35.831, 127.14, 2], ["포항", 36.021, 129.372, 2], ["제주", 33.51, 126.522, 2], ["여수", 34.737, 127.746, 2], ["목포", 34.807, 126.396, 2], ["군산", 35.982, 126.716, 2], ["원주", 37.355, 127.94, 2], ["춘천", 37.875, 127.734, 2], ["강릉", 37.756, 128.896, 2], ["경주", 35.843, 129.212, 2], ["안동", 36.566, 128.725, 2], ["속초", 38.209, 128.591, 2]];
+  const LV = ["no", "maybe", "good", "strong"];
+  const LV_TEXT = { strong: "꼭 가볼 만해요", good: "가볼 만해요", maybe: "잠깐 볼 수 있어요", no: "오늘은 쉬어가요" };
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pad = (h) => String(h).padStart(2, "0");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1); if (c < 0xac00 || c > 0xd7a3) return b; return (c - 0xac00) % 28 ? a : b; };
+  function kt(h) { h = (h + 24) % 24; if (h === 0) return "자정"; if (h >= 17 && h <= 20) return "저녁 " + (h - 12) + "시"; if (h >= 21) return "밤 " + (h - 12) + "시"; if (h <= 5) return "새벽 " + h + "시"; if (h >= 12) return "오후 " + (h === 12 ? 12 : h - 12) + "시"; return "아침 " + h + "시"; }
+  const startH = (i) => H[i];
+  const endH = (i) => (H[i] + 1) % 24;
+  const winText = (a) => a.best ? kt(startH(a.best[0])) + " – " + kt(endH(a.best[1])) : "";
+  const cutIdx = () => Math.min(13, 6 + S.cutoff);
+  const travelText = (m) => { if (m === 0) return "지금 있는 곳"; const h = Math.floor(m / 60), mm = m % 60; return "차로 " + (h ? h + "시간" : "") + (h && mm ? " " : "") + (mm ? mm + "분" : ""); };
+
+  function genClouds(p, d) {
+    const base = p.cloud, k = (d * 5 + p.id.length * 3) % 13;
+    return base.map((_, i) => clamp(Math.round(base[(i + k) % 13] * 0.7 + ((d * 37 + i * 11 + p.id.charCodeAt(0)) % 40) - 10), 0, 100));
+  }
+  function cloudsRaw(p, d) {
+    if (S.scenario === "cloudy") {
+      if (d < 2) return p.cloud.map((c, i) => Math.min(100, 76 + ((c * 7 + i * 13 + d * 5) % 24)));
+      return genClouds(p, d).map((v) => Math.round(v * 0.55));
+    }
+    return d === 0 ? p.cloud : genClouds(p, d);
+  }
+  function cloudsEff(p, d) {
+    let c = cloudsRaw(p, d);
+    if (S.res === 3) c = c.map((_, i) => c[Math.floor(i / 3) * 3]);
+    // 가는 중 시뮬레이션: 목적지에 예보보다 빨리 구름대가 들어오는 상황
+    if (S.trip && S.trip.bumpId === p.id && (d === undefined || d === S.day)) c = c.map((v, i) => (i >= S.trip.bumpFrom ? Math.min(100, v + 55) : v));
+    return c;
+  }
+  // 달의 상대 밝기 (보름 = 1). 조도 %가 아니라 위상각으로 계산.
+  // Krisciunas & Schaefer 1991, PASP 103:1033 의 위상 함수 I* = 10^(-0.4(3.84 + 0.026|α| + 4e-9 α^4))
+  function moonRel(illum) {
+    const a = Math.acos(clamp(2 * illum - 1, -1, 1)) * 180 / Math.PI;
+    return Math.pow(10, -0.4 * (0.026 * a + 4e-9 * Math.pow(a, 4)));
+  }
+  function moonFor(d) {
+    let m;
+    if (S.scenario === "full") { const rise = Math.min(12, d); m = { illum: Math.max(0.6, 0.99 - 0.04 * d), up: H.map((_, i) => i >= rise) }; }
+    else { const set = 1 + d; m = { illum: Math.min(0.4, 0.03 + 0.07 * d), up: H.map((_, i) => i < set) }; }
+    m.rel = moonRel(m.illum);
+    return m;
+  }
+  // 눈으로 볼 수 있는 별 개수 추정
+  // Bortle → SQM: Clear Sky Chart 표(근사)의 등급별 중간값
+  const BORTLE_SQM = [0, 21.995, 21.94, 21.79, 21.47, 20.0, 19.23, 18.67, 18.09, 17.6];
+  // SQM → 육안 한계등급: Unihedron 계산식 (Schaefer 1990 기반)
+  const nelm = (sqm) => 7.93 - 5 * Math.log10(Math.pow(10, 4.316 - sqm / 5) + 1);
+  // 한계등급 이하 전천 별 개수: Yale Bright Star Catalogue 5판 누적 개수
+  const BSC = [[2, 50], [3, 174], [4, 518], [4.5, 904], [5, 1630], [5.5, 2887], [6, 5080], [6.5, 8404]];
+  function starCount(bortle) {
+    const m = nelm(BORTLE_SQM[bortle]);
+    let n = BSC[0][1];
+    for (let k = 1; k < BSC.length; k++) {
+      const [m0, n0] = BSC[k - 1], [m1, n1] = BSC[k];
+      if (m <= m1) { n = Math.pow(10, Math.log10(n0) + (Math.log10(n1) - Math.log10(n0)) * clamp((m - m0) / (m1 - m0), 0, 1)); break; }
+      n = n1;
+    }
+    // 고도 10° 이상 하늘 면적 비율 (1 - sin10°)/2 ≈ 0.41, 별이 고르게 분포한다고 가정한 추정
+    const v = n * 0.41;
+    return v >= 1000 ? Math.round(v / 100) * 100 : Math.round(v / 10) * 10;
+  }
+
+  // 시간별 점수: 현재 엔진 구조를 흉내 낸 목업 값 (계수는 출처 확인 전)
+  function analyze(p, d) {
+    if (d === undefined) d = S.day;
+    const c = cloudsEff(p, d), m = moonFor(d), ci = cutIdx();
+    const hrs = H.map((h, i) => {
+      const dark = DARK[i]; let score = 0;
+      if (dark && c[i] < 70) score = clamp(Math.round(100 - (p.bortle - 1) * 6.25 - c[i] * 0.6 - (m.up[i] ? m.rel * 30 : 0)), 0, 100);
+      return { i, h, cloud: c[i], dark, moon: m.up[i], score, clear: dark && c[i] <= S.clear };
+    });
+    const runs = []; let s = -1;
+    hrs.forEach((x, i) => { if (x.clear) { if (s < 0) s = i; } else if (s >= 0) { runs.push([s, i - 1]); s = -1; } });
+    if (s >= 0) runs.push([s, 12]);
+    const w = (i) => (i < ci ? 1 : 0.5);
+    let best = null, bestV = -1;
+    runs.forEach(([a, b]) => { let v = 0; for (let i = a; i <= b; i++) v += hrs[i].score * w(i); if (v > bestV) { bestV = v; best = [a, b]; } });
+    let level = "no", notes = [], len = 0, comfort = 0, q = 0, moonH = 0, avgCloud = 100;
+    if (best) {
+      len = best[1] - best[0] + 1;
+      let cs = 0;
+      for (let i = best[0]; i <= best[1]; i++) { if (i < ci) comfort++; if (hrs[i].moon) moonH++; cs += hrs[i].cloud; }
+      avgCloud = cs / len;
+      q = (bestV / len) * Math.min(len, 6) / 6;
+      if (comfort >= S.minRun) level = "strong"; else if (len >= 2) level = "good"; else level = "maybe";
+      if (comfort === 0) notes.push(kt(startH(best[0])) + "부터 맑아져요");
+      if (m.rel >= 0.25 && moonH * 2 >= len) { level = LV[Math.max(1, LV.indexOf(level) - 1)]; notes.push("달이 밝아요"); }
+      if (p.bortle >= 7 && LV.indexOf(level) > 1) { level = "maybe"; notes.push("도시 불빛이 강해요"); }
+    }
+    const nC = hrs.filter((x) => x.clear).length;
+    const f = hrs.slice(1, 6).filter((x) => x.clear).length / 5, sH = hrs.slice(6, 12).filter((x) => x.clear).length / 6;
+    const pattern = nC === 0 ? "밤새 흐려요" : nC >= 10 ? "밤새 맑아요" : runs.length >= 2 ? "흐렸다가 다시 개요" : f >= 0.6 && sH < 0.4 ? "초저녁이 가장 맑아요" : f < 0.4 && sH >= 0.6 ? "늦은 밤에 개요" : "잠깐 맑은 틈이 있어요";
+    const rank = q - (p.travel / 60) * S.travelPen;
+    return { p, hrs, runs, best, len, comfort, level, notes, q, rank, moon: m, moonH, avgCloud, pattern };
+  }
+  function ranked(d) {
+    return PLACES.filter((p) => S.login || p.type === "spot").map((p) => analyze(p, d))
+      .sort((a, b) => LV.indexOf(b.level) - LV.indexOf(a.level) || b.rank - a.rank);
+  }
+  const isNear = (a) => a.p.travel <= S.maxTravel * 60;
+
+  // ---------- 작은 그림 ----------
+  function starPath(cx, cy, R, r) { let d = ""; for (let k = 0; k < 10; k++) { const rad = k % 2 ? r : R, t = -Math.PI / 2 + (k * Math.PI) / 5; d += (k ? "L" : "M") + (cx + rad * Math.cos(t)).toFixed(2) + "," + (cy + rad * Math.sin(t)).toFixed(2); } return d + "Z"; }
+  const STAR = starPath(12, 12, 11, 4.6);
+  function starsSvg(n) { let s = ""; for (let k = 0; k < 3; k++) s += `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}" fill="${k < n ? "var(--star)" : "var(--star-dim)"}"/></svg>`; return s; }
+  function rating(level, compact) {
+    const n = LV.indexOf(level);
+    if (n === 0) return `<span class="rating cloudy">${ICON.cloud}${compact ? "흐림" : LV_TEXT[level]}</span>`;
+    return `<span class="rating" title="${LV_TEXT[level]}"><span class="stars" aria-label="별 ${n}개, ${LV_TEXT[level]}">${starsSvg(n)}</span>${compact ? "" : LV_TEXT[level]}</span>`;
+  }
+  const ICON = {
+    cloud: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-7.97A5.5 5.5 0 0 0 7 10.5 3.75 3.75 0 0 0 7 18Z"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>',
+    sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M12 8.5l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg>',
+    car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2M7.5 13h.01M16.5 13h.01"/></svg>',
+    chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>'
+  };
+
+  // 밤 띠: 저녁 6시 ~ 아침 7시. 구름 낀 시간엔 구름, 맑은 시간엔 별
+  const BANDS = {};
+  function band(a) {
+    const L = 8, CW = 46, W = L * 2 + 13 * CW, top = 18, bh = 50, HH = 72;
+    const id = "g" + a.p.id;
+    let g = `<defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="var(--dusk)"/><stop offset="0.1" stop-color="var(--night-2)"/><stop offset="0.9" stop-color="var(--night-2)"/><stop offset="1" stop-color="var(--dusk)"/></linearGradient></defs>`;
+    g += `<rect x="${L}" y="${top}" width="${13 * CW}" height="${bh}" rx="12" fill="url(#${id})"/>`;
+    a.hrs.forEach((x, i) => {
+      const cx = L + i * CW + CW / 2, cy = top + bh / 2;
+      if (x.dark && x.clear) {
+        const seed = (i * 7 + a.p.id.length) % 5;
+        [[-10, -8, 1.6], [8, -4, 1.1], [-2, 9, 1.3], [12, 10, 0.9]].slice(0, 2 + (seed % 3)).forEach(([dx, dy, r]) => {
+          g += `<circle cx="${cx + dx}" cy="${cy + dy}" r="${r}" fill="var(--star)" opacity="${0.5 + x.score / 220}"/>`;
+        });
+      } else if (x.cloud >= 15) {
+        const s = 0.55 + x.cloud / 160;
+        g += `<g transform="translate(${cx},${cy + 2}) scale(${s.toFixed(2)})" fill="var(--cloud)" opacity="${(0.25 + x.cloud / 160).toFixed(2)}"><circle cx="-7" cy="2" r="6"/><circle cx="1" cy="-3" r="8"/><circle cx="9" cy="2" r="6"/><rect x="-13" y="2" width="28" height="7" rx="3.5"/></g>`;
+      }
+    });
+    if (a.best) {
+      const x = L + a.best[0] * CW, w = a.len * CW;
+      g += `<rect x="${x + 1.5}" y="${top + 1.5}" width="${w - 3}" height="${bh - 3}" rx="11" fill="none" stroke="var(--star)" stroke-width="2"/>`;
+    }
+    const mu = a.hrs.map((x) => x.moon);
+    if (mu.some(Boolean)) {
+      const i0 = mu.indexOf(true), i1 = mu.lastIndexOf(true);
+      g += `<line x1="${L + i0 * CW + 6}" x2="${L + (i1 + 1) * CW - 6}" y1="8" y2="8" stroke="var(--star)" stroke-opacity="${0.25 + a.moon.illum * 0.5}" stroke-width="2" stroke-linecap="round"/>`;
+      g += `<g transform="translate(${L + i0 * CW + 6},8)"><circle r="6" fill="var(--night-1)"/><path d="M3.5,-5 A5.5,5.5 0 1 0 3.5,5 A4.2,4.2 0 1 1 3.5,-5Z" fill="var(--star)"/></g>`;
+    }
+    // 시간 글자는 SVG 밖 HTML로 둬서 좁은 화면에서도 크기가 유지되게 함
+    const labels = [[0, "저녁 6시"], [3, "밤 9시"], [6, "자정"], [9, "새벽 3시"], [12, "아침 6시"]]
+      .map(([i, t]) => `<span style="left:${(((L + i * CW + CW / 2) / W) * 100).toFixed(2)}%">${t}</span>`).join("");
+    BANDS[a.p.id] = a;
+    return `<div class="band" data-pid="${a.p.id}" data-l="${(L / W).toFixed(4)}" data-cw="${(CW / W).toFixed(4)}"><svg viewBox="0 0 ${W} ${HH}" role="img" aria-label="시간대별 하늘 상태">${g}</svg><div class="band-cursor" hidden></div><div class="band-tip" hidden></div><div class="band-axis">${labels}</div></div><div class="band-hint">시간 띠를 훑어 보면 시간별 하늘이 보여요</div>`;
+  }
+
+  function quick(a) {
+    const p = a.p;
+    const cloudT = !a.best ? ["구름이 두꺼워요", "밤새 흐린 예보"] : a.avgCloud < 20 ? ["구름 거의 없음", a.pattern] : ["구름 조금", a.pattern];
+    const m = a.moon;
+    let moonT;
+    if (!m.up.some((u, i) => u && DARK[i])) moonT = ["달 없는 밤", "어두운 하늘을 즐기기 좋아요"];
+    else if (m.rel >= 0.25 && (a.moonH * 2 >= a.len || !a.best)) moonT = ["달이 밝아요", "희미한 별은 잘 안 보여요"];
+    else if (m.up[1] && !m.up[11]) { const i = m.up.lastIndexOf(true); moonT = ["달이 일찍 져요", kt(endH(i)) + "부터 어두워요"]; }
+    else { const i = m.up.indexOf(true); moonT = ["달이 늦게 떠요", kt(H[i]) + "까지 어두워요"]; }
+    const moonBright = m.rel >= 0.25 && a.moonH > 0;
+    const skyT = [BORTLE_NAME[p.bortle], moonBright ? "달빛 때문에 오늘은 별이 줄어요" : `맑으면 별 약 ${starCount(p.bortle).toLocaleString("ko-KR")}개`];
+    return `<ul class="quick">
+      <li>${ICON.cloud}<div><b>${cloudT[0]}</b><span>${cloudT[1]}</span></div></li>
+      <li>${ICON.moon}<div><b>${moonT[0]}</b><span>${moonT[1]}</span></div></li>
+      <li>${ICON.sky}<div><b>${skyT[0]}</b><span>${skyT[1]}</span></div></li>
+    </ul>`;
+  }
+
+  function tipText(a) {
+    if (!a.best) return "오늘은 쉬고, 맑은 날을 기다려 보세요. 맑은 밤이 오면 알려드릴게요.";
+    let t = "";
+    if (a.moon.rel >= 0.25 && a.moonH) t += "달이 밝은 날이라 은하수는 어렵지만, 달 표면을 쌍안경으로 보면 크레이터까지 보여요. ";
+    else if (a.p.bortle <= 4) t += "자정 무렵엔 남동쪽 하늘에서 오리온자리를 쉽게 찾을 수 있어요. ";
+    else t += "도시 불빛이 있어도 밝은 별자리는 충분히 보여요. ";
+    t += "도착하면 휴대폰 화면을 끄고 30분쯤 기다려 보세요. 눈이 어둠에 완전히 익는 데는 40분쯤 걸려요.";
+    return t;
+  }
+
+  function chart(a) {
+    const L = 46, CW = 44, W = L + 13 * CW + 10, top = 14, cz = 60, sBase = 150, sH = 52, HH = 178;
+    const ci = cutIdx();
+    let g = "";
+    if (a.best) g += `<rect x="${L + a.best[0] * CW + 1}" y="${top - 4}" width="${a.len * CW - 2}" height="${sBase - top + 8}" rx="6" fill="none" stroke="var(--star)" stroke-opacity=".6"/>`;
+    g += `<text x="${L - 8}" y="${top + cz / 2 + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">구름</text>`;
+    g += `<text x="${L - 8}" y="${sBase - sH / 2 + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">점수</text>`;
+    a.hrs.forEach((x, i) => {
+      const h = Math.max(1.5, (cz * x.cloud) / 100);
+      g += `<rect x="${L + i * CW + 8}" y="${top}" width="${CW - 16}" height="${h}" rx="3" fill="var(--cloud)" opacity="${x.dark ? 0.75 : 0.3}"/>`;
+      g += `<text x="${L + i * CW + CW / 2}" y="${top + h + 11}" text-anchor="middle" font-size="9.5" fill="var(--ink-3)" font-family="var(--font-num)">${x.cloud}</text>`;
+    });
+    const ty = top + (cz * S.clear) / 100;
+    g += `<line x1="${L}" x2="${L + 13 * CW}" y1="${ty}" y2="${ty}" stroke="var(--sky-clear)" stroke-dasharray="3 3" opacity=".7"/>`;
+    g += `<line x1="${L}" x2="${L + 13 * CW}" y1="${sBase}" y2="${sBase}" stroke="var(--hair)"/>`;
+    const pts = a.hrs.map((x, i) => [L + i * CW + CW / 2, sBase - (sH * x.score) / 100]);
+    g += `<path d="M${pts[0][0]},${sBase} ${pts.map((p) => "L" + p[0] + "," + p[1]).join(" ")} L${pts[12][0]},${sBase} Z" fill="var(--star)" opacity=".15"/>`;
+    g += `<path d="M${pts.map((p) => p.join(",")).join(" L")}" fill="none" stroke="var(--star)" stroke-width="1.8"/>`;
+    a.hrs.forEach((x, i) => {
+      if (x.score > 0) g += `<text x="${pts[i][0]}" y="${pts[i][1] - 6}" text-anchor="middle" font-size="9.5" fill="var(--ink-2)" font-family="var(--font-num)">${x.score}</text>`;
+      g += `<text x="${L + i * CW + CW / 2}" y="${HH - 4}" text-anchor="middle" font-size="10.5" fill="var(--ink-3)" font-family="var(--font-num)">${pad(x.h)}</text>`;
+    });
+    if (ci <= 12) { const cx = L + ci * CW; g += `<line x1="${cx}" x2="${cx}" y1="${top - 6}" y2="${HH - 16}" stroke="var(--ink-2)" stroke-dasharray="2 4"/>`; }
+    return `<div class="chart-wrap"><svg viewBox="0 0 ${W} ${HH}" role="img" aria-label="시간대별 구름량과 점수">${g}</svg></div>`;
+  }
+
+  function moreBlock(a) {
+    const p = a.p;
+    const scoreAvg = a.best ? Math.round(a.hrs.slice(a.best[0], a.best[1] + 1).reduce((s, x) => s + x.score, 0) / a.len) : 0;
+    return `<div class="more">
+      <div class="facts">
+        <div class="fact"><div class="k">관측 점수 (추천 시간 평균)</div><div class="v">${scoreAvg}/100</div><div class="s">순위 점수 ${Math.max(0, Math.round(a.rank))}</div></div>
+        <div class="fact"><div class="k">구름 (추천 시간 평균)</div><div class="v">${a.best ? Math.round(a.avgCloud) + "%" : "–"}</div><div class="s">${S.res === 3 ? "3시간 단위 예보" : "1시간 단위 예보"}</div></div>
+        <div class="fact"><div class="k">광해 등급 (Bortle)</div><div class="v">${p.bortle}등급</div><div class="s">${BORTLE_NAME[p.bortle]}</div></div>
+        <div class="fact"><div class="k">달 (빛나는 면적 / 보름 대비 밝기)</div><div class="v">${Math.round(a.moon.illum * 100)}% / ${Math.round(a.moon.rel * 100)}%</div><div class="s">추천 시간 중 ${a.moonH}시간 떠 있음</div></div>
+        <div class="fact"><div class="k">습도</div><div class="v">${p.hum}%</div><div class="s">${p.hum >= 80 ? "렌즈에 이슬이 맺힐 수 있어요" : "이슬 걱정 적어요"}</div></div>
+        <div class="fact"><div class="k">눈으로 보이는 별 (추정)</div><div class="v">약 ${starCount(p.bortle).toLocaleString("ko-KR")}개</div><div class="s">한계등급 ${nelm(BORTLE_SQM[p.bortle]).toFixed(1)}등, 달 없는 맑은 밤 기준</div></div>
+      </div>
+      <h3>시간대별 구름량(%)과 관측 점수</h3>
+      ${chart(a)}
+      ${S.res === 3 ? '<p class="note">3시간 단위 예보라 맑은 구간의 시작과 끝이 3시간 단위로만 잡혀요.</p>' : ""}
+      <p class="rule">구름이 <b>${S.clear}% 이하</b>인 어두운 시간이 <b>${S.cutoff >= 7 ? "밤사이" : kt(S.cutoff) + " 전에"} ${S.minRun}시간 이상</b> 이어지면 <b>꼭 가볼 만해요</b>. 달이 밝게 떠 있으면 한 단계 내리고, 도시 하늘(7등급 이상)은 "잠깐 볼 수 있어요"까지만 줘요. 순위는 이동 1시간마다 <b>${S.travelPen}점</b>을 빼서 정해요.
+      <br><button class="linkish" data-sheet="sources">기준과 출처 보기</button></p>
+    </div>`;
+  }
+
+  // 하늘 사진. kind: clear(맑은 밤), moon(밝은 달), cloudy(흐린 밤). 비어 있으면 캔버스가 하늘을 그림
+  const PHOTOS = {
+    clear: { src: "sky-clear.jpg", alt: "강원 태기산 정상의 은하수와 선돌", credit: "이원웅(INSOLMAE), CC BY-SA 3.0", url: "https://commons.wikimedia.org/wiki/File:%EB%B0%A4%ED%95%98%EB%8A%98%EC%9D%98_%EC%9D%80%ED%95%98%EC%88%98.jpg" },
+    moon: { src: "sky-moon.jpg", alt: "밝은 달이 뜬 덕유산의 밤", credit: "Mg shin, CC BY-SA 3.0", url: "https://commons.wikimedia.org/wiki/File:%EB%8D%95%EC%9C%A0%EC%82%B0%EC%9D%98_%EB%B0%A4.jpg" },
+    cloudy: { src: "sky-cloudy.jpg", alt: "구름이 덮인 산 위의 밤하늘", credit: "BLM Oregon and Washington, 퍼블릭 도메인", url: "https://commons.wikimedia.org/wiki/File:Night_Clouds_(11424694453).jpg" }
+  };
+  function photoKind(a, cloudy) {
+    if (cloudy || a.level === "no") return "cloudy";
+    if (a.moon.rel >= 0.25 && a.moonH > 0) return "moon";
+    return "clear";
+  }
+  function skyLayer(a, cloudy) {
+    const k = photoKind(a, cloudy), ph = PHOTOS[a.p.id] && k === "clear" ? PHOTOS[a.p.id] : PHOTOS[k];
+    const cv = `<canvas id="sky" data-id="${a.p.id}"${cloudy ? ' data-cloudy="1"' : ""}${ph ? ` data-photo="${k}"` : ""}></canvas>`;
+    if (!ph) return cv;
+    return `<img class="photo" src="${ph.src}" alt="${esc(ph.alt)}">${cv}<a class="photo-credit" href="${ph.url}" target="_blank" rel="noopener" title="${esc(ph.credit)}">사진: ${esc(ph.credit)}</a>`;
+  }
+
+  function hero(a, eyebrow) {
+    const p = a.p;
+    const open = S.expert || S.more;
+    return `<article class="tonight">
+      <div class="sky">${skyLayer(a, false)}
+        ${rating(a.level)}
+        <div class="sky-text"><div class="eyebrow">${eyebrow}</div><h1>${esc(p.name)}</h1><div class="sub">${esc(p.region)} · ${travelText(p.travel)}${p.type === "bookmark" ? " · 내 장소" : ""}</div></div>
+      </div>
+      <div class="tonight-body">
+        ${a.best ? `<div class="time-row"><div><div class="label">이 시간에 보세요</div><div class="bigtime">${winText(a)}</div></div><div class="hours">${a.len}시간 동안 맑아요</div></div>` : ""}
+        ${band(a)}
+        ${quick(a)}
+        <p class="tip">${esc(tipText(a))}</p>
+        <div class="actions">
+          <a class="btn primary" href="https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.lat},${p.lon}" target="_blank" rel="noopener">길찾기</a>
+          ${p.travel ? `<button class="btn" data-cloudmap="${p.id}">가는 길 구름</button>` : ""}
+          ${p.type === "spot" ? '<button class="btn">저장</button>' : ""}
+          <span class="spacer"></span>
+          ${S.expert ? "" : `<button class="btn ghost" data-more aria-expanded="${open}">자세히 ${ICON.chev}</button>`}
+        </div>
+        ${open ? moreBlock(a) : ""}
+      </div>
+    </article>`;
+  }
+
+  function strip(a) {
+    return `<div class="strip">${a.hrs.map((x) => {
+      if (!x.dark) return "<i></i>";
+      const st = x.clear ? `background:oklch(from var(--star) l c h / ${(0.3 + x.score / 160).toFixed(2)})` : `background:oklch(from var(--cloud) l c h / ${(0.1 + x.cloud / 300).toFixed(2)})`;
+      return `<i style="${st}"></i>`;
+    }).join("")}</div>`;
+  }
+
+  function row(a) {
+    const p = a.p;
+    const sub = a.best ? `${winText(a)} · ${travelText(p.travel)}` : `${a.pattern} · ${travelText(p.travel)}`;
+    return `<button class="row" data-open="${p.id}">
+      <div><div class="row-name">${esc(p.name)}${p.type === "bookmark" ? '<span class="mine">내 장소</span>' : ""}</div><div class="row-sub">${sub}${a.notes.length ? ` · <span class="note">${esc(a.notes[0])}</span>` : ""}</div></div>
+      ${rating(a.level, true)}
+      ${S.expert ? `<div class="x">${strip(a)}<span class="score">${a.best ? Math.max(0, Math.round(a.rank)) + "점" : "–"}</span></div>` : ""}
+    </button>`;
+  }
+
+  function nightsBar() {
+    return `<div class="nights">${NIGHTS.map((lab, d) => {
+      const t = ranked(d).filter(isNear)[0];
+      const n = t ? LV.indexOf(t.level) : 0;
+      return `<button data-day="${d}" aria-pressed="${S.day === d}">${lab}<span class="mini-stars">${n ? starsSvg(n).replace(/var\(--star-dim\)/g, "transparent") : ""}</span></button>`;
+    }).join("")}</div>`;
+  }
+
+  const nightName = (d) => (d === 0 ? "오늘 밤" : d === 1 ? "내일 밤" : NIGHTS[d] + " 밤");
+
+  // 이번 주 추천: 요일별로 갈 수 있는 곳 중 가장 좋은 곳, 그중 최고의 밤을 강조
+  function weekSection() {
+    const nights = NIGHTS.map((_, d) => { const t = ranked(d).filter(isNear)[0]; return { d, t, n: t ? LV.indexOf(t.level) : 0, score: t && t.best ? t.rank : -99 }; });
+    const best = nights.filter((x) => x.n >= 2).sort((a, b) => b.n - a.n || b.score - a.score)[0];
+    const head = best
+      ? `이번 주는 <b>${DATES[best.d]} ${best.d === 0 ? "오늘" : best.d === 1 ? "내일" : NIGHTS[best.d]} 밤</b>이 가장 좋아요. ${esc(best.t.p.name)}, ${winText(best.t)}.`
+      : "이번 주는 맑은 밤이 보이지 않아요.";
+    const cards = nights.map((x) => {
+      const t = x.t, isBest = best && x.d === best.d;
+      return `<button class="wk${isBest ? " best" : ""}${S.day === x.d ? " on" : ""}" data-day="${x.d}">
+        <span class="wd">${x.d === 0 ? "오늘" : x.d === 1 ? "내일" : NIGHTS[x.d].slice(0, 1)}<small>${DATES[x.d]}</small></span>
+        <span class="ws">${x.n ? starsSvg(x.n) : ICON.cloud}</span>
+        <span class="wp">${t && x.n ? esc(t.p.name) : "흐림"}</span>
+        <span class="wt">${t && t.best && x.n ? kt(H[t.best[0]]) + "부터" : ""}</span>
+        <span class="wc c-${confOf(x.d)}">예보 ${confOf(x.d)}</span>
+      </button>`;
+    }).join("");
+    return `<section class="sec"><div class="sec-title"><h2>이번 주 좋은 밤</h2><p>멀리 볼수록 예보가 바뀌기 쉬워요</p></div>
+      <p class="calm" style="font-size:14px">${head}</p><div class="week">${cards}</div></section>`;
+  }
+
+  function viewTonight() {
+    const all = ranked(S.day);
+    const near = all.filter(isNear);
+    const far = all.filter((a) => !isNear(a) && LV.indexOf(a.level) >= 2);
+    const top = near.find((a) => LV.indexOf(a.level) >= 2);
+    let html = nightsBar();
+    if (top) {
+      html += hero(top, nightName(S.day) + " 가장 좋은 곳");
+    } else {
+      let next = null;
+      for (let d = S.day + 1; d < NIGHTS.length; d++) { const t = ranked(d).filter(isNear)[0]; if (t && LV.indexOf(t.level) >= 2) { next = { d, t }; break; } }
+      const a = near[0] || all[0];
+      html += `<article class="tonight">
+        <div class="sky">${skyLayer(a, true)}${rating("no")}
+          <div class="sky-text"><div class="eyebrow">${nightName(S.day)}</div><h1>구름이 많은 밤이에요</h1><div class="sub">${S.maxTravel < 9 ? S.maxTravel + "시간 안에 갈 수 있는 곳" : "갈 수 있는 곳"}이 모두 흐려요</div></div></div>
+        <div class="tonight-body">
+          ${next ? `<p class="calm"><b style="color:var(--ink)">${nightName(next.d)}</b>에는 ${esc(next.t.p.name)}에서 ${winText(next.t)}까지 맑을 예정이에요.</p>
+          <div class="actions"><button class="btn primary" data-day="${next.d}">${nightName(next.d)} 추천 보기</button></div>` : `<p class="calm">앞으로 며칠은 맑은 밤이 보이지 않아요.</p>`}
+          ${far.length ? `<p class="calm" style="font-size:13.5px">조금 멀리 가면 맑은 곳이 ${far.length}곳 있어요. 설정에서 이동 시간을 늘려 보세요.</p>` : ""}
+        </div></article>`;
+    }
+    let rest = near.filter((a) => a !== top);
+    if (!top) rest = rest.filter((a) => LV.indexOf(a.level) >= 1);
+    const shown = S.showAll ? rest : rest.slice(0, 3);
+    if (rest.length || far.length) {
+      html += `<section class="sec">
+        <div class="sec-title"><h2>${top ? "여기도 괜찮아요" : "그나마 볼 수 있는 곳"}</h2><p>${S.login ? "내 장소와 추천 명소 중에서" : "추천 명소 중에서"}</p></div>
+        <div class="rows">${shown.map(row).join("")}${S.showAll ? far.map(row).join("") : ""}</div>
+        ${rest.length > 3 || far.length ? `<button class="showmore" data-showall>${S.showAll ? "접기" : `${rest.length - shown.length + far.length}곳 더 보기${far.length ? ` (멀리 있는 ${far.length}곳 포함)` : ""}`}</button>` : ""}
+      </section>`;
+    }
+    html += weekSection();
+    if (!S.login) html += `<p class="calm" style="font-size:13.5px">로그인하면 내가 저장한 장소도 함께 비교해 드려요.</p>`;
+    return html;
+  }
+
+  function viewDetail(id) {
+    const p = PLACES.find((x) => x.id === id);
+    const a = analyze(p, S.day);
+    const runs = a.runs.length ? a.runs.map(([s, e]) => `${kt(H[s])} – ${kt((H[e] + 1) % 24)}`).join(", ") : "";
+    return `<button class="btn ghost" data-back style="align-self:flex-start;padding-left:0">← 돌아가기</button>
+      ${hero(a, nightName(S.day))}
+      ${a.runs.length > 1 ? `<p class="calm" style="font-size:13.5px">맑은 시간이 여러 번 있어요: ${runs}</p>` : ""}`;
+  }
+
+  // 지도 이미지 투영: korea-night.jpg (1100x1203), 위도 33.0~38.75, 경도 124.5~131.0, 경도에 cos(36°) 보정
+  const MAPW = 1100, MAPH = 1203, KM = Math.cos(36 * Math.PI / 180), PPD = MAPW / ((131.0 - 124.5) * KM);
+  const mx = (lon) => ((lon - 124.5) * KM * PPD / MAPW) * 100;
+  const my = (lat) => ((38.75 - lat) * PPD / MAPH) * 100;
+  const PIN_POS = { home: "l", sdr: "l", hmh: "ru", jms: "rd" };
+  const isDesk = () => window.matchMedia("(min-width: 1080px)").matches;
+  function topPick() { const t = ranked(S.day).filter(isNear).find((a) => LV.indexOf(a.level) >= 2); return t ? t.p.id : null; }
+  // ---------- 구름 지도 ----------
+  const ORIGIN = { lat: 37.55, lon: 126.91, name: "서울 마포" };
+  const ix = (h) => h - 18; // 시간 칸 번호 (18시 = 0)
+  function ktm(t) { const tot = Math.round(((18 + t) * 60) % 1440 + 1440) % 1440; const h = Math.floor(tot / 60), m = tot % 60; return kt(h) + (m ? ` ${m}분` : ""); }
+  function distKm(a, b) { const R = 6371, r = Math.PI / 180, dla = (b.lat - a.lat) * r, dlo = (b.lon - a.lon) * r; const q = Math.sin(dla / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dlo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(q)); }
+  const driveMin = (a, b) => Math.round(distKm(a, b) * 1.3 / 60 * 60); // 직선거리 × 1.3, 시속 60km 가정 (목업)
+  function placeCloudAt(p, t) { const c = cloudsEff(p, S.day), i0 = clamp(Math.floor(t), 0, 12), i1 = Math.min(12, i0 + 1), fr = clamp(t - i0, 0, 1); return c[i0] * (1 - fr) + c[i1] * fr; }
+  function fieldAt(t) {
+    const pts = PLACES.map((p) => ({ la: p.lat, lo: p.lon, v: placeCloudAt(p, t) }));
+    return (la, lo) => { let ws = 0, vs = 0; for (const q of pts) { const d2 = (q.la - la) ** 2 + ((q.lo - lo) * KM) ** 2 + 0.03; const w = 1 / (d2 * d2); ws += w; vs += w * q.v; } return vs / ws; };
+  }
+  function routeTarget(selId) { const id = S.trip ? S.trip.id : (isDesk() ? selId : (S.peek || topPick())) || topPick(); return PLACES.find((p) => p.id === id); }
+  function tripPlan(p) {
+    const o = S.trip ? S.trip.origin : ORIGIN;
+    const travel = S.trip && S.trip.origin !== ORIGIN ? driveMin(o, p) : p.travel;
+    const a = analyze(p, S.day);
+    const dep = S.trip ? S.trip.dep : (a.best ? a.best[0] : 1) - travel / 60;
+    return { o, p, a, travel, dep, arr: dep + travel / 60 };
+  }
+  function routePts(o, p, n) {
+    const mid = { lat: (o.lat + p.lat) / 2, lon: (o.lon + p.lon) / 2 }, dx = p.lon - o.lon, dy = p.lat - o.lat;
+    const c = { lat: mid.lat + dx * 0.12, lon: mid.lon - dy * 0.12 };
+    return Array.from({ length: n + 1 }, (_, k) => { const u = k / n; return { lat: (1 - u) ** 2 * o.lat + 2 * (1 - u) * u * c.lat + u * u * p.lat, lon: (1 - u) ** 2 * o.lon + 2 * (1 - u) * u * c.lon + u * u * p.lon, u }; });
+  }
+  const cloudCol = (v) => (v < 30 ? "var(--star)" : v < 60 ? "var(--warn)" : "var(--cloud)");
+  function routeSvg(plan) {
+    if (!plan.travel) return "";
+    const pts = routePts(plan.o, plan.p, 24); let g = "";
+    for (let k = 0; k < 24; k++) {
+      const m = { lat: (pts[k].lat + pts[k + 1].lat) / 2, lon: (pts[k].lon + pts[k + 1].lon) / 2 }, u = (pts[k].u + pts[k + 1].u) / 2;
+      const v = fieldAt(plan.dep + u * plan.travel / 60)(m.lat, m.lon);
+      g += `<line x1="${mx(pts[k].lon)}" y1="${my(pts[k].lat)}" x2="${mx(pts[k + 1].lon)}" y2="${my(pts[k + 1].lat)}" stroke="${cloudCol(v)}" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+    }
+    return `<svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none"><g opacity=".95">${g}</g></svg><span class="origin" style="left:${mx(plan.o.lon)}%;top:${my(plan.o.lat)}%">${S.trip && S.trip.origin !== ORIGIN ? "지금 여기" : "출발"}</span><i class="car" id="car"></i>`;
+  }
+  function routeSummary(plan) {
+    const pts = routePts(plan.o, plan.p, 12); let worst = 0;
+    pts.forEach((q) => { worst = Math.max(worst, fieldAt(plan.dep + q.u * plan.travel / 60)(q.lat, q.lon)); });
+    const atArr = placeCloudAt(plan.p, plan.arr);
+    return { road: worst < 30 ? "가는 길 내내 맑아요" : worst < 60 ? "가는 길에 구름이 조금 있어요" : "가는 길에 구름이 많아요", atArr: Math.round(atArr) };
+  }
+  function tripAlt(plan) {
+    const cur = routePts(plan.o, plan.p, 24)[12];
+    return PLACES.filter((q) => q.id !== plan.p.id && (S.login || q.type === "spot")).map((q) => ({ q, a: analyze(q, S.day), m: driveMin(cur, q) }))
+      .filter((x) => LV.indexOf(x.a.level) >= 2 && x.a.best && placeCloudAt(x.q, S.trip.now + x.m / 60) < 30)
+      .sort((x, y) => x.m - y.m)[0];
+  }
+  function routeCard(plan, cls) {
+    const p = plan.p;
+    if (!plan.travel) return `<div class="${cls} route-card"><span class="rt">${esc(p.name)}</span>지금 있는 곳이라 이동이 필요 없어요.</div>`;
+    const sm = routeSummary(plan);
+    if (!S.trip) return `<div class="${cls} route-card"><span class="rt">${plan.o.name} → ${esc(p.name)}</span>
+      <span>출발 ${ktm(plan.dep)} · 도착 ${ktm(plan.arr)} · ${travelText(plan.travel)}</span>
+      <span>${sm.road} · 도착할 때 구름 ${sm.atArr}%</span>
+      <div class="row3"><button class="btn primary" data-trip="start">출발했다고 치고 보기</button></div>
+      <span class="tiny">경로는 목업용 곡선이에요. 실제 서비스는 길찾기 경로와 도로별 예상 시각을 써요.</span></div>`;
+    const tr = S.trip;
+    if (tr.phase === "alert") {
+      const alt = tripAlt(plan);
+      return `<div class="${cls} route-card"><span class="alert">도착할 때쯤 ${esc(p.name)}에 구름이 몰려와요</span>
+        <span>가는 중에 예보가 바뀌었어요. ${ktm(plan.arr)} 도착 무렵 구름 ${sm.atArr}%예요.</span>
+        ${alt ? `<div class="alt">가는 길에서 가까운 <b>${esc(alt.q.name)}</b>${josa(alt.q.name, "은", "는")} ${winText(alt.a)}까지 맑아요. 여기서 약 ${alt.m}분.</div>` : `<div class="alt">근처에 맑은 곳이 없어요.</div>`}
+        <div class="row3">${alt ? `<button class="btn primary" data-trip="switch" data-alt="${alt.q.id}">${esc(alt.q.name)}로 바꾸기</button>` : ""}<button class="btn" data-trip="keep">그대로 가기</button><button class="btn" data-trip="home">돌아가기</button></div>
+        <span class="tiny">실제 앱에서는 이동 중 푸시 알림으로 와요.</span></div>`;
+    }
+    const msg = tr.phase === "switched" ? `목적지를 ${esc(p.name)}로 바꿨어요. ${ktm(plan.arr)} 도착, 그때 구름 ${sm.atArr}%예요.` : tr.phase === "keep" ? "그대로 가요. 구름 사이로 틈이 생기면 바로 알려드릴게요." : "돌아가요. 다음 맑은 밤이 오면 미리 알려드릴게요.";
+    return `<div class="${cls} route-card"><span class="rt">${tr.phase === "home" ? "안내를 멈췄어요" : `${esc(p.name)}로 가는 중`}</span><span>${msg}</span><div class="row3"><button class="btn" data-trip="end">안내 끝내기</button></div></div>`;
+  }
+  // 구름 캔버스: 장소별 시간 예보를 공간 보간 + 움직이는 결 무늬
+  const CGW = 110, CGH = 120; let CELLS = null;
+  function drawCloud() {
+    const cv = document.getElementById("cloudCv"); if (!cv || S.layer !== "cloud") return;
+    if (!CELLS) { CELLS = []; for (let y = 0; y < CGH; y++) for (let x = 0; x < CGW; x++) { const px = (x + 0.5) / CGW, py = (y + 0.5) / CGH; CELLS.push([38.75 - (py * MAPH) / PPD, 124.5 + (px * MAPW) / (KM * PPD), x, y]); } }
+    cv.width = CGW; cv.height = CGH;
+    const t = S.ct, F = fieldAt(t), ctx = cv.getContext("2d"), img = ctx.createImageData(CGW, CGH), D = img.data;
+    for (let k = 0; k < CELLS.length; k++) {
+      const [la, lo, x, y] = CELLS[k], v = F(la, lo);
+      const tex = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(x * 0.29 + y * 0.11 + t * 1.6)) * (0.5 + 0.5 * Math.sin(y * 0.21 - x * 0.08 - t * 1.1));
+      const al = clamp((v - 12) / 70, 0, 1) * tex;
+      const o = k * 4; D[o] = 232; D[o + 1] = 236; D[o + 2] = 248; D[o + 3] = Math.round(al * 215);
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function updateCloud(plan) {
+    if (S.layer !== "cloud") return;
+    drawCloud();
+    const lab = document.getElementById("ctLabel"); if (lab) lab.textContent = ktm(S.ct);
+    const rg = document.getElementById("ctRange"); if (rg && +rg.value !== S.ct) rg.value = S.ct;
+    document.querySelectorAll(".pin .cc").forEach((el) => { const p = PLACES.find((q) => q.id === el.dataset.cc); el.textContent = `구름 ${Math.round(placeCloudAt(p, S.ct))}%`; });
+    const car = document.getElementById("car");
+    if (car && plan && plan.travel) {
+      const u = S.trip ? clamp((S.ct - plan.dep) / (plan.travel / 60), 0, 1) : (S.ct - plan.dep) / (plan.travel / 60);
+      const on = u >= 0 && u <= 1;
+      car.classList.toggle("on", on);
+      if (on) { const q = routePts(plan.o, plan.p, 48)[Math.round(u * 48)]; car.style.left = mx(q.lon) + "%"; car.style.top = my(q.lat) + "%"; }
+    }
+  }
+  let curPlan = null;
+  function mapHtml(selId) {
+    const list = PLACES.filter((p) => S.login || p.type === "spot").map((p) => analyze(p, S.day));
+    const tp = topPick();
+    const cloudL = S.layer === "cloud";
+    const tgt = cloudL ? routeTarget(selId) : null;
+    curPlan = tgt ? tripPlan(tgt) : null;
+    if (cloudL && S.ct == null) S.ct = curPlan ? clamp(curPlan.dep, -3, 12) : 1;
+    const pins = list.map((a) => {
+      const n = LV.indexOf(a.level), sel = a.p.id === selId || (tgt && a.p.id === tgt.id);
+      const mk = n ? `<svg viewBox="0 0 24 24"><path d="${STAR}" fill="var(--star)" opacity="${0.45 + n * 0.18}"/></svg>` : '<i class="dot0"></i>';
+      return `<button class="pin ${PIN_POS[a.p.id] || ""}${sel ? " sel" : ""}${a.p.id === tp ? " top" : ""}" style="left:${mx(a.p.lon).toFixed(2)}%;top:${my(a.p.lat).toFixed(2)}%" data-open="${a.p.id}" aria-label="${esc(a.p.name)}, ${LV_TEXT[a.level]}"><span class="mk">${mk}</span><span class="pl">${esc(a.p.name)}<span class="cc" data-cc="${a.p.id}"></span></span></button>`;
+    }).join("");
+    const pick = S.pick ? `<i class="pick" style="left:${S.pick.x}%;top:${S.pick.y}%"></i>` : "";
+    const cities = CITIES.map(([n, la, lo, r]) => `<span class="city c${r}" style="left:${mx(lo).toFixed(2)}%;top:${my(la).toFixed(2)}%">${n}</span>`).join("");
+    const z = S.mz;
+    const peekA = !isDesk() && S.peek && !cloudL ? list.find((x) => x.p.id === S.peek) : null;
+    const peek = peekA ? `<div class="peek"><div class="nm">${esc(peekA.p.name)} ${rating(peekA.level, true)}</div><div class="sb">${peekA.best ? winText(peekA) : peekA.pattern} · ${travelText(peekA.p.travel)}</div><button class="btn primary" data-open="${peekA.p.id}" data-go="1">자세히</button></div>` : "";
+    const rcard = cloudL && curPlan ? routeCard(curPlan, isDesk() ? "map-card tl" : "route-static") : "";
+    const L = (k, t) => `<button data-layer="${k}" aria-pressed="${S.layer === k}">${t}</button>`;
+    const legend = S.pick ? `고른 위치 <b style="font-family:var(--font-num)">${S.pick.lat.toFixed(2)}, ${S.pick.lon.toFixed(2)}</b><br>실제 서비스에서는 이 위치의 오늘 밤 예보를 보여주고 내 장소로 저장할 수 있어요.`
+      : S.layer === "night" ? `불빛이 밝은 곳일수록 별이 덜 보여요<div class="ramp"></div><div class="rl"><span>어두움</span><span>밝음</span></div>`
+      : cloudL ? `하얀 곳일수록 구름이 짙어요. 경로 색은 그곳을 지날 때의 하늘이에요 (금색 맑음, 주황 구름 조금, 회색 흐림)`
+      : `실제 서비스에서는 MapLibre 지도 타일을 써요`;
+    const credit = S.layer === "night" ? "야간광: VIIRS VNL 2024, Earth Observation Group" : cloudL ? "구름: 장소별 예보를 보간한 목업 값. 실제 서비스는 예보 모델 격자와 천리안 위성 관측" : "지도: Natural Earth (퍼블릭 도메인)";
+    return `<div class="mapstack${cloudL ? " cloud" : ""}"><div class="mapwrap"><div class="mapimg${z.z > 1 ? " zoomed" : ""}" id="mapImg" data-layer="${S.layer}" style="--iz:${(1 / z.z).toFixed(4)}"><div class="mapzoom" style="transform:translate(${z.tx}%,${z.ty}%) scale(${z.z})"><img class="night" src="korea-night.jpg" alt="한국의 밤 불빛 위성 지도"><img class="base" src="korea-base.jpg" alt="일반 지도"><canvas class="cloudcv" id="cloudCv"></canvas>${cloudL && curPlan ? routeSvg(curPlan) : ""}${cities}${pins}${pick}</div></div>
+      <div class="map-ctl"><div class="seg">${L("night", "밤 불빛")}${L("cloud", "구름")}${L("base", "일반 지도")}</div>
+        <div class="zoom-btns"><button data-zoom="in" aria-label="확대">+</button><button data-zoom="out" aria-label="축소">−</button><button data-zoom="reset" aria-label="처음 크기">⟲</button></div></div>${peek}
+      ${cloudL && isDesk() ? rcard : `<div class="map-card tl"><b>${nightName(S.day)} 별 보기 좋은 곳</b><br>별이 밝을수록 추천도가 높아요</div>`}
+      <div class="map-card bl">${legend}<div class="credit">${credit}</div></div>
+    </div>
+    <div class="timebar"><button data-play aria-label="${S.playing ? "멈춤" : "재생"}">${S.playing ? "❚❚" : "▶"}</button><input type="range" id="ctRange" min="-3" max="12" step="0.05" value="${S.ct ?? 0}" aria-label="시각"><span class="tl" id="ctLabel">${S.ct != null ? ktm(S.ct) : ""}</span></div>
+    ${cloudL && !isDesk() ? rcard : ""}
+    </div>`;
+  }
+  function viewMap() {
+    const list = ranked(S.day);
+    return `<div class="sec-title"><h2>지도에서 고르기</h2><p>빈 곳을 누르면 그 위치를 골라요</p></div>${mapHtml(null)}
+      <section class="sec"><div class="sec-title"><h2>지도 속 장소</h2><p>${nightName(S.day)} 기준</p></div><div class="rows">${list.map(row).join("")}</div></section>`;
+  }
+
+  function viewMine() {
+    if (!S.login) return `<p class="calm">자주 가는 곳을 저장하면 매일 밤 추천 명소와 함께 비교해 드려요.</p><div class="actions"><button class="btn primary">로그인</button></div>`;
+    const list = PLACES.filter((p) => p.type === "bookmark").map((p) => analyze(p, S.day)).sort((a, b) => LV.indexOf(b.level) - LV.indexOf(a.level) || b.rank - a.rank);
+    return `<div class="sec-title"><h2>내 장소</h2><p>${nightName(S.day)} 기준</p></div><div class="rows">${list.map(row).join("")}</div>
+      <div class="actions"><button class="btn" data-tab="map">지도에서 장소 추가</button></div>`;
+  }
+
+  // ---------- 밤하늘 캔버스 ----------
+  function hash(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
+  function rng(seed) { let s = seed || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let anim = null;
+
+  function setupSky() {
+    if (anim) { cancelAnimationFrame(anim.raf); anim = null; }
+    const cv = document.getElementById("sky"); if (!cv) return;
+    const p = PLACES.find((x) => x.id === cv.dataset.id);
+    const a = analyze(p, S.day);
+    const cloudy = cv.dataset.cloudy === "1" || a.level === "no";
+    const photo = cv.dataset.photo || "";
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = cv.clientWidth, Hh = cv.clientHeight;
+    if (!W || !Hh) return;
+    cv.width = W * dpr; cv.height = Hh * dpr;
+    const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+    const r = rng(hash(p.id + S.day));
+    const n = LV.indexOf(a.level);
+    const moonBright0 = a.moonH && a.moon.rel >= 0.25 ? a.moon.rel : 0;
+    let moonBright = moonBright0;
+    const clarity = cloudy ? 0.12 : [0.12, 0.5, 0.8, 1][n];
+    const count = Math.round((W * Hh / 260) * clarity * (1 - (p.bortle - 1) / 10) * (1 - 0.65 * moonBright)) + 25;
+    const stars = [];
+    for (let k = 0; k < count; k++) { const m = Math.pow(r(), 2.4); stars.push({ x: r() * W, y: r() * Hh * 0.82, s: 0.4 + (1 - m) * 1.5 * (r() < 0.04 ? 1.8 : 1), b: 0.35 + (1 - m) * 0.65, tw: r() * Math.PI * 2, sp: 0.6 + r() * 1.6 }); }
+    const milky = !cloudy && p.bortle <= 4 && moonBright === 0 && n >= 2;
+    const mw = [];
+    if (milky) for (let k = 0; k < 900; k++) { const t = r(); const off = (r() + r() + r() - 1.5) * Hh * 0.12; mw.push({ x: t * W * 1.2 - W * 0.1, y: Hh * 0.95 - t * Hh * 0.95 + off, s: 0.3 + r() * 0.5, b: 0.15 + r() * 0.35 }); }
+    const ridge = []; let y = Hh * (0.8 + r() * 0.05);
+    for (let x = 0; x <= W + 20; x += 18) { y += (r() - 0.5) * 14; y = clamp(y, Hh * 0.74, Hh * 0.9); ridge.push([x, y]); }
+    const clouds = [];
+    const cloudBase = cloudy || n <= 1 ? 1 : 0;
+    for (let k = 0; k < 7; k++) clouds.push({ x: r() * W, y: Hh * (0.1 + r() * 0.55), rx: W * (0.18 + r() * 0.2), ry: Hh * (0.06 + r() * 0.06), o: 0.25 + r() * 0.25 });
+    let shoot = null, lastShoot = performance.now();
+
+    function frame(t) {
+      if (photo) ctx.clearRect(0, 0, W, Hh);
+      else { const g = ctx.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, "#070a1c"); g.addColorStop(0.65, "#0f1430"); g.addColorStop(1, "#1a1d3c"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh); }
+      if (p.bortle >= (photo ? 6 : 4)) { const lg = ctx.createRadialGradient(W * 0.3, Hh, 0, W * 0.3, Hh, Hh * 0.9); lg.addColorStop(0, `rgba(255,170,90,${0.07 * (p.bortle - 3)})`); lg.addColorStop(1, "rgba(255,170,90,0)"); ctx.fillStyle = lg; ctx.fillRect(0, 0, W, Hh); }
+      if (milky && !photo) {
+        // 띠 두께 방향으로 흐려지는 그라디언트를 여러 겹 겹쳐 가장자리를 부드럽게
+        ctx.save(); ctx.translate(W / 2, Hh / 2); ctx.rotate(-Math.atan2(Hh * 0.95, W * 1.2));
+        [[0.2, 0.05], [0.11, 0.06], [0.05, 0.05]].forEach(([th, al]) => {
+          const t = Hh * th, mg = ctx.createLinearGradient(0, -t, 0, t);
+          mg.addColorStop(0, "rgba(190,200,255,0)"); mg.addColorStop(0.5, `rgba(200,208,255,${al})`); mg.addColorStop(1, "rgba(190,200,255,0)");
+          ctx.fillStyle = mg; ctx.fillRect(-W, -t, W * 2, t * 2);
+        });
+        ctx.restore();
+        for (const s of mw) { ctx.fillStyle = `rgba(220,225,255,${s.b})`; ctx.fillRect(s.x, s.y, s.s, s.s); }
+      }
+      if (moonBright && photo !== "moon") { const mx = W * 0.82, my = Hh * 0.2; const mg = ctx.createRadialGradient(mx, my, 0, mx, my, W * 0.45); mg.addColorStop(0, "rgba(255,250,225,0.35)"); mg.addColorStop(1, "rgba(255,250,225,0)"); ctx.fillStyle = mg; ctx.fillRect(0, 0, W, Hh); ctx.fillStyle = "#fffbe8"; ctx.beginPath(); ctx.arc(mx, my, 13, 0, Math.PI * 2); ctx.fill(); }
+      if (!photo) for (const s of stars) {
+        const tw = reduce ? 1 : 0.75 + 0.25 * Math.sin(t / 1000 * s.sp + s.tw);
+        ctx.fillStyle = `rgba(255,248,230,${(s.b * tw).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill();
+      }
+      if (!reduce && !cloudy && n >= 2) {
+        if (!shoot && t - lastShoot > 7000 && r() < 0.02) { shoot = { x: W * (0.2 + r() * 0.6), y: Hh * (0.05 + r() * 0.25), t0: t }; }
+        if (shoot) { const k = (t - shoot.t0) / 900; if (k > 1) { shoot = null; lastShoot = t; } else { const len = 90, dx = 140 * k, dy = 60 * k; const gr = ctx.createLinearGradient(shoot.x + dx, shoot.y + dy, shoot.x + dx - len, shoot.y + dy - len * 0.43); gr.addColorStop(0, `rgba(255,255,255,${0.8 * (1 - k)})`); gr.addColorStop(1, "rgba(255,255,255,0)"); ctx.strokeStyle = gr; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(shoot.x + dx, shoot.y + dy); ctx.lineTo(shoot.x + dx - len, shoot.y + dy - len * 0.43); ctx.stroke(); } }
+      }
+      const hr = anim.hour != null ? a.hrs[anim.hour] : null;
+      const cf = hr ? clamp((hr.cloud - 15) / 65, 0, 1) : cloudBase;
+      moonBright = hr ? (hr.moon && a.moon.rel >= 0.25 ? a.moon.rel : 0) : moonBright0;
+      if (photo !== "cloudy" && cf > 0.02) for (const c of clouds) { const cg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.rx); cg.addColorStop(0, `rgba(120,128,160,${(c.o * cf).toFixed(3)})`); cg.addColorStop(1, "rgba(120,128,160,0)"); ctx.fillStyle = cg; ctx.save(); ctx.translate(c.x, c.y); ctx.scale(1, c.ry / c.rx); ctx.translate(-c.x, -c.y); ctx.beginPath(); ctx.arc(c.x, c.y, c.rx, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      if (!photo) { ctx.fillStyle = "#05070f"; ctx.beginPath(); ctx.moveTo(0, Hh); ridge.forEach(([x, yy]) => ctx.lineTo(x, yy)); ctx.lineTo(W, Hh); ctx.closePath(); ctx.fill(); }
+      const sg = ctx.createLinearGradient(0, Hh * 0.45, 0, Hh); sg.addColorStop(0, "rgba(5,7,15,0)"); sg.addColorStop(1, "rgba(5,7,15,0.75)"); ctx.fillStyle = sg; ctx.fillRect(0, Hh * 0.45, W, Hh * 0.55);
+      if (!reduce) anim.raf = requestAnimationFrame(frame);
+    }
+    anim = { raf: 0, hour: null, redraw: () => { if (reduce) frame(performance.now()); } };
+    frame(performance.now());
+  }
+
+  // ---------- 렌더 ----------
+  const $ = (id) => document.getElementById(id);
+  function syncSeg(id, attr, val) { document.querySelectorAll(`#${id} [data-${attr}]`).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val)))); }
+  function render() {
+    const v = $("view");
+    const desk = isDesk();
+    if (desk && S.tab === "map") S.tab = "tonight";
+    $("mapcol").innerHTML = desk ? mapHtml(S.detail || topPick()) : "";
+    if (S.detail) v.innerHTML = viewDetail(S.detail);
+    else if (S.tab === "map") v.innerHTML = viewMap();
+    else if (S.tab === "mine") v.innerHTML = viewMine();
+    else v.innerHTML = viewTonight();
+    document.querySelectorAll("#nav [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab && !S.detail)));
+    $("app").dataset.red = S.red ? "1" : "0";
+    syncSeg("segExpert", "expert", S.expert ? 1 : 0);
+    syncSeg("segCut", "cut", S.cutoff);
+    syncSeg("segTravel", "travel", S.maxTravel);
+    syncSeg("segRed", "red", S.red ? 1 : 0);
+    syncSeg("segScn", "scn", S.scenario);
+    syncSeg("segLogin", "login", S.login ? 1 : 0);
+    syncSeg("segRes", "res", S.res);
+    syncSeg("segFont", "font", S.font);
+    document.documentElement.style.setProperty("--font-display", FONTS[S.font][0]);
+    document.documentElement.style.setProperty("--font-ui", FONTS[S.font][1] + ', "Apple SD Gothic Neo", "Malgun Gothic", sans-serif');
+    $("oClear").textContent = S.clear + "% 이하";
+    $("oRun").textContent = S.minRun + "시간";
+    $("oPen").textContent = S.travelPen + "점";
+    setupSky();
+    updateCloud(curPlan);
+  }
+  function renderSources() {
+    $("srcList").innerHTML = SOURCES.map((s) => `<li><b>${esc(s.k)}${s.status ? `<span class="tag">${esc(s.status)}</span>` : ""}</b>${esc(s.v)}${s.links.length ? `<br>${s.links.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join("<br>")}` : ""}</li>`).join("");
+  }
+  function openSheet(id) { ["settings", "sources", "tools"].forEach((k) => ($(k).hidden = k !== id)); }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.classList && e.target.classList.contains("sheet-back")) { e.target.hidden = true; return; }
+    const t = e.target.closest("[data-tab],[data-open],[data-day],[data-scn],[data-login],[data-res],[data-back],[data-more],[data-showall],[data-expert],[data-cut],[data-travel],[data-red],[data-sheet],[data-close],[data-layer],[data-zoom],[data-font],[data-play],[data-cloudmap],[data-trip],#gearBtn,#toolsBtn,#whereBtn,#mapImg");
+    if (!t) return;
+    if (t.dataset.layer) { S.layer = t.dataset.layer; if (S.layer !== "cloud") { S.playing = false; } else S.ct = null; render(); return; }
+    if (t.hasAttribute("data-play")) { S.playing = !S.playing; if (S.playing) { if (S.ct >= 11.9) S.ct = -3; playLoop(); } render(); return; }
+    if (t.dataset.cloudmap) { S.layer = "cloud"; S.ct = null; S.trip = null; if (isDesk()) { S.detail = t.dataset.cloudmap; } else { S.tab = "map"; S.peek = t.dataset.cloudmap; S.detail = null; } window.scrollTo({ top: 0, behavior: "smooth" }); render(); return; }
+    if (t.dataset.trip) {
+      const k = t.dataset.trip;
+      if (k === "start" && curPlan) { const pl = curPlan; const now = pl.dep + (pl.travel / 60) * 0.5; S.trip = { id: pl.p.id, origin: ORIGIN, dep: pl.dep, now, phase: "alert", bumpId: pl.p.id, bumpFrom: clamp(Math.floor(pl.arr), 0, 12) }; S.ct = now; S.playing = false; }
+      else if (k === "switch") { const cur = routePts(curPlan.o, curPlan.p, 24)[12]; S.trip = { ...S.trip, id: t.dataset.alt, origin: { lat: cur.lat, lon: cur.lon, name: "지금 위치" }, dep: S.trip.now, phase: "switched" }; }
+      else if (k === "keep") S.trip.phase = "keep";
+      else if (k === "home") S.trip.phase = "home";
+      else if (k === "end") { S.trip = null; S.ct = null; }
+      render(); return;
+    }
+    if (t.dataset.zoom) { const z = S.mz; if (t.dataset.zoom === "reset") { z.z = 1; z.tx = 0; z.ty = 0; } else zoomAt(t.dataset.zoom === "in" ? 1.5 : 1 / 1.5, 50, 50); applyZoom(true); return; }
+    if (t.dataset.font) { S.font = t.dataset.font; render(); return; }
+    if (t.id === "mapImg") {
+      if (dragMoved) { dragMoved = false; return; }
+      const r = t.getBoundingClientRect(), z = S.mz;
+      const x = (((e.clientX - r.left) / r.width) * 100 - z.tx) / z.z, y = (((e.clientY - r.top) / r.height) * 100 - z.ty) / z.z;
+      S.pick = { x, y, lon: 124.5 + (x / 100 * MAPW) / (KM * PPD), lat: 38.75 - (y / 100 * MAPH) / PPD };
+      render(); return;
+    }
+    if (t.id === "gearBtn" || t.id === "whereBtn") { openSheet("settings"); return; }
+    if (t.id === "toolsBtn") { openSheet("tools"); return; }
+    if (t.hasAttribute("data-close")) { t.closest(".sheet-back").hidden = true; return; }
+    if (t.dataset.sheet) { openSheet(t.dataset.sheet); return; }
+    const d = t.dataset;
+    if (d.tab) { S.tab = d.tab; S.detail = null; S.more = false; }
+    else if (d.open && !isDesk() && t.classList.contains("pin")) { S.peek = d.open; }
+    else if (d.open) { S.detail = d.open; S.more = false; S.peek = null; window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (d.day !== undefined) { S.day = +d.day; S.more = false; S.detail = null; }
+    else if (d.scn) { S.scenario = d.scn; S.day = 0; }
+    else if (d.login) { S.login = d.login === "1"; }
+    else if (d.res) { S.res = +d.res; }
+    else if (t.hasAttribute("data-back")) { S.detail = null; S.more = false; }
+    else if (t.hasAttribute("data-more")) { S.more = !S.more; }
+    else if (t.hasAttribute("data-showall")) { S.showAll = !S.showAll; }
+    else if (d.expert !== undefined) { S.expert = d.expert === "1"; }
+    else if (d.cut !== undefined) { S.cutoff = +d.cut; }
+    else if (d.travel !== undefined) { S.maxTravel = +d.travel; }
+    else if (d.red !== undefined) { S.red = d.red === "1"; }
+    render();
+  });
+  function playLoop() {
+    let last = performance.now();
+    const step = (now) => {
+      if (!S.playing || S.layer !== "cloud") return;
+      S.ct = Math.min(12, (S.ct ?? -3) + (now - last) / 1000 * 1.2); last = now;
+      updateCloud(curPlan);
+      if (S.ct >= 12) { S.playing = false; render(); return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  document.addEventListener("input", (e) => { if (e.target.id === "ctRange") { S.ct = +e.target.value; updateCloud(curPlan); } });
+
+  // 지도 확대/이동 (DOM만 바꾸고 전체 렌더는 하지 않음)
+  let drag = null, dragMoved = false;
+  function clampZ() { const z = S.mz; z.z = clamp(z.z, 1, 5); z.tx = clamp(z.tx, (1 - z.z) * 100, 0); z.ty = clamp(z.ty, (1 - z.z) * 100, 0); }
+  function zoomAt(f, px, py) { const z = S.mz, nz = clamp(z.z * f, 1, 5); const cx = (px - z.tx) / z.z, cy = (py - z.ty) / z.z; z.z = nz; z.tx = px - cx * nz; z.ty = py - cy * nz; clampZ(); }
+  function applyZoom(animate) {
+    const m = $("mapImg"); if (!m) return; const el = m.querySelector(".mapzoom"), z = S.mz;
+    el.classList.toggle("anim", !!animate);
+    el.style.transform = `translate(${z.tx}%,${z.ty}%) scale(${z.z})`;
+    m.style.setProperty("--iz", (1 / z.z).toFixed(4)); m.classList.toggle("zoomed", z.z > 1);
+  }
+  document.addEventListener("wheel", (e) => {
+    const m = e.target.closest && e.target.closest("#mapImg"); if (!m) return;
+    e.preventDefault(); const r = m.getBoundingClientRect();
+    zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, ((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100); applyZoom(false);
+  }, { passive: false });
+  document.addEventListener("pointerdown", (e) => {
+    const m = e.target.closest && e.target.closest("#mapImg"); if (!m || e.target.closest(".pin")) return;
+    if (S.mz.z <= 1 && e.pointerType === "touch") return;
+    drag = { m, x: e.clientX, y: e.clientY, tx: S.mz.tx, ty: S.mz.ty, r: m.getBoundingClientRect() }; dragMoved = false;
+  });
+  document.addEventListener("pointermove", (e) => {
+    if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!dragMoved && Math.hypot(dx, dy) > 4) { dragMoved = true; drag.m.classList.add("dragging"); }
+      if (dragMoved) { S.mz.tx = drag.tx + (dx / drag.r.width) * 100; S.mz.ty = drag.ty + (dy / drag.r.height) * 100; clampZ(); applyZoom(false); }
+      return;
+    }
+    bandMove(e);
+    const sky = e.target.closest && e.target.closest(".sky");
+    if (sky && e.pointerType === "mouse") { const r = sky.getBoundingClientRect(); sky.style.setProperty("--px", (((e.clientX - r.left) / r.width) - 0.5).toFixed(3)); sky.style.setProperty("--py", (((e.clientY - r.top) / r.height) - 0.5).toFixed(3)); }
+  });
+  document.addEventListener("pointerup", () => { if (drag) { drag.m.classList.remove("dragging"); drag = null; } });
+
+  // 밤 띠 훑기: 툴팁 + 하늘 그림에 그 시각의 구름·달 반영
+  function bandMove(e) {
+    const b = e.target.closest && e.target.closest(".band");
+    document.querySelectorAll(".band").forEach((x) => { if (x !== b) { x.querySelector(".band-tip").hidden = true; x.querySelector(".band-cursor").hidden = true; } });
+    if (!b) { if (anim && anim.hour != null) { anim.hour = null; anim.redraw(); } return; }
+    const a = BANDS[b.dataset.pid]; if (!a) return;
+    const svg = b.querySelector("svg").getBoundingClientRect();
+    const fx = (e.clientX - svg.left) / svg.width, L = +b.dataset.l, CWf = +b.dataset.cw;
+    const i = clamp(Math.floor((fx - L) / CWf), 0, 12), x = a.hrs[i];
+    const cx = (L + (i + 0.5) * CWf) * 100;
+    const tip = b.querySelector(".band-tip"), cur = b.querySelector(".band-cursor");
+    const sky = !x.dark ? "아직 밝아요" : x.clear ? (x.cloud < 20 ? "맑음" : "구름 조금") : x.cloud >= 70 ? "흐림" : "구름 많음";
+    tip.innerHTML = `<b>${kt(x.h)}</b> · ${sky} · 구름 ${x.cloud}%${x.moon ? " · 달 떠 있음" : ""}${S.expert && x.dark ? ` · 점수 ${x.score}` : ""}`;
+    tip.style.left = clamp(cx, 18, 82) + "%"; tip.hidden = false;
+    cur.style.left = cx + "%"; cur.style.height = (svg.height * 50 / 72) + "px"; cur.hidden = false;
+    const cv = document.getElementById("sky");
+    if (anim && cv && cv.dataset.id === b.dataset.pid && anim.hour !== i) { anim.hour = i; anim.redraw(); }
+  }
+  document.addEventListener("pointerleave", () => bandMove({ target: document.body }), true);
+
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") ["settings", "sources", "tools"].forEach((k) => ($(k).hidden = true)); });
+  [["rClear", "clear"], ["rRun", "minRun"], ["rPen", "travelPen"]].forEach(([id, k]) => $(id).addEventListener("input", (e) => { S[k] = +e.target.value; render(); }));
+  let rz, lastDesk = isDesk(); window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (isDesk() !== lastDesk) { lastDesk = isDesk(); render(); } else setupSky(); }, 150); });
+  renderSources();
+  render();
+})();
+</script>
+
+</body>
+</html>
