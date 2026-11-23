@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.domain.spot.domain;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,10 @@ import xyz.ncookie.stargazer.domain.spot.repository.ObservationRepository;
 public class ObservationSpotDomainService {
 
 	private final ObservationRepository observationRepository;
+
+	public List<ObservationSpot> findAll() {
+		return observationRepository.findAll();
+	}
 
 	public ObservationSpot findById(Long spotId) {
 
