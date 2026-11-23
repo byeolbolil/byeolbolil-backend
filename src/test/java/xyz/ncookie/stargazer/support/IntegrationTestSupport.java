@@ -32,7 +32,7 @@ import xyz.ncookie.stargazer.infra.lightpollution.LightPollutionMigrationRunner;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@Import({TestContainersConfig.class, ExternalApiStubConfig.class})
+@Import({TestContainersConfig.class, ExternalApiStubConfig.class, TestClockConfig.class})
 public abstract class IntegrationTestSupport {
 
 	/**
@@ -52,6 +52,9 @@ public abstract class IntegrationTestSupport {
 	protected StringRedisTemplate redis;
 
 	@Autowired
+	protected TestClock clock;
+
+	@Autowired
 	private CacheManager cacheManager;
 
 	@Autowired
@@ -59,7 +62,7 @@ public abstract class IntegrationTestSupport {
 
 	/**
 	 * 컨텍스트를 공유하므로 테스트 사이에 남는 상태를 매번 비운다.
-	 * 캐시(Caffeine, Redis), Redis의 나머지 키, OpenWeather 호출 제한 토큰, 외부 API 대체 응답이 대상이다.
+	 * 캐시(Caffeine, Redis), Redis의 나머지 키, OpenWeather 호출 제한 토큰, 외부 API 대체 응답, 고정해 둔 시각이 대상이다.
 	 */
 	@BeforeEach
 	void resetSharedState() {
@@ -70,6 +73,7 @@ public abstract class IntegrationTestSupport {
 		});
 		openWeatherRateLimitBucket.reset();
 		externalApi.reset();
+		clock.reset();
 	}
 
 	/**
