@@ -80,7 +80,7 @@ public class GeminiAnalysisClient {
 			bortleClass              // JSON에 넣을 Bortle (위와 동일)
 		);
 
-		String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiKey;
+		String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=" + geminiKey;
 
 		try {
 			GeminiResponse response = restTemplate.postForObject(url, GeminiRequest.of(prompt), GeminiResponse.class);
