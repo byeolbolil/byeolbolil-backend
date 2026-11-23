@@ -24,6 +24,8 @@ spring:
     sql:
         init:
             mode: always
+            # data.sql의 한글을 JVM 기본 문자셋으로 읽으면 환경에 따라 깨진 이름으로 들어간다.
+            encoding: UTF-8
 
     cache:
         type: redis
