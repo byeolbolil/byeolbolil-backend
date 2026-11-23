@@ -42,6 +42,8 @@ docker-compose -f docker-compose.dev.yml up -d
 Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/USERNAME/PASSWORD`, `REDIS_HOST/PORT`,
 `JWT_KEY`, `WEATHER_API_KEY`, `GEMINI_API_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
+Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `OPEN_METEO_BASE_URL`,
+`OPEN_METEO_MODEL`.
 
 ### Tests
 
@@ -88,6 +90,11 @@ Cross-domain communication always goes through Application-layer orchestration �
   the AI comment. Score model: base 100, hard cutoff to 0 if cloud cover ≥70% or sun altitude > -6° (civil
   twilight/daytime), then deductions for light pollution, cloud, moon brightness, humidity, and visibility (see
   README "별 관측 점수 산정 기준" for exact weights).
+- `weather/` — hourly forecast in an internal model (`WeatherForecast`, `HourlyWeather`).
+  `WeatherDomainService.getHourlyForecast(lat, lon)` returns up to 168 hours from the current hour: Open-Meteo
+  (`ecmwf_ifs`) first, MET Norway as fallback, cached in Redis by 0.05° cell (`ForecastCell`) and model run time
+  (`ForecastCache`). Failures surface as `WeatherErrorCode.FORECAST_UNAVAILABLE`, never as dummy weather.
+  The old `stargazing/client/openweather` path still serves the existing APIs until the roadmap's phase 3.
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.

@@ -11,6 +11,7 @@ JWT_KEY: c3RhcmdhemVyLXRlc3Qtb25seS1qd3Qtc2VjcmV0LWtleS0wMDAw
 
 WEATHER_API_KEY: test-weather-key
 GEMINI_API_KEY: test-gemini-key
+MET_NORWAY_USER_AGENT: stargazer-test
 
 GOOGLE_CLIENT_ID: test-google-id
 GOOGLE_CLIENT_SECRET: test-google-secret
