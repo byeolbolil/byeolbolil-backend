@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
+The product is called 별볼일 (byeolbolil). "Stargazer" and the `xyz.ncookie.stargazer` package are the old working
+name. As of 2026-11-24 the product is being rebuilt as a beginner-first "best spot and time window tonight"
+recommender. See `docs/decisions.md` (2026-11-24 entries), `docs/ROADMAP.md`, and the clickable mockup in
+`docs/mockup/`.
+
 Stargazer (`xyz.ncookie.stargazer`) is a Spring Boot 4 / Java 17 REST API backend that scores how good a given
 location/time is for stargazing (0–100), combining OpenWeatherMap, VIIRS light-pollution data, and astronomical
 calculations (via `commons-suncalc`), plus a Google Gemini-generated comment. It also supports member auth,
@@ -109,13 +114,20 @@ if they appear as untracked local files.
 
 - All chat responses and git commit messages should be written in Korean, using Conventional Commits
   (`feat:`, `fix:`, `refactor:`, `docs:`, etc. — see `.cursorrules`).
-- **Never run `git commit` — the user commits everything themselves.** This is deliberate: delegating commits
-  cost the user their own understanding of the codebase, so the commit step is where they read the diff.
-  Instead of committing, propose a commit plan: which files go in which commit, why they are grouped that way,
-  and the Korean Conventional Commits message for each. Include a short plain-language summary of what actually
-  changed in each commit so the user can review the diff without re-deriving it. The same applies to
-  `git push`, `gh pr create`, and anything else that publishes work — propose, don't execute.
-  Staging (`git add`) also waits for the user unless they ask otherwise.
+- **Claude owns branches and commits (since 2026-11-24).** The user now focuses on product direction and real-world
+  use, and has handed over git work and testing. This replaces the earlier rule that the user commits everything.
+  - Branch off `dev` for each unit of work (`feat/…`, `fix/…`, `refactor/…`, `test/…`, `docs/…`, `chore/…`) and
+    merge back into `dev` with `--no-ff` when the unit is done.
+  - Split commits by logical change. Write Korean Conventional Commits in the existing style: a subject line, then
+    a bullet body that says why. Add no AI co-author trailer, since the history must not read as machine-generated.
+  - After committing, tell the user in a few Korean lines what each commit changed.
+  - `git push`, `gh pr create`, `gh issue create`, and anything else that publishes to GitHub still need the
+    user's go-ahead.
+  - Never commit secrets or the gitignored `infra/` files described above.
+- **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
+  `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
+  (weather, Gemini, routing) with recorded responses, and never call them from tests. Make `./gradlew test` pass
+  before every commit that touches code. The build order and done criteria live in `docs/ROADMAP.md`.
 - **Decisions and trade-offs have to end up somewhere the repo can see.** Whenever work involves a real choice —
   a policy, a threshold, an approach with a discarded alternative — say so and point at the right home instead of
   leaving the reasoning in chat or in a GitHub issue that will be closed. A cloned repo must still explain itself.
@@ -166,4 +178,5 @@ if they appear as untracked local files.
 - Further docs: [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) (layering rules, full checklist),
   [docs/SECURITY_AUTH_GUIDE.md](docs/SECURITY_AUTH_GUIDE.md) (auth flow),
   [docs/MOBILE_DEVELOPER_GUIDE.md](docs/MOBILE_DEVELOPER_GUIDE.md), [docs/SWAGGER_GUIDE.md](docs/SWAGGER_GUIDE.md),
-  [docs/MONITORING_AND_ALERTS.md](docs/MONITORING_AND_ALERTS.md).
+  [docs/MONITORING_AND_ALERTS.md](docs/MONITORING_AND_ALERTS.md), [docs/SCORING.md](docs/SCORING.md) (threshold
+  sources), [docs/ROADMAP.md](docs/ROADMAP.md) (build order), [docs/mockup/](docs/mockup/) (target screens).
