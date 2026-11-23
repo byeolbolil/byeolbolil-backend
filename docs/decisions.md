@@ -319,3 +319,54 @@ NOAA SWPC 경험칙으로는 가장 강한 지자기 폭풍(Kp 9)에서도 오�
 ### 영향
 
 - 클라이언트: 날짜별 추천 응답이 추가된다.
+
+## 2026-11-24 테스트 기반: Testcontainers와 RestTemplate 가로채기
+
+### 배경
+
+테스트가 컨텍스트 로드 하나뿐이었고, 그마저 로컬 MySQL, Redis와 `.env`의 실제 키가 있어야 돌았다.
+점수 기준과 날씨 소스를 바꾸기 전에, 지금 동작을 고정해 두고 무엇이 달라지는지 볼 수 있어야 한다.
+`docs/ROADMAP.md` 1단계의 끝나는 조건은 `./gradlew test`가 외부 네트워크 없이 통과하는 것이다.
+
+### 선택
+
+- MySQL과 Redis는 Testcontainers로 띄운다. 이미지는 `docker-compose.dev.yml`과 같은 `mysql:8.0`, `redis:alpine`이다.
+  광해 조회가 MySQL 공간 함수(`MBRContains`, `ST_Distance_Sphere`)에 의존해서 같은 엔진이어야 결과를 믿을 수 있다.
+- 통합 테스트는 `IntegrationTestSupport` 하나를 상속한다. 컨텍스트 설정이 같아서 컨텍스트와 컨테이너를 한 번만 띄운다.
+  테스트 사이에 남는 상태(캐시, Redis 키, 호출 제한 토큰, 외부 API 대체 응답)는 매 테스트 전에 비운다.
+- 외부 API는 애플리케이션의 `RestTemplate` 빈에 `MockRestServiceServer`를 묶어 대체한다(`ExternalApiStubs`).
+  응답은 `src/test/resources/fixtures`의 JSON 파일이다. 대체해 두지 않은 주소를 호출하면 `AssertionError`가 나는데,
+  클라이언트의 `catch (Exception)`에 잡히지 않아서 빠뜨린 호출이 테스트 실패로 드러난다.
+- 기동할 때 광해 CSV 58만 행을 적재하는 `LightPollutionMigrationRunner`는 테스트에서 `@MockitoBean`으로 끈다.
+  광해 데이터가 필요한 테스트는 격자점 몇 개를 직접 넣는다(`LightPollutionFixture`).
+- 테스트 프로필(`application-test.yml`)은 `application.yml`이 환경변수로 받는 값을 같은 이름의 가짜 값으로 채운다.
+  운영 코드는 테스트를 위해 바꾸지 않았다.
+
+### 버린 대안
+
+- H2와 내장 Redis: H2는 MySQL 공간 함수와 SRID 4326의 축 순서를 재현하지 못한다. 광해 조회 쿼리의 좌표 순서 문제는
+  실제 MySQL에서만 확인할 수 있었다.
+- WireMock: HTTP 수준까지 실제로 오가는 장점이 있지만, 클라이언트가 호출 주소를 코드에 박아 두고 있어서 주소를 설정값으로
+  빼는 운영 코드 변경이 먼저 필요하다. 2단계에서 Open-Meteo 클라이언트를 새로 만들 때 타임아웃이나 재시도처럼 HTTP 수준
+  동작을 확인해야 하면 다시 검토한다.
+- 테스트 리소스에 같은 이름의 작은 CSV를 두어 적재 러너를 그대로 돌리는 방식: 클래스패스 순서에 기대는 암묵적인 동작이고,
+  테스트가 어떤 광해 데이터를 전제로 하는지 테스트 코드에서 보이지 않는다.
+- 단위 테스트와 통합 테스트를 Gradle 태스크로 나누는 방식: 지금은 전체가 40초쯤이라 나눌 이유가 없다.
+  느려지면 JUnit 태그로 나눈다.
+
+### 적용 상태
+
+적용. 테스트 150개가 통과한다.
+
+### 영향
+
+- `./gradlew test`를 돌리려면 Docker가 떠 있어야 한다. `mysql:8.0`, `redis:alpine`, `testcontainers/ryuk` 이미지가 로컬에
+  없으면 처음 한 번은 내려받는다. 그 뒤로는 네트워크 없이 돈다.
+- fixture의 OpenWeather, Gemini 응답은 실제 호출을 저장한 것이 아니라 공개된 응답 형식에 맞춰 손으로 쓴 것이다.
+  실제 응답으로 바꾸는 방법은 `src/test/resources/fixtures/README.md`에 있다.
+- Spring Data Redis 4는 캐시 쓰기와 지우기를 비동기로 보낸다. Redis를 직접 들여다보는 테스트는 키가 보일 때까지 기다려야 하고,
+  `IntegrationTestSupport`는 캐시를 지운 뒤 키가 사라질 때까지 기다린다.
+- 엔진, 등급 표, API 응답을 고정한 테스트는 지금 코드가 내는 값을 적은 것이다. 3단계에서 기준값을 바꾸면 이 테스트가 깨지는
+  것이 정상이고, 깨진 목록이 곧 달라진 동작이다.
+- 배포 워크플로(`.github/workflows/deploy.yml`)는 여전히 `-x test`로 빌드한다. CI에서 테스트를 돌릴지는 따로 정한다.
+- 클라이언트: 없음.
