@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -86,6 +88,19 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<CommonResponse<Void>> handleGeneralException(Exception e) {
+
+		// 없는 경로, 지원하지 않는 메서드처럼 Spring이 상태 코드를 정해 둔 예외는 서버 오류가 아니다.
+		// 500으로 답하면 스캐너가 /를 찌를 때마다 오류 로그와 스택 트레이스가 쌓인다.
+		if (e instanceof ErrorResponse errorResponse && !errorResponse.getStatusCode().is5xxServerError()) {
+			HttpStatusCode status = errorResponse.getStatusCode();
+			String message = status.value() == HttpStatus.NOT_FOUND.value()
+				? "요청한 경로를 찾을 수 없습니다."
+				: errorResponse.getBody().getDetail();
+
+			return ResponseEntity
+				.status(status)
+				.body(CommonResponse.error(status.value(), message, null));
+		}
 
 		log.error("예상하지 못한 예외 발생: ", e);
 
