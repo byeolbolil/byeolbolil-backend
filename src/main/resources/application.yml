@@ -80,6 +80,14 @@ jwt:
 weather:
     api:
         key: ${WEATHER_API_KEY}
+    # 1시간 단위 예보의 주 소스. 유료 플랜으로 바꾸면 base-url이 달라진다.
+    open-meteo:
+        base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
+        model: ${OPEN_METEO_MODEL:ecmwf_ifs}
+    # 보조 소스. 약관상 서비스를 식별하는 User-Agent가 필요하고, 비어 있으면 호출하지 않는다.
+    met-norway:
+        base-url: https://api.met.no
+        user-agent: ${MET_NORWAY_USER_AGENT:}
 
 gemini:
     api:
