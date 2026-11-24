@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -74,6 +75,20 @@ public class GlobalExceptionHandler {
 				HttpStatus.BAD_REQUEST.value(),
 				"유효성 검사에 실패하였습니다.",
 				Map.of(e.getName(), "입력 형식이 올바르지 않습니다.")));
+	}
+
+	/**
+	 * 본문이 JSON이 아니거나 필드를 선언한 타입으로 읽지 못했을 때 (예: 깨진 JSON, enum에 없는 값).
+	 * 원인 메시지에는 내부 클래스 이름이 들어가므로 그대로 내보내지 않는다.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<CommonResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException e) {
+
+		log.debug("읽을 수 없는 요청 본문: ", e);
+
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(CommonResponse.error(HttpStatus.BAD_REQUEST.value(), "요청 본문을 읽을 수 없습니다.", null));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

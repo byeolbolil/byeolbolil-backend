@@ -87,8 +87,7 @@ public class AuthApplicationService {
 	@Transactional(readOnly = true)
 	public TokenDto login(LoginRequest request) {
 
-		Member member = authDomainService.findByEmail(request.email());
-		authDomainService.validatePassword(request.password(), member.getPassword());
+		Member member = authDomainService.authenticate(request.email(), request.password());
 
 		return issueTokens(member.getId());
 	}

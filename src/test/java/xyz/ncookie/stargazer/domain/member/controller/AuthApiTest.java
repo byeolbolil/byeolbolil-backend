@@ -16,6 +16,8 @@ import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
 import xyz.ncookie.stargazer.domain.bookmark.repository.BookmarkRepository;
+import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
+import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 
@@ -72,6 +74,71 @@ class AuthApiTest extends IntegrationTestSupport {
 
 			assertThat(reissueWithCookie(refreshToken)).hasStatusOk();
 		}
+
+		@Test
+		@DisplayName("이미 가입된 이메일이면 409다")
+		void duplicateEmail() {
+			register(EMAIL, PASSWORD, NICKNAME);
+
+			assertThat(register(EMAIL, PASSWORD, "다른 사람")).hasStatus(409).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 409,
+				  "message": "이미 사용 중인 이메일입니다."
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("비밀번호 규칙에 맞지 않으면 400이고 data에 필드별 사유가 담긴다")
+		void weakPassword() {
+			assertThat(register(EMAIL, "short", NICKNAME)).hasStatus(400).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 400,
+				  "message": "유효성 검사에 실패하였습니다.",
+				  "data": { "password": "비밀번호는 8자 이상, 문자/숫자/특수문자를 포함해야 합니다." }
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("문구를 따로 정하지 않은 검증의 사유는 Accept-Language를 따른다")
+		void defaultMessagesFollowLocale() {
+			MvcTestResult korean = mvc.post().uri("/api/v1/auth/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.header("Accept-Language", "ko-KR")
+				.content("""
+					{ "email": "not-an-email", "password": "%s", "nickname": "" }
+					""".formatted(PASSWORD))
+				.exchange();
+			MvcTestResult english = mvc.post().uri("/api/v1/auth/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.header("Accept-Language", "en-US")
+				.content("""
+					{ "email": "not-an-email", "password": "%s", "nickname": "" }
+					""".formatted(PASSWORD))
+				.exchange();
+
+			assertThat(korean).hasStatus(400).bodyJson().isLenientlyEqualTo("""
+				{ "data": { "email": "올바른 형식의 이메일 주소여야 합니다", "nickname": "공백일 수 없습니다" } }
+				""");
+			assertThat(english).hasStatus(400).bodyJson().isLenientlyEqualTo("""
+				{ "data": { "email": "must be a well-formed email address", "nickname": "must not be blank" } }
+				""");
+		}
+
+		@Test
+		@DisplayName("본문이 JSON으로 읽히지 않으면 400이다")
+		void brokenJson() {
+			assertThat(postJson("/api/v1/auth/register", "{")).hasStatus(400).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 400,
+				  "message": "요청 본문을 읽을 수 없습니다."
+				}
+				""");
+		}
 	}
 
 	@Nested
@@ -100,6 +167,33 @@ class AuthApiTest extends IntegrationTestSupport {
 
 			assertThat(me(accessToken)).hasStatusOk().bodyJson()
 				.extractingPath("$.data.nickname").isEqualTo(NICKNAME);
+		}
+
+		@Test
+		@DisplayName("비밀번호가 틀리면 401이다")
+		void wrongPassword() {
+			assertThat(login(EMAIL, "wrong-password1!")).hasStatus(401).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 401,
+				  "message": "이메일 또는 비밀번호가 일치하지 않습니다."
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("가입하지 않은 이메일도 비밀번호가 틀렸을 때와 같은 응답이다")
+		void unknownEmail() {
+			assertThat(login("nobody@example.com", PASSWORD)).hasStatus(401).bodyJson()
+				.extractingPath("$.message").isEqualTo("이메일 또는 비밀번호가 일치하지 않습니다.");
+		}
+
+		@Test
+		@DisplayName("소셜 로그인으로만 가입한 회원은 비밀번호가 없어 이메일 로그인이 안 된다")
+		void socialOnlyMember() {
+			memberRepository.save(Member.oauth("social@example.com", "소셜", AuthProvider.KAKAO, "kakao-1"));
+
+			assertThat(login("social@example.com", PASSWORD)).hasStatus(401);
 		}
 
 		@Test

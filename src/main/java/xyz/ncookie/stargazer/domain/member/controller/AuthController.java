@@ -75,7 +75,11 @@ public class AuthController {
 		),
 		@ApiResponse(
 			responseCode = "400",
-			description = "잘못된 요청 (이메일 형식 오류, 필수 필드 누락, 이메일 중복 등)"
+			description = "잘못된 요청 (이메일 형식 오류, 필수 필드 누락 등)"
+		),
+		@ApiResponse(
+			responseCode = "409",
+			description = "이미 가입된 이메일"
 		)
 	})
 	@PostMapping("/register")
