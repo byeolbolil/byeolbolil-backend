@@ -142,7 +142,8 @@ Cross-domain communication always goes through Application-layer orchestration â
 
 The backend runs on one Oracle Cloud VM (1 GB, `VM.Standard.E2.1.Micro`) as a docker compose stack: Caddy
 (HTTPS for `api.byeolbolil.xyz`), the app, MySQL, and Redis. `infra/oci/deploy/` holds the compose file and Caddyfile.
-`.github/workflows/deploy.yml` runs on every push to `dev`: build with tests, push the image to GHCR, copy the
+`.github/workflows/deploy.yml` runs on every push to `dev` that touches more than docs (`docs/**`, `*.md`,
+`scripts/issues/**` alone do not deploy): build with tests, push the image to GHCR, copy the
 compose files and a `.env` rendered from GitHub secrets to `/opt/stargazer` on the VM, then `docker compose up -d`.
 The server's `.env` is overwritten on each deploy, so change values in GitHub secrets or variables, never on the VM.
 The frontend is a separate repository deployed by Vercel at `www.byeolbolil.xyz`. Vercel builds `master` as production
