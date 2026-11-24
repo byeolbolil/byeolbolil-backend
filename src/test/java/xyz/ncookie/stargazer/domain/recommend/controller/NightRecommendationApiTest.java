@@ -114,36 +114,39 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("가장 좋은 곳은 초저녁부터 일곱 시간 맑은 조경철천문대다")
-		void topPick() {
+		@DisplayName("초저녁부터 일곱 시간 맑은 조경철천문대는 꼭 가볼 만한 곳으로 나온다")
+		void strongPlace() {
 			MvcTestResult result = tonight(true);
 
 			assertThat(result).hasStatusOk().bodyJson().extractingPath("$.data.date").isEqualTo("2026-11-09");
-			assertThat(result).bodyJson().extractingPath("$.data.places[0]").asMap()
-				.containsEntry("name", "화천 조경철천문대")
+
+			Map<String, Object> place = placeNamed(bodyOf(result), "화천 조경철천문대");
+			assertThat(place)
 				.containsEntry("type", "SPOT")
 				.containsEntry("level", "STRONG")
 				.containsEntry("pattern", "CLEAR_EARLY")
 				.containsEntry("bortleClass", 3)
-				.containsEntry("forecastSource", "OPEN_METEO");
-			assertThat(result).bodyJson().extractingPath("$.data.places[0].bestWindow").asMap()
-				.containsEntry("start", "2026-11-09T19:00:00+09:00")
-				.containsEntry("end", "2026-11-10T02:00:00+09:00")
-				.containsEntry("hours", 7);
-			assertThat(result).bodyJson().extractingPath("$.data.places[0].notes").asArray().isEmpty();
+				.containsEntry("forecastSource", "OPEN_METEO")
+				.containsEntry("notes", List.of());
+			assertThat(place.get("bestWindow")).isEqualTo(Map.of(
+				"start", "2026-11-09T19:00:00+09:00",
+				"end", "2026-11-10T02:00:00+09:00",
+				"hours", 7));
 		}
 
 		@Test
 		@DisplayName("꼭 가볼 만한 곳 여섯, 가볼 만한 곳 하나, 잠깐 볼 수 있는 곳 하나 순으로 나온다")
 		void order() {
+			// 영양은 4시간 반 거리인데도 1시간 44분 거리인 조경철천문대보다 앞에 온다. 하늘이 더 어둡고 구름이 적어서
+			// 질 차이가 이동 감점(시간당 4점) 차이보다 크다. 이동 감점이 약하다는 뜻이고, 값은 정책이라 따로 정한다.
 			String body = bodyOf(tonight(true));
 
 			List<String> names = JsonPath.read(body, "$.data.places[0:8].name");
 			List<String> levels = JsonPath.read(body, "$.data.places[0:8].level");
 
 			assertThat(names).containsExactly(
-				"화천 조경철천문대",
 				"영양 반딧불이생태공원",
+				"화천 조경철천문대",
 				"함백산 만항재",
 				"호명호수",
 				"양평 중미산천문대",
@@ -187,7 +190,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			assertThat(home.get("travel")).isEqualTo(Map.of("distanceKm", 0.0, "minutes", 0));
 
 			// 서울 마포에서 화천 조경철천문대까지 직선으로 약 80km, 1.3배를 시속 60km로 가면 1시간 44분쯤이다.
-			Map<String, Object> travel = JsonPath.read(body, "$.data.places[0].travel");
+			@SuppressWarnings("unchecked")
+			Map<String, Object> travel = (Map<String, Object>) placeNamed(body, "화천 조경철천문대").get("travel");
 			assertThat((Double) travel.get("distanceKm")).isBetween(79.0, 81.0);
 			assertThat((Integer) travel.get("minutes")).isBetween(102, 106);
 		}
@@ -197,7 +201,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		void hours() {
 			String body = bodyOf(tonight(true));
 
-			List<Map<String, Object>> hours = JsonPath.read(body, "$.data.places[0].hours");
+			List<Map<String, Object>> hours = JsonPath.read(body, "$.data.places[?(@.name == '화천 조경철천문대')].hours[*]");
 
 			assertThat(hours).hasSize(13);
 			assertThat(hours.get(0))
@@ -225,7 +229,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 
 			assertThat(types).hasSize(spotCount).containsOnly("SPOT");
 			assertThat((Integer) JsonPath.read(body, "$.data.candidateCount")).isEqualTo(spotCount);
-			assertThat((String) JsonPath.read(body, "$.data.places[0].name")).isEqualTo("화천 조경철천문대");
+			assertThat((String) JsonPath.read(body, "$.data.places[0].name")).isEqualTo("영양 반딧불이생태공원");
 		}
 
 		@Test

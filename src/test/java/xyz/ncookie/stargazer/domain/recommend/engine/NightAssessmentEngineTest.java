@@ -247,6 +247,19 @@ class NightAssessmentEngineTest {
 			assertThat(sixHours).isEqualTo(100.0);
 			assertThat(sevenHours).isEqualTo(100.0);
 		}
+
+		@Test
+		@DisplayName("선호 시각 뒤까지 맑다고 해서 그 전에 끝나는 밤보다 질이 낮아지지 않는다")
+		void clearPastPreferredTimeIsNotWorse() {
+			sky.fullyDarkAllNight();
+
+			// 둘 다 새벽 2시까지는 똑같이 맑다. 하나는 2시에 구름이 끼고 하나는 아침까지 맑다.
+			double cloudsOverAtTwo = assess(1, clouds(0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60)).quality();
+			double clearUntilMorning = assess(1, clouds(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)).quality();
+
+			assertThat(cloudsOverAtTwo).isEqualTo(100.0);
+			assertThat(clearUntilMorning).isEqualTo(100.0);
+		}
 	}
 
 	@Nested
