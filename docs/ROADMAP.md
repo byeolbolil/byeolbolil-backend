@@ -106,6 +106,7 @@ API로 따라가며 통과하고, `www.byeolbolil.xyz`에 나가 있다. 지도,
 만든 것은 실제로 배포해서 쓴다. 백엔드는 OCI, 프론트엔드는 Vercel에 올린다. 2026-11-25 기준 상태는 다음과 같다.
 
 - 백엔드: `dev`에 push하면 `.github/workflows/deploy.yml`이 테스트를 돌리고, 통과하면 OCI VM에 반영한다.
+  문서만 바뀐 push는 배포하지 않는다.
   VM 한 대에 Caddy, 앱, MySQL, Redis가 compose로 떠 있다(`infra/oci/deploy/`). 주소는 `https://api.byeolbolil.xyz`다.
   정한 내용과 버린 대안은 `docs/decisions.md`의 2026-11-24 배포 항목에 있다.
 - 프론트엔드: 저장소가 따로 있고 Vercel이 `www.byeolbolil.xyz`로 내보낸다. 새 화면이 떠 있다.
