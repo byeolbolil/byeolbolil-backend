@@ -143,7 +143,8 @@ The backend runs on one Oracle Cloud VM (1 GB, `VM.Standard.E2.1.Micro`) as a do
 `.github/workflows/deploy.yml` runs on every push to `dev`: build with tests, push the image to GHCR, copy the
 compose files and a `.env` rendered from GitHub secrets to `/opt/stargazer` on the VM, then `docker compose up -d`.
 The server's `.env` is overwritten on each deploy, so change values in GitHub secrets or variables, never on the VM.
-The frontend is a separate repository deployed by Vercel at `www.byeolbolil.xyz`.
+The frontend is a separate repository deployed by Vercel at `www.byeolbolil.xyz`. Vercel builds `master` as production
+and every other branch (including `dev`) as a preview, so releasing the frontend means fast-forwarding `master` to `dev`.
 
 The Terraform files directly under `infra/` are from the AWS setup, which no longer exists (free tier ended).
 The OCI Terraform lives only on the unmerged `feature/oci-migration` branch and describes an earlier design with a
