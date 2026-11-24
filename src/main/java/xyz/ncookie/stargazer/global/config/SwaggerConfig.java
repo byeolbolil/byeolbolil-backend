@@ -1,10 +1,9 @@
 package xyz.ncookie.stargazer.global.config;
 
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
@@ -20,15 +19,13 @@ public class SwaggerConfig {
 	public OpenAPI openAPI() {
 		return new OpenAPI()
 			.info(new Info()
-				.title("Stargazer API")
-				.description("별 관측 조건 분석 및 관측지 추천 서비스 API 문서")
-				.version("v1.0.0")
-				.contact(new Contact()
-					.name("Stargazer Team")
-					.email("support@stargazer.com"))
-				.license(new License()
-					.name("Apache 2.0")
-					.url("https://www.apache.org/licenses/LICENSE-2.0.html")))
+				.title("별볼일 API")
+				.description("오늘 밤 어디서 언제 별을 보기 좋은지 알려 주는 별볼일의 API. "
+					+ "공통 응답 형식, 인증 흐름, 오류 응답은 아래 문서에 정리돼 있다.")
+				.version("v1"))
+			.externalDocs(new ExternalDocumentation()
+				.description("API 문서 (docs/API.md)")
+				.url("https://github.com/byeolbolil/byeolbolil-backend/blob/dev/docs/API.md"))
 			.servers(List.of(
 				new Server().url("http://localhost:8080").description("로컬 개발 서버"),
 				new Server().url("https://api.byeolbolil.xyz").description("프로덕션 서버")

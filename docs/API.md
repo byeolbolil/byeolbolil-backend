@@ -1,0 +1,766 @@
+# 별볼일 API
+
+별볼일 백엔드가 제공하는 HTTP API를 클라이언트 쪽에서 보는 문서다. 웹과 모바일 앱을 만드는 사람, 그리고 그 일을 돕는
+코드 생성 도구와 AI 에이전트가 함께 읽는다고 보고 썼다.
+
+여기 적힌 요청과 응답은 2026-11-24에 통합 테스트와 운영 서버 응답으로 확인한 것이다. 타입과 필드 목록은 OpenAPI 스펙이
+가장 정확하고, 이 문서는 스펙에 드러나지 않는 것을 맡는다. 공통 응답 형식, 인증 흐름, 오류가 어떤 모양으로 오는지,
+값이 빠지는 조건 같은 것들이다. 도구에 맡길 때는 이 문서와 OpenAPI JSON을 함께 넣는다.
+
+| | |
+|---|---|
+| 운영 주소 | `https://api.byeolbolil.xyz` |
+| 로컬 주소 | `http://localhost:8080` |
+| OpenAPI JSON | [`https://api.byeolbolil.xyz/v3/api-docs`](https://api.byeolbolil.xyz/v3/api-docs) |
+| Swagger UI | [`https://api.byeolbolil.xyz/swagger-ui/index.html`](https://api.byeolbolil.xyz/swagger-ui/index.html) |
+
+운영 서버는 `dev` 브랜치에 push될 때마다 다시 배포되므로 위 OpenAPI JSON은 늘 지금 돌고 있는 코드의 스펙이다.
+배포하는 동안 1분쯤 응답이 끊긴다.
+
+## 목차
+
+1. [기본 규칙](#1-기본-규칙)
+2. [공통 응답 형식](#2-공통-응답-형식)
+3. [오류](#3-오류)
+4. [인증](#4-인증)
+5. [엔드포인트 요약](#5-엔드포인트-요약)
+6. [밤 추천](#6-밤-추천)
+7. [관측지](#7-관측지)
+8. [북마크](#8-북마크)
+9. [회원](#9-회원)
+10. [인증 엔드포인트](#10-인증-엔드포인트)
+11. [이전 API](#11-이전-api)
+12. [알려진 한계](#12-알려진-한계)
+13. [문서를 고칠 때](#13-문서를-고칠-때)
+
+## 1. 기본 규칙
+
+- 모든 경로는 `/api/v1`로 시작한다.
+- 요청과 응답 본문은 UTF-8 JSON이다. 본문이 있는 요청에는 `Content-Type: application/json`을 붙인다. 빠지면 415다.
+- 조회 조건은 쿼리 문자열로 보낸다. `GET` 요청에 본문을 쓰는 API는 없다.
+- 날짜는 `yyyy-MM-dd`, 시각은 `HH:mm`이다. 응답의 시점 값은 한국 시간 오프셋이 붙은 ISO 8601 문자열이다
+  (`2026-11-24T22:00:00+09:00`). 서버는 한국 시간만 쓴다.
+- 좌표의 쿼리 이름은 `lat`, `lon`이다. 응답과 북마크 본문에서는 `latitude`, `longitude`다.
+- 로그인이 필요한 API에는 `Authorization: Bearer {accessToken}` 헤더를 붙인다.
+- 호출 횟수 제한은 없다. 다만 서버가 메모리 1GB짜리 한 대라서, 화면 하나에 필요한 만큼만 부른다.
+- 웹 브라우저에서 직접 부를 수 있는 출처는 `https://www.byeolbolil.xyz`, `https://api.byeolbolil.xyz`,
+  `http://localhost:3000`, `http://localhost:8080`뿐이다. 네이티브 앱은 CORS와 상관없다.
+
+## 2. 공통 응답 형식
+
+Swagger 경로를 뺀 모든 응답은 같은 봉투에 담겨 온다.
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": { "memberId": 1, "nickname": "별지기" }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `success` | boolean | 성공이면 `true` |
+| `status` | number | HTTP 상태 코드와 같은 값 |
+| `message` | string | 사람이 읽는 문장. 성공일 때는 늘 위 문구다 |
+| `data` | any | 엔드포인트마다 다른 본문. 없으면 키 자체가 빠진다 |
+
+클라이언트는 `data`만 꺼내 쓰면 된다. 목록을 주는 API는 `data`가 배열이다.
+
+돌려줄 것이 없는 성공(로그아웃, 북마크 삭제)은 `data` 없이 온다.
+
+```json
+{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다." }
+```
+
+성공은 항상 200이다. 201이나 204는 쓰지 않는다.
+
+OpenAPI 스펙에는 이 봉투가 나오지 않는다. 스펙의 응답 스키마는 `data` 안쪽만 그린다. 스펙으로 클라이언트 코드를
+생성했다면 응답에서 봉투를 벗겨 `data`를 넘겨주는 단계를 한 곳에 둔다. 오류 응답의 모양도 스펙에는 없으므로
+이 문서의 [3장](#3-오류)을 따른다.
+
+`data` 안에서 값이 없는 필드는 키가 빠지기도 하고 `null`로 오기도 한다. 어느 쪽인지는 필드 표에 적어 두었고,
+클라이언트는 두 경우를 같은 것으로 다루면 된다.
+
+## 3. 오류
+
+오류도 같은 봉투에 담기고 `success`가 `false`다. 모양은 세 가지다.
+
+도메인 오류는 `message`만 있다.
+
+```json
+{ "success": false, "status": 409, "message": "이미 사용 중인 이메일입니다." }
+```
+
+입력 검증 실패는 400이고 `data`에 이름별 사유가 담긴다.
+
+```json
+{
+  "success": false,
+  "status": 400,
+  "message": "유효성 검사에 실패하였습니다.",
+  "data": {
+    "radius": "반경은 10km 이상이어야 합니다."
+  }
+}
+```
+
+`data`의 키는 보통 요청 필드나 쿼리 이름이다. 경로 변수의 형식이 틀리면 그 변수 이름이 키가 된다
+(`bookmarkId`, `date`). 여러 값을 함께 보는 검증은 필드 이름이 아닌 키로 온다.
+
+| 키 | 뜻 |
+|---|---|
+| `originComplete` | 밤 추천에서 `lat`과 `lon` 가운데 하나만 보냈다 |
+| `spotValid` | `SPOT` 북마크에 `spotId`가 없다 |
+| `customValid` | `CUSTOM` 북마크에 좌표가 없다 |
+
+형식을 바꾸지 못한 값의 사유는 "입력 형식이 올바르지 않습니다."다.
+
+경로나 메서드가 틀린 경우처럼 프레임워크가 걸러 낸 오류는 `message`가 영어일 수 있다.
+
+```json
+{ "success": false, "status": 405, "message": "Method 'POST' is not supported." }
+```
+
+### 상태 코드
+
+| 상태 | 뜻 | 클라이언트가 할 일 |
+|---|---|---|
+| 400 | 입력이 틀렸다 | `data`가 있으면 필드별로, 없으면 `message`를 보여 준다 |
+| 401 | 토큰이 없거나 통하지 않는다. 로그인에서는 이메일이나 비밀번호가 틀렸다 | [4.3](#43-401을-받았을-때)을 따른다 |
+| 403 | 로그인은 했지만 내 것이 아니다 | 재발급하지 않는다 |
+| 404 | 경로나 대상이 없다 | |
+| 405, 415 | 메서드나 `Content-Type`이 틀렸다 | 클라이언트 코드의 버그다 |
+| 409 | 이미 있는 것과 겹친다 | 이미 가입된 이메일, 이미 저장한 명소 |
+| 500 | 서버 오류 | `message`에 내부 예외 문구가 실릴 수 있으니 그대로 보여 주지 않는다 |
+| 503 | 날씨 예보를 받지 못했다 | 잠시 뒤 다시 시도한다 |
+
+### 오류를 구분하는 법
+
+오류 응답에는 기계가 읽는 코드가 없다. 상태 코드와 어느 요청이었는지로 구분하고, `message`는 화면에 보여 주는
+용도로만 쓴다. `message` 문자열에 조건을 걸지 않는다. 문구를 따로 정하지 않은 검증 사유는 요청의
+`Accept-Language`에 따라 언어가 바뀐다. 같은 요청에 `ko-KR`이면 "공백일 수 없습니다", `en-US`면
+"must not be blank"가 온다. 한국어 문구를 받으려면 `Accept-Language: ko-KR`을 보낸다.
+
+### 도메인 오류 목록
+
+| 상태 | `message` | 나오는 곳 |
+|---|---|---|
+| 400 | 오늘 밤부터 7일 안의 날짜만 볼 수 있습니다. | 날짜별 밤 추천 |
+| 400 | 북마크 타입과 데이터가 일치하지 않습니다. | 북마크 추가. `CUSTOM`에 `address`가 없을 때 |
+| 400 | 요청 본문을 읽을 수 없습니다. | 본문이 JSON이 아니거나 enum에 없는 값을 보냈을 때 |
+| 401 | 인증이 필요합니다. | 로그인이 필요한 모든 API |
+| 401 | 이메일 또는 비밀번호가 일치하지 않습니다. | 로그인 |
+| 401 | 유효하지 않은 Refresh Token 입니다. | 재발급 |
+| 403 | 해당 북마크를 수정 또는 삭제할 권한이 없습니다. | 북마크 수정, 삭제 |
+| 404 | 요청한 경로를 찾을 수 없습니다. | 없는 경로 |
+| 404 | 해당 ID의 북마크 데이터를 찾을 수 없습니다. | 북마크 수정, 삭제 |
+| 404 | 해당 ID의 명소 데이터를 찾을 수 없습니다. | 북마크 추가 |
+| 404 | 사용자를 찾을 수 없습니다 | 토큰의 회원이 지워졌을 때 |
+| 409 | 이미 사용 중인 이메일입니다. | 회원가입 |
+| 409 | 이미 해당 명소는 북마크 되어있습니다. | 북마크 추가 |
+| 503 | 날씨 예보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요. | 예보를 쓰는 API |
+
+## 4. 인증
+
+### 4.1 토큰
+
+| | 액세스 토큰 | 리프레시 토큰 |
+|---|---|---|
+| 수명 | 15분 | 14일 |
+| 받는 곳 | 응답 본문의 `data.accessToken` | 응답의 `Set-Cookie` 헤더, 쿠키 이름 `refresh_token` |
+| 보내는 곳 | `Authorization: Bearer {토큰}` | 쿠키. 또는 `Authorization-Refresh: Bearer {토큰}` 헤더 |
+| 쓰는 곳 | 로그인이 필요한 모든 API | `POST /api/v1/auth/reissue`, `POST /api/v1/auth/logout` |
+
+둘 다 JWT지만 서로 바꿔 쓸 수 없다. 리프레시 토큰을 `Authorization` 헤더에 넣으면 401이다.
+
+리프레시 토큰 쿠키는 이렇게 내려간다.
+
+```
+Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; SameSite=None
+```
+
+- 웹은 요청에 쿠키를 싣도록 설정한다(`fetch`의 `credentials: "include"`, axios의 `withCredentials: true`).
+  `HttpOnly`라 스크립트에서 값을 읽을 수 없고, 읽을 필요도 없다.
+- 네이티브 앱은 둘 가운데 하나를 고른다. HTTP 클라이언트의 쿠키 저장소를 켜 두면 웹과 똑같이 동작한다.
+  쿠키 저장소를 쓰지 않으려면 `Set-Cookie` 헤더에서 `refresh_token` 값을 꺼내 안전한 저장소에 두고,
+  재발급과 로그아웃 때 `Authorization-Refresh: Bearer {값}` 헤더로 보낸다. 쿠키와 헤더가 함께 오면 쿠키를 쓴다.
+- `Secure` 쿠키라 로컬 서버를 `http`로 띄우면 브라우저에 따라 저장되지 않을 수 있다.
+
+### 4.2 흐름
+
+1. `POST /api/v1/auth/register` 또는 `POST /api/v1/auth/login`으로 두 토큰을 받는다.
+2. 액세스 토큰을 `Authorization` 헤더에 넣어 API를 부른다.
+3. 액세스 토큰이 끝나면 `POST /api/v1/auth/reissue`로 두 토큰을 새로 받는다.
+4. `POST /api/v1/auth/logout`으로 리프레시 토큰을 없앤다. 액세스 토큰은 클라이언트가 지운다.
+
+리프레시 토큰은 한 번 쓰면 폐기되고 새것이 온다. 폐기된 토큰으로 다시 재발급하면 401이다. 그래서 재발급은 한 번에
+하나만 보내야 한다. 여러 요청이 동시에 401을 받았다면 첫 요청만 재발급을 보내고 나머지는 그 결과를 기다렸다가
+새 액세스 토큰으로 다시 보낸다.
+
+로그아웃해도 이미 받은 액세스 토큰은 남은 수명(길어야 15분) 동안 통한다.
+
+### 4.3 401을 받았을 때
+
+- 로그인이 필요한 API가 401이면 재발급을 한 번 하고 원래 요청을 다시 보낸다.
+- 재발급이 401이면 로그인이 풀린 것이다. 저장한 토큰을 지우고 로그인 화면으로 보낸다.
+- `POST /api/v1/auth/login`의 401은 이메일이나 비밀번호가 틀렸다는 뜻이다. 재발급하지 않는다.
+- 토큰이 없을 때, 깨졌을 때, 만료됐을 때의 401은 서로 구분되지 않는다. 모두 "인증이 필요합니다."다.
+
+### 4.4 로그인이 선택인 API
+
+밤 추천은 로그인하지 않아도 쓸 수 있고, 로그인하면 내 장소까지 함께 본다. 이런 API는 만료되거나 깨진 토큰이 붙어
+와도 401을 주지 않고 로그인하지 않은 요청으로 처리한다. 응답은 200인데 내 장소만 빠진다.
+
+로그인한 상태에서 이 API를 부를 때는 액세스 토큰의 만료 시각(JWT의 `exp`)을 먼저 보고, 지났거나 곧 지나면
+재발급한 뒤에 부른다.
+
+### 4.5 소셜 로그인
+
+카카오, 구글, 네이버 로그인은 브라우저 리다이렉트로만 동작한다.
+
+1. 브라우저를 `https://api.byeolbolil.xyz/oauth2/authorization/{kakao|google|naver}`로 보낸다.
+2. 로그인에 성공하면 서버가 `refresh_token` 쿠키를 심고 `https://www.byeolbolil.xyz/oauth/callback`으로 돌려보낸다.
+3. 그 페이지에서 `POST /api/v1/auth/reissue`를 불러 액세스 토큰을 받는다.
+
+돌아가는 주소가 웹 프론트로 고정돼 있어 네이티브 앱에서는 쓸 수 없다. 앱에서 소셜 로그인을 하려면 서버에 앱용
+흐름을 추가해야 한다. 소셜 로그인으로만 가입한 회원은 비밀번호가 없어 이메일 로그인이 되지 않는다.
+
+## 5. 엔드포인트 요약
+
+인증 열의 "필요"는 액세스 토큰이 있어야 한다는 뜻이고, "선택"은 [4.4](#44-로그인이-선택인-api)의 방식이다.
+
+| 메서드 | 경로 | 인증 | 설명 |
+|---|---|---|---|
+| GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 장소별 추천 |
+| GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 |
+| GET | `/api/v1/spots` | 없음 | 관측지 목록 |
+| GET | `/api/v1/bookmarks` | 필요 | 내 북마크 목록 |
+| POST | `/api/v1/bookmarks` | 필요 | 북마크 추가 |
+| PATCH | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 이름과 메모 수정 |
+| DELETE | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 삭제 |
+| GET | `/api/v1/members/me` | 필요 | 내 정보 |
+| GET | `/api/v1/members/exists/email` | 없음 | 이메일 중복 검사 |
+| POST | `/api/v1/auth/register` | 없음 | 회원가입 |
+| POST | `/api/v1/auth/login` | 없음 | 로그인 |
+| POST | `/api/v1/auth/reissue` | 리프레시 토큰 | 토큰 재발급 |
+| POST | `/api/v1/auth/logout` | 리프레시 토큰 | 로그아웃 |
+| GET | `/api/v1/analyze` | 없음 | 한 시점의 관측 점수 (이전 API) |
+| GET | `/api/v1/forecast` | 없음 | 5일 치 3시간 간격 점수 (이전 API) |
+| GET | `/api/v1/recommends/bookmarks/today` | 필요 | 북마크 가운데 오늘 추천 5곳 (이전 API) |
+
+## 6. 밤 추천
+
+서비스의 중심 API다. 하룻밤을 놓고 장소마다 언제 얼마나 맑은지 평가해 좋은 순서로 돌려준다.
+
+```
+GET /api/v1/recommendations/tonight
+GET /api/v1/recommendations/nights/{date}
+```
+
+`{date}`는 밤이 시작하는 날짜(`yyyy-MM-dd`)다. 오늘 밤부터 7일 안의 날짜만 받는다. 벗어나면 400이다.
+
+"오늘 밤"은 새벽 4시에 바뀐다. 새벽 4시 전에 `tonight`을 부르면 전날 저녁에 시작한 밤이 오고, 응답의 `date`도
+전날 날짜다.
+
+후보는 기본 추천 명소 전부다. 액세스 토큰을 붙이면 내 북마크도 후보에 들어간다.
+
+### 쿼리
+
+모두 선택이다.
+
+| 이름 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `lat`, `lon` | number | 없음 | 출발지. 둘을 함께 보내야 한다. 보내면 이동 시간을 어림해 순서에 반영하고 `travel`을 채운다 |
+| `minClearHours` | integer, 1~8 | 3 | 맑은 시간이 이만큼 이어지면 `STRONG`으로 본다 |
+| `preferBefore` | `HH:mm` | `02:00` | 이 시각 전의 맑은 시간을 우선한다. 정오 전의 값은 다음 날 새벽으로 읽는다 |
+| `maxTravelMinutes` | integer, 0 이상 | 없음 | 이동 시간이 이보다 긴 장소를 뺀다. 출발지를 보냈을 때만 쓰인다 |
+
+### 응답 `data`
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `date` | string | 밤이 시작하는 날짜 |
+| `criteria.minClearHours` | integer | 적용한 기준 |
+| `criteria.preferBefore` | string | 적용한 기준 (`HH:mm`) |
+| `criteria.maxTravelMinutes` | integer 또는 null | 보내지 않았으면 `null` |
+| `candidateCount` | integer | 후보 장소 수 |
+| `evaluatedCount` | integer | 예보를 받아 평가한 수. `candidateCount`보다 작으면 일부 장소의 예보를 받지 못한 것이다 |
+| `excludedByTravelCount` | integer | 이동 시간 한도로 뺀 수 |
+| `places` | array | 추천 순서대로. 첫 번째가 가장 좋은 곳이다 |
+
+`places`의 길이는 `evaluatedCount`에서 `excludedByTravelCount`를 뺀 값이다. 등급이 `NO`인 장소도 목록에 들어 있다.
+예보를 전혀 받지 못하면 오류가 아니라 `evaluatedCount`가 0이고 `places`가 빈 배열인 200이 온다.
+
+`places`의 항목은 이렇다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `type` | string | `SPOT` 기본 추천 명소, `BOOKMARK` 내 장소 |
+| `id` | integer | `type`이 `SPOT`이면 명소 ID, `BOOKMARK`면 북마크 ID. 두 ID는 서로 다른 번호 체계다 |
+| `spotId` | integer | 명소이거나 명소를 저장한 북마크일 때 그 명소의 ID. 직접 찍은 위치의 북마크면 빠진다 |
+| `name`, `address` | string | |
+| `latitude`, `longitude` | number | |
+| `level` | string | 추천 등급. 아래 표 |
+| `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
+| `notes` | string[] | 주의할 점. 없으면 빈 배열 |
+| `bestWindow` | object | 추천 시간대. 맑은 시간이 없으면 빠진다 |
+| `bestWindow.start`, `.end` | string | 시작과 끝 시각 |
+| `bestWindow.hours` | integer | 길이(시간) |
+| `travel` | object | 출발지를 보내지 않았으면 빠진다 |
+| `travel.distanceKm` | number | 직선거리 |
+| `travel.minutes` | integer | 차로 걸리는 시간 어림. 직선거리의 1.3배를 시속 60km로 간다고 본 값이라 실제 길 안내와 다르다 |
+| `bortleClass` | integer | 광해 등급(Bortle 1~9). 낮을수록 어둡다 |
+| `moonBrightness` | number | 보름달을 1로 본 그 밤의 달 밝기 |
+| `forecastSource` | string | `OPEN_METEO` 또는 `MET_NORWAY` |
+| `forecastIssuedAt` | string | 예보가 만들어진 시각. 모르면 빠진다 |
+| `hours` | array | 해가 진 뒤부터 뜨기 전까지의 한 시간 칸 |
+
+`hours`의 항목은 이렇다. 한 칸은 `time`부터 한 시간이다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `time` | string | 칸이 시작하는 시각 |
+| `dark` | boolean | 태양이 지평선 아래 12°보다 낮은 시간인지 |
+| `clear` | boolean | 어둡고 구름이 30% 이하인지 |
+| `cloudCover` | integer | 총운량(%) |
+| `cloudCoverLow`, `cloudCoverMid`, `cloudCoverHigh` | integer | 높이별 운량(%) |
+| `relativeHumidity` | integer | 상대습도(%) |
+| `moonUp` | boolean | 달이 떠 있는지 |
+| `score` | integer | 0~100. 어둡지 않은 칸은 0이다 |
+
+예보는 지금 시각부터만 받으므로, 밤중에 `tonight`을 부르면 `hours`는 지금 시각의 칸부터 시작한다.
+`MET_NORWAY`로 받은 장소는 이틀 반쯤 뒤의 밤부터 `hours`가 비어 평가에서 빠질 수 있다.
+
+### 값의 뜻
+
+화면에 쓰는 문구는 클라이언트가 정한다. 아래는 웹에서 쓰는 문구다.
+
+| `level` | 문구 |
+|---|---|
+| `STRONG` | 꼭 가볼 만해요 |
+| `GOOD` | 가볼 만해요 |
+| `MAYBE` | 잠깐 볼 수 있어요 |
+| `NO` | 오늘은 쉬어가요 |
+
+| `pattern` | 문구 |
+|---|---|
+| `CLEAR_ALL_NIGHT` | 밤새 맑아요 |
+| `CLEAR_EARLY` | 초저녁이 가장 맑아요 |
+| `CLEARS_LATE` | 늦은 밤에 개요 |
+| `CLEARS_AGAIN` | 흐렸다가 다시 개요 |
+| `BRIEF_CLEAR` | 잠깐 맑은 틈이 있어요 |
+| `CLOUDY_ALL_NIGHT` | 밤새 흐려요 |
+
+| `notes` | 뜻 |
+|---|---|
+| `CLEARS_LATE` | 추천 시간이 모두 선호 시각 뒤다 |
+| `BRIGHT_MOON` | 달이 밝다 |
+| `CITY_LIGHTS` | 도시 불빛이 강하다 |
+| `DEW` | 이슬이 맺힐 만큼 습하다 |
+
+값 목록은 늘어날 수 있다. 모르는 값이 와도 앱이 죽지 않게 기본 처리를 둔다.
+
+등급과 점수를 어떻게 매기는지는 [SCORING.md](./SCORING.md)에 있다.
+
+### 예시
+
+```
+GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=180
+```
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": {
+    "date": "2026-11-24",
+    "criteria": { "minClearHours": 3, "preferBefore": "02:00", "maxTravelMinutes": 180 },
+    "candidateCount": 64,
+    "evaluatedCount": 64,
+    "excludedByTravelCount": 35,
+    "places": [
+      {
+        "type": "SPOT",
+        "id": 7,
+        "spotId": 7,
+        "name": "양구 국토정중앙천문대",
+        "address": "강원도 양구군 남면 국토정중앙로 127",
+        "latitude": 38.0163,
+        "longitude": 128.0536,
+        "level": "GOOD",
+        "pattern": "CLEAR_ALL_NIGHT",
+        "notes": ["BRIGHT_MOON"],
+        "bestWindow": {
+          "start": "2026-11-24T22:00:00+09:00",
+          "end": "2026-11-25T06:00:00+09:00",
+          "hours": 8
+        },
+        "travel": { "distanceKm": 111.7, "minutes": 145 },
+        "bortleClass": 2,
+        "moonBrightness": 0.89,
+        "forecastSource": "OPEN_METEO",
+        "forecastIssuedAt": "2026-11-24T15:00:00+09:00",
+        "hours": [
+          {
+            "time": "2026-11-24T22:00:00+09:00",
+            "dark": true,
+            "clear": true,
+            "cloudCover": 0,
+            "cloudCoverLow": 0,
+            "cloudCoverMid": 0,
+            "cloudCoverHigh": 0,
+            "relativeHumidity": 59,
+            "moonUp": true,
+            "score": 69
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`places`와 `hours`는 하나씩만 남기고 줄였다. 실제로는 이 요청에 장소 29곳, 장소마다 시간 칸 9개가 왔다.
+
+### 응답 시간
+
+예보를 처음 받는 장소가 많으면 몇 초 걸린다. 운영 서버에서 캐시가 비었을 때 7.7초, 캐시가 있을 때 0.6초였다.
+기상 모델이 6시간마다 새로 돌고, 그때마다 예보를 다시 받는다. 요청 제한 시간은 15초 넘게 잡고, 기다리는 동안
+보여 줄 화면을 둔다.
+
+### 예보 출처 표기
+
+두 예보 자료 모두 CC BY 4.0이라 추천을 보여 주는 화면에 출처를 적어야 한다. `forecastSource`가 `OPEN_METEO`면
+Open-Meteo(`https://open-meteo.com/`), `MET_NORWAY`면 MET Norway다. 웹은 출처 이름에 링크를 걸고 옆에
+"CC BY 4.0"을 적는다. 장소마다 출처가 다를 수 있으므로 장소별 값을 본다.
+
+## 7. 관측지
+
+```
+GET /api/v1/spots
+```
+
+| 쿼리 | 타입 | 설명 |
+|---|---|---|
+| `lat`, `lon` | number | 중심 좌표. 둘 다 빼면 전체 명소가 온다 |
+| `radius` | integer, 10~500 | 반경(km). 좌표만 보내고 빼면 20km로 찾는다 |
+
+`data`는 배열이고, 반경 안에 명소가 없으면 빈 배열이다. 페이지 나눔은 없다. 전체 명소는 64곳이다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id` | integer | 명소 ID. 북마크의 `spotId`, 밤 추천의 `spotId`와 같은 번호다 |
+| `title` | string | 이름 |
+| `address` | string | |
+| `latitude`, `longitude` | number | |
+| `description` | string | 한 줄 소개 |
+| `bortleScale` | integer | 광해 등급(Bortle 1~9) |
+| `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근 |
+| `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": [
+    {
+      "id": 1,
+      "title": "강릉 안반데기",
+      "address": "강원도 강릉시 왕산면 대기리 2214-187",
+      "latitude": 37.6254,
+      "longitude": 128.9392,
+      "description": "구름 위의 땅, 고랭지 배추밭과 풍력발전기가 어우러진 국내 최고의 은하수 명소입니다.",
+      "bortleScale": 1,
+      "isParkingAvailable": true,
+      "isRestroomAvailable": true,
+      "isCarAccess": true
+    }
+  ]
+}
+```
+
+같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
+
+## 8. 북마크
+
+화면에서는 "내 장소"라고 부른다. 모두 액세스 토큰이 필요하다. 두 가지가 있다.
+
+- `SPOT`: 서비스에 등록된 명소를 저장한 것. 좌표와 주소는 명소의 값을 따른다.
+- `CUSTOM`: 직접 찍은 위치. 좌표와 주소를 저장할 때 보낸다.
+
+### 북마크 객체
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `bookmarkId` | integer | |
+| `type` | string | `SPOT` 또는 `CUSTOM` |
+| `spotId` | integer 또는 null | `CUSTOM`이면 `null` |
+| `name` | string | 사용자가 붙인 이름 |
+| `latitude`, `longitude` | number | |
+| `address` | string | |
+| `memo` | string 또는 null | |
+
+### 목록
+
+```
+GET /api/v1/bookmarks
+```
+
+`data`는 북마크 객체의 배열이다. 없으면 빈 배열이다.
+
+### 추가
+
+```
+POST /api/v1/bookmarks
+```
+
+| 필드 | 타입 | `SPOT` | `CUSTOM` | 설명 |
+|---|---|---|---|---|
+| `type` | string | 필수 | 필수 | |
+| `name` | string | 필수 | 필수 | 50자까지. 명소 이름을 자동으로 채워 주지 않는다 |
+| `spotId` | integer | 필수 | 쓰지 않음 | |
+| `latitude`, `longitude` | number | 쓰지 않음 | 필수 | |
+| `address` | string | 쓰지 않음 | 필수 | |
+| `memo` | string | 선택 | 선택 | 500자까지 |
+
+```json
+{ "type": "SPOT", "spotId": 1, "name": "안반데기" }
+```
+
+```json
+{
+  "type": "CUSTOM",
+  "name": "우리집 옥상",
+  "latitude": 37.55,
+  "longitude": 126.91,
+  "address": "서울 마포구",
+  "memo": "남쪽이 트여 있다"
+}
+```
+
+성공하면 `data`에 만들어진 북마크 객체가 온다.
+
+| 상태 | 경우 |
+|---|---|
+| 400 | `type`이나 `name`이 없다. `SPOT`에 `spotId`가 없다(`spotValid`). `CUSTOM`에 좌표가 없다(`customValid`) |
+| 400 | `CUSTOM`에 `address`가 없다. 이때는 `data` 없이 "북마크 타입과 데이터가 일치하지 않습니다."만 온다 |
+| 400 | `type`이 `SPOT`, `CUSTOM`이 아니다 |
+| 404 | `spotId`의 명소가 없다 |
+| 409 | 이미 저장한 명소다. 같은 좌표의 `CUSTOM`은 여러 번 저장할 수 있다 |
+
+### 수정
+
+```
+PATCH /api/v1/bookmarks/{bookmarkId}
+```
+
+```json
+{ "name": "옥상", "memo": "난간 조심" }
+```
+
+이름과 메모만 바꿀 수 있다. `name`은 필수다. `memo`를 빼고 보내면 메모가 지워진다. 그러니 메모를 그대로 두려면
+기존 값을 함께 보낸다. 성공하면 `data`에 바뀐 북마크 객체가 온다.
+
+남의 북마크면 403, 없는 북마크면 404다.
+
+### 삭제
+
+```
+DELETE /api/v1/bookmarks/{bookmarkId}
+```
+
+성공하면 `data` 없이 200이다. 남의 북마크면 403, 없는 북마크면 404다.
+
+## 9. 회원
+
+### 내 정보
+
+```
+GET /api/v1/members/me
+```
+
+액세스 토큰이 필요하다.
+
+```json
+{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다.", "data": { "memberId": 1, "nickname": "별지기" } }
+```
+
+이메일은 응답에 없다. 닉네임 변경, 비밀번호 변경, 탈퇴 API는 아직 없다.
+
+### 이메일 중복 검사
+
+```
+GET /api/v1/members/exists/email?email=user@example.com
+```
+
+로그인 없이 부른다. `data.validated`가 `true`면 쓸 수 있는 이메일이고, `false`면 이미 가입된 이메일이다.
+경로의 `exists`와 뜻이 반대라는 점에 주의한다. 이메일 형식은 검사하지 않는다. `email`이 빠지면 400이다.
+
+## 10. 인증 엔드포인트
+
+### 회원가입
+
+```
+POST /api/v1/auth/register
+```
+
+| 필드 | 설명 |
+|---|---|
+| `email` | 이메일 형식 |
+| `password` | 8자 이상. 영문자, 숫자, 특수문자(`!@#$%^&*`)가 하나씩은 있어야 한다 |
+| `nickname` | 빈 문자열이 아니어야 한다 |
+
+성공하면 로그인한 것과 같은 응답이 온다. 따로 로그인할 필요가 없다. 이미 가입된 이메일이면 409다.
+
+비밀번호 규칙은 정규식 `^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$`이다. 보내기 전에 앱에서 같은 식으로
+먼저 걸러 준다.
+
+### 로그인
+
+```
+POST /api/v1/auth/login
+```
+
+```json
+{ "email": "user@example.com", "password": "starry-night1!" }
+```
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": { "accessToken": "eyJhbGciOiJIUzI1NiJ9..." }
+}
+```
+
+리프레시 토큰은 같은 응답의 `Set-Cookie` 헤더에 있다. 이메일이 없거나 비밀번호가 틀리면 401이고 두 경우의
+응답이 같다.
+
+### 재발급
+
+```
+POST /api/v1/auth/reissue
+```
+
+본문은 없다. 리프레시 토큰을 쿠키나 `Authorization-Refresh` 헤더로 보낸다. 응답은 로그인과 같고, 새 리프레시
+토큰이 `Set-Cookie`로 온다. 헤더로 보내는 앱은 이 값으로 저장한 토큰을 바꿔야 한다. 토큰이 없거나, 이미 썼거나,
+만료됐으면 401이다.
+
+### 로그아웃
+
+```
+POST /api/v1/auth/logout
+```
+
+본문은 없다. 리프레시 토큰을 재발급과 같은 방식으로 보낸다. 서버에서 그 토큰을 없애고 쿠키를 지우는
+`Set-Cookie`를 내려 준다. 토큰 없이 불러도 200이다.
+
+## 11. 이전 API
+
+밤 추천이 나오기 전의 API다. 한 시점의 점수 하나로 답하는 방식이고, 웹이 다 옮겨 가면 없앨 예정이다.
+새로 만드는 화면은 밤 추천을 쓴다.
+
+### 한 시점 분석
+
+```
+GET /api/v1/analyze?lat=37.5665&lon=126.9780&date=2026-11-24&time=22:00
+```
+
+네 값 모두 필수다. 한 줄 평을 받으려고 Gemini를 부르기 때문에 다른 API보다 느리다.
+
+```json
+{
+  "date": "2026-11-24",
+  "time": "22:00",
+  "totalScore": 20,
+  "reasons": ["달 밝기 100% (-30점)", "광해 등급 Class 9 (-50점)"],
+  "aiComment": "AI 연결 지연",
+  "weather": { "cloudIndex": 0, "humidityIndex": 59, "visibilityText": "매우 좋음" },
+  "astronomy": {
+    "moonPhase": "FULL_MOON",
+    "sunrise": "07:21",
+    "sunset": "17:16",
+    "moonrise": "17:28",
+    "moonset": "08:03"
+  },
+  "lightPollution": { "bortleClass": "Class 9", "brightness": "매우 밝음", "limitingMag": "3.0등급" }
+}
+```
+
+위는 `data`의 내용이다.
+
+- `aiComment`는 Gemini 호출이 실패하거나 늦으면 "AI 연결 지연"으로 온다. 오류가 아니다.
+- `moonPhase`는 `NEW_MOON`, `WAXING_CRESCENT`, `FIRST_QUARTER`, `WAXING_GIBBOUS`, `FULL_MOON`, `WANING_GIBBOUS`,
+  `LAST_QUARTER`, `WANING_CRESCENT` 가운데 하나다.
+- `visibilityText`는 "최상", "매우 좋음", "좋음", "보통", "나쁨" 가운데 하나다.
+- 그날 달이 뜨거나 지지 않으면 `moonrise`, `moonset`이 `--:--`로 온다.
+
+### 5일 예보
+
+```
+GET /api/v1/forecast?lat=37.6254&lon=128.9392&date=2026-11-24&time=22:00
+```
+
+`date`와 `time`은 결과에 쓰이지 않지만 빠지면 400이다. 아무 날짜와 시각이나 넣는다.
+
+`data.dailyForecasts`는 날짜별 배열이다. 날짜마다 `date`, `sunrise`, `sunset`, `moonrise`, `moonset`과
+3시간 간격의 `hourlyForecasts`가 있고, 칸마다 `time`, `score`, `reasons`, `starGrade`, `cloudCover`, `moonPhase`가 있다.
+
+### 오늘의 추천 북마크
+
+```
+GET /api/v1/recommends/bookmarks/today
+```
+
+액세스 토큰이 필요하다. 내 북마크 가운데 오늘 밤 점수가 높은 다섯 곳을 준다.
+
+| 필드 | 설명 |
+|---|---|
+| `items` | 추천 목록. 북마크가 하나도 없으면 빈 배열이 아니라 `null`이다 |
+| `items[].bookmarkId`, `name`, `latitude`, `longitude`, `address` | 북마크 정보 |
+| `items[].score`, `reasons`, `starGrade`, `cloudCover`, `moonPhase`, `bestTime` | 가장 좋은 시각의 점수와 조건 |
+| `totalRequested` | 분석하려던 북마크 수 |
+| `analyzedCount` | 분석에 성공한 수 |
+| `isPartialResult` | 일부를 건너뛰었으면 `true` |
+
+## 12. 알려진 한계
+
+고칠 예정이거나 아직 정하지 않은 것들이다. 여기 적힌 동작에 기대어 만들지 않는다.
+
+- 오류 응답에 기계가 읽는 코드가 없다. 넣게 되면 기존 필드는 그대로 두고 `code`를 더하는 방식이 된다.
+- 500 응답의 `message`에 내부 예외 문구가 그대로 실린다.
+- `CUSTOM` 북마크는 주소가 필수다. 현재 위치를 주소 없이 저장할 수 없고, 빠졌을 때의 오류에 `data`가 없다.
+- 북마크를 수정할 때 `memo`를 빼면 지워진다.
+- `GET /api/v1/forecast`가 쓰지 않는 `date`, `time`을 요구한다.
+- `GET /api/v1/recommends/bookmarks/today`의 `items`가 `null`일 수 있다.
+- 네이티브 앱용 소셜 로그인 흐름이 없다.
+- 닉네임 변경, 비밀번호 변경, 회원 탈퇴 API가 없다.
+- 밤 추천은 등록된 명소와 북마크만 평가한다. 임의의 좌표를 평가하는 API는 없다.
+- 이동 시간은 직선거리로 어림한 값이다.
+- 운영 서버가 `dev` 브랜치를 그대로 따라간다. 깨지는 변경은 [decisions.md](./decisions.md)에 날짜와 함께 적는다.
+
+## 13. 문서를 고칠 때
+
+이 문서의 응답 예시와 상태 코드는 아래 통합 테스트가 고정하고 있다. API를 바꾸면 테스트와 이 문서를 같은
+커밋에서 고친다.
+
+| 범위 | 테스트 |
+|---|---|
+| 인증 | [`AuthApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/AuthApiTest.java) |
+| 회원 | [`MemberApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/MemberApiTest.java) |
+| 북마크 | [`BookmarkApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/bookmark/controller/BookmarkApiTest.java) |
+| 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
+| 분석, 5일 예보 | [`StargazingApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/stargazing/controller/StargazingApiTest.java) |
+| 없는 경로, 틀린 메서드 | [`FrameworkErrorStatusTest`](../src/test/java/xyz/ncookie/stargazer/global/exception/FrameworkErrorStatusTest.java) |
+
+관련 문서는 다음과 같다.
+
+- [MOBILE_DEVELOPER_GUIDE.md](./MOBILE_DEVELOPER_GUIDE.md): 네이티브 앱에서 챙길 것
+- [SECURITY_AUTH_GUIDE.md](./SECURITY_AUTH_GUIDE.md): 인증 구조를 그렇게 잡은 이유
+- [SCORING.md](./SCORING.md): 등급과 점수의 기준, 자료 출처
+- [decisions.md](./decisions.md): API가 바뀐 이력과 이유

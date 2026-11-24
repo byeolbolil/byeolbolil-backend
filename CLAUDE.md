@@ -126,6 +126,11 @@ Cross-domain communication always goes through Application-layer orchestration �
 - All responses go through the `CommonResponse` envelope described above.
 - DTO naming: `{Action}{Domain}Request`/`Response` in `dto/request`, `dto/response`; Application-layer input is a
   `{Action}{Domain}Command` record with a static `from(...)` factory converting from the Request DTO.
+- `docs/API.md` is the client-facing reference (envelope, auth flow, error shapes, per-endpoint fields and when they
+  are absent). Change it in the same commit as any API change. The `*ApiTest` integration tests pin the responses it
+  quotes. `openapi.json` is gitignored on purpose; the live spec at `/v3/api-docs` is the machine-readable source.
+- Error statuses: 401 only when the token or the login credentials are wrong (clients answer 401 with a token
+  reissue), 403 for someone else's resource, 409 for duplicates, 400 for unreadable or invalid input.
 
 ### Infrastructure (`infra/`)
 
@@ -207,7 +212,8 @@ they appear as untracked local files.
     external VIIRS conversion script, and the `(Bortle-1)*6.25` / moon `×30` weights in `StargazingScoringEngine`)
     have no recoverable source — the original reasoning was lost during earlier ad-hoc AI-assisted iteration and
     needs to be re-derived from a real reference before being trusted or changed further.
-- Further docs: [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) (layering rules, full checklist),
+- Further docs: [docs/API.md](docs/API.md) (client-facing API reference),
+  [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) (layering rules, full checklist),
   [docs/SECURITY_AUTH_GUIDE.md](docs/SECURITY_AUTH_GUIDE.md) (auth flow),
   [docs/MOBILE_DEVELOPER_GUIDE.md](docs/MOBILE_DEVELOPER_GUIDE.md), [docs/SWAGGER_GUIDE.md](docs/SWAGGER_GUIDE.md),
   [docs/MONITORING_AND_ALERTS.md](docs/MONITORING_AND_ALERTS.md), [docs/SCORING.md](docs/SCORING.md) (threshold
