@@ -85,7 +85,7 @@ public class BookmarkController {
 			description = "잘못된 요청 - 유효성 검사 실패 또는 타입별 필수 필드 누락"
 		),
 		@ApiResponse(
-			responseCode = "400",
+			responseCode = "409",
 			description = "이미 해당 명소는 북마크 되어있습니다 (SPOT 타입 중복)"
 		),
 		@ApiResponse(
@@ -132,7 +132,7 @@ public class BookmarkController {
 			description = "인증 실패 (토큰이 유효하지 않거나 만료됨)"
 		),
 		@ApiResponse(
-			responseCode = "401",
+			responseCode = "403",
 			description = "권한 없음 - 본인이 소유하지 않은 북마크는 수정할 수 없습니다"
 		),
 		@ApiResponse(
@@ -175,7 +175,7 @@ public class BookmarkController {
 			description = "인증 실패 (토큰이 유효하지 않거나 만료됨)"
 		),
 		@ApiResponse(
-			responseCode = "401",
+			responseCode = "403",
 			description = "권한 없음 - 본인이 소유하지 않은 북마크는 삭제할 수 없습니다"
 		),
 		@ApiResponse(

@@ -31,7 +31,7 @@ public class BookmarkDomainService {
 	public void validateOwner(Long memberId, Bookmark bookmark) {
 
 		if (!bookmark.isOwner(memberId)) {
-			throw new BookmarkException(BookmarkErrorCode.BOOKMARK_UNAUTHORIZED);
+			throw new BookmarkException(BookmarkErrorCode.BOOKMARK_FORBIDDEN);
 		}
 	}
 

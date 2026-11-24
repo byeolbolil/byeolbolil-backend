@@ -48,6 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				return;
 			}
 
+			if (!jwtTokenProvider.isAccessToken(claims)) {
+				filterChain.doFilter(request, response);
+				return;
+			}
+
 			Long memberId = Long.parseLong(claims.getSubject());
 			Role role = Role.valueOf(claims.get("role", String.class));
 

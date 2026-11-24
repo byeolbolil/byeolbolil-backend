@@ -47,13 +47,10 @@ public class AuthApplicationService {
 
 		refreshTokenRedisRepository.delete(refreshToken);
 
-		String newAccessToken = jwtTokenProvider.createAccessToken(memberId);
-		String newRefreshToken = jwtTokenProvider.createRefreshToken(memberId);
-
-		refreshTokenRedisRepository.save(newRefreshToken, memberId, JwtTokenProvider.REFRESH_EXPIRE_MS);
+		TokenDto tokens = issueTokens(memberId);
 
 		log.debug("토큰 재발급 성공!");
-		return new TokenDto(newAccessToken, newRefreshToken);
+		return tokens;
 	}
 
 	@Transactional
@@ -84,20 +81,25 @@ public class AuthApplicationService {
 			)
 		);
 
-		String accessToken = jwtTokenProvider.createAccessToken(createdMember.getId());
-		String refreshToken = jwtTokenProvider.createRefreshToken(createdMember.getId());
-
-		return new TokenDto(accessToken, refreshToken);
+		return issueTokens(createdMember.getId());
 	}
 
 	@Transactional(readOnly = true)
 	public TokenDto login(LoginRequest request) {
 
-		Member member = authDomainService.findByEmail(request.email());
-		authDomainService.validatePassword(request.password(), member.getPassword());
+		Member member = authDomainService.authenticate(request.email(), request.password());
 
-		String accessToken = jwtTokenProvider.createAccessToken(member.getId());
-		String refreshToken = jwtTokenProvider.createRefreshToken(member.getId());
+		return issueTokens(member.getId());
+	}
+
+	/**
+	 * 재발급은 Redis에 있는 리프레시 토큰만 받아 주므로, 토큰을 내줄 때마다 저장해야 한다.
+	 */
+	private TokenDto issueTokens(Long memberId) {
+
+		String accessToken = jwtTokenProvider.createAccessToken(memberId);
+		String refreshToken = jwtTokenProvider.createRefreshToken(memberId);
+		refreshTokenRedisRepository.save(refreshToken, memberId, JwtTokenProvider.REFRESH_EXPIRE_MS);
 
 		return new TokenDto(accessToken, refreshToken);
 	}

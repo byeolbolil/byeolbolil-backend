@@ -28,7 +28,7 @@ public record AddBookmarkRequest(
 	@Schema(description = "경도 (CUSTOM 타입일 때 필수, SPOT 타입일 때는 null)", example = "126.5312")
 	Double longitude,
 
-	@Schema(description = "주소 (CUSTOM 타입일 때 사용, SPOT 타입일 때는 null)", example = "제주특별자치도 제주시 애월읍")
+	@Schema(description = "주소 (CUSTOM 타입일 때 필수, SPOT 타입일 때는 null)", example = "제주특별자치도 제주시 애월읍")
 	String address,
 
 	@Schema(description = "메모 (선택, 최대 500자)", example = "밤하늘이 정말 맑아서 별이 잘 보이는 곳입니다.", maxLength = 500)
