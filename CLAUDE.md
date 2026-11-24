@@ -43,7 +43,7 @@ Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/US
 `JWT_KEY`, `WEATHER_API_KEY`, `GEMINI_API_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
 Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `OPEN_METEO_BASE_URL`,
-`OPEN_METEO_MODEL`.
+`OPEN_METEO_MODEL`, `PHOTON_BASE_URL`.
 
 ### Tests
 
@@ -95,6 +95,10 @@ Cross-domain communication always goes through Application-layer orchestration �
   (`ecmwf_ifs`) first, MET Norway as fallback, cached in Redis by 0.05° cell (`ForecastCell`) and model run time
   (`ForecastCache`). Failures surface as `WeatherErrorCode.FORECAST_UNAVAILABLE`, never as dummy weather.
   The old `stargazing/client/openweather` path still serves the existing APIs until the roadmap's phase 3.
+- `geocode/` — place-name search and reverse lookup for the map search box and the travel origin.
+  `GeocodeDomainService` calls the public Photon server (OpenStreetMap data, no key), reorders results so areas and
+  destinations come before stations and roads, caches in Redis for 24 hours (`GeocodeCache`), and caps outbound
+  calls (`PhotonRateLimitConfig`). Serves `GET /api/v1/geocode/search` and `/reverse` (public).
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.

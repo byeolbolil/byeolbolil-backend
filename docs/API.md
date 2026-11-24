@@ -26,12 +26,13 @@
 5. [엔드포인트 요약](#5-엔드포인트-요약)
 6. [밤 추천](#6-밤-추천)
 7. [관측지](#7-관측지)
-8. [북마크](#8-북마크)
-9. [회원](#9-회원)
-10. [인증 엔드포인트](#10-인증-엔드포인트)
-11. [이전 API](#11-이전-api)
-12. [알려진 한계](#12-알려진-한계)
-13. [문서를 고칠 때](#13-문서를-고칠-때)
+8. [지명 검색](#8-지명-검색)
+9. [북마크](#9-북마크)
+10. [회원](#10-회원)
+11. [인증 엔드포인트](#11-인증-엔드포인트)
+12. [이전 API](#12-이전-api)
+13. [알려진 한계](#13-알려진-한계)
+14. [문서를 고칠 때](#14-문서를-고칠-때)
 
 ## 1. 기본 규칙
 
@@ -133,8 +134,9 @@ OpenAPI 스펙에는 이 봉투가 나오지 않는다. 스펙의 응답 스키�
 | 404 | 경로나 대상이 없다 | |
 | 405, 415 | 메서드나 `Content-Type`이 틀렸다 | 클라이언트 코드의 버그다 |
 | 409 | 이미 있는 것과 겹친다 | 이미 가입된 이메일, 이미 저장한 명소 |
+| 429 | 지명 검색 요청이 몰렸다 | 1초쯤 뒤에 다시 보낸다 |
 | 500 | 서버 오류 | `message`에 내부 예외 문구가 실릴 수 있으니 그대로 보여 주지 않는다 |
-| 503 | 날씨 예보를 받지 못했다 | 잠시 뒤 다시 시도한다 |
+| 503 | 날씨 예보나 지명 데이터를 받지 못했다 | 잠시 뒤 다시 시도한다 |
 
 ### 오류를 구분하는 법
 
@@ -160,7 +162,9 @@ OpenAPI 스펙에는 이 봉투가 나오지 않는다. 스펙의 응답 스키�
 | 404 | 사용자를 찾을 수 없습니다 | 토큰의 회원이 지워졌을 때 |
 | 409 | 이미 사용 중인 이메일입니다. | 회원가입 |
 | 409 | 이미 해당 명소는 북마크 되어있습니다. | 북마크 추가 |
+| 429 | 지명 검색 요청이 많습니다. 잠시 후 다시 시도해 주세요. | 지명 검색 |
 | 503 | 날씨 예보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요. | 예보를 쓰는 API |
+| 503 | 지명 검색을 지금 쓸 수 없습니다. 잠시 후 다시 시도해 주세요. | 지명 검색 |
 
 ## 4. 인증
 
@@ -238,6 +242,8 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 장소별 추천 |
 | GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 |
 | GET | `/api/v1/spots` | 없음 | 관측지 목록 |
+| GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
+| GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
 | GET | `/api/v1/bookmarks` | 필요 | 내 북마크 목록 |
 | POST | `/api/v1/bookmarks` | 필요 | 북마크 추가 |
 | PATCH | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 이름과 메모 수정 |
@@ -487,7 +493,84 @@ GET /api/v1/spots
 
 같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
 
-## 8. 북마크
+## 8. 지명 검색
+
+이름으로 좌표를 찾거나 좌표가 어느 지역인지 알아낸다. 웹은 지도의 검색창, 출발 위치 정하기, 지도에서 고른 위치에
+이름 붙이기에 쓴다. 한국 안만 찾는다. 로그인이 필요 없다.
+
+### 이름으로 찾기
+
+```
+GET /api/v1/geocode/search?q=화악산
+```
+
+| 쿼리 | 타입 | 설명 |
+|---|---|---|
+| `q` | string, 2~50자 | 찾을 이름. 필수 |
+
+`data`는 배열이고 최대 8개다. 찾은 곳이 없으면 빈 배열이다. 시, 군, 읍면동과 산, 천문대처럼 목적지가 될 만한 곳이
+앞에 오고 역, 정류장, 도로, 학교가 뒤에 온다. 같은 이름이 1km 안에 여럿이면 하나만 온다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `name` | string | 이름 |
+| `address` | string | 같은 이름을 구분하는 행정구역. 모르면 빈 문자열이다 |
+| `latitude`, `longitude` | number | |
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": [
+    { "name": "화악산", "address": "경기도 가평군 북면", "latitude": 37.9946674, "longitude": 127.5034314 },
+    { "name": "화악산", "address": "경상북도 청도군 청도읍", "latitude": 35.5932802, "longitude": 128.6915855 }
+  ]
+}
+```
+
+입력하는 도중에 불러도 된다. 다만 글자마다 부르지 말고 입력이 0.3초쯤 멈췄을 때 부른다. 같은 검색어의 결과는
+서버가 하루 동안 기억한다.
+
+### 좌표의 지역 이름
+
+```
+GET /api/v1/geocode/reverse?lat=37.623&lon=128.739
+```
+
+| 쿼리 | 타입 | 설명 |
+|---|---|---|
+| `lat`, `lon` | number | 둘 다 필수 |
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": { "name": "강릉시 왕산면" }
+}
+```
+
+`name`은 가장 작은 행정구역 둘이다. 바다 한가운데처럼 10km 안에 아무것도 없으면 `name`이 빠지고 `data`는 빈
+객체다. 서버는 좌표를 소수 셋째 자리(100m쯤)로 줄여서 찾는다.
+
+### 오류
+
+| 상태 | 경우 |
+|---|---|
+| 400 | `q`가 없거나 2자보다 짧거나 50자보다 길다. `lat`, `lon`이 없거나 범위를 벗어났다 |
+| 429 | 서버가 지명 데이터 소스에 보내는 요청이 한도에 닿았다. 1초쯤 뒤에 다시 보낸다 |
+| 503 | 지명 데이터 소스가 답하지 않는다 |
+
+검색이 실패해도 추천과 지도는 그대로 쓸 수 있어야 한다. 검색창에만 실패를 알리고 나머지 화면은 막지 않는다.
+
+### 출처 표기
+
+지명 데이터는 OpenStreetMap이고 [Photon](https://photon.komoot.io/)으로 찾는다. OpenStreetMap은 ODbL이라
+검색 결과를 보여 주는 화면에 "© OpenStreetMap contributors"를 적어야 한다. OpenStreetMap 기반 지도를 함께
+보여 주고 있어 지도에 이미 이 표기가 있으면 따로 더 적지 않아도 된다.
+
+## 9. 북마크
 
 화면에서는 "내 장소"라고 부른다. 모두 액세스 토큰이 필요하다. 두 가지가 있다.
 
@@ -577,7 +660,7 @@ DELETE /api/v1/bookmarks/{bookmarkId}
 
 성공하면 `data` 없이 200이다. 남의 북마크면 403, 없는 북마크면 404다.
 
-## 9. 회원
+## 10. 회원
 
 ### 내 정보
 
@@ -602,7 +685,7 @@ GET /api/v1/members/exists/email?email=user@example.com
 로그인 없이 부른다. `data.validated`가 `true`면 쓸 수 있는 이메일이고, `false`면 이미 가입된 이메일이다.
 경로의 `exists`와 뜻이 반대라는 점에 주의한다. 이메일 형식은 검사하지 않는다. `email`이 빠지면 400이다.
 
-## 10. 인증 엔드포인트
+## 11. 인증 엔드포인트
 
 ### 회원가입
 
@@ -662,7 +745,7 @@ POST /api/v1/auth/logout
 본문은 없다. 리프레시 토큰을 재발급과 같은 방식으로 보낸다. 서버에서 그 토큰을 없애고 쿠키를 지우는
 `Set-Cookie`를 내려 준다. 토큰 없이 불러도 200이다.
 
-## 11. 이전 API
+## 12. 이전 API
 
 밤 추천이 나오기 전의 API다. 한 시점의 점수 하나로 답하는 방식이고, 웹이 다 옮겨 가면 없앨 예정이다.
 새로 만드는 화면은 밤 추천을 쓴다.
@@ -730,7 +813,7 @@ GET /api/v1/recommends/bookmarks/today
 | `analyzedCount` | 분석에 성공한 수 |
 | `isPartialResult` | 일부를 건너뛰었으면 `true` |
 
-## 12. 알려진 한계
+## 13. 알려진 한계
 
 고칠 예정이거나 아직 정하지 않은 것들이다. 여기 적힌 동작에 기대어 만들지 않는다.
 
@@ -746,7 +829,7 @@ GET /api/v1/recommends/bookmarks/today
 - 이동 시간은 직선거리로 어림한 값이다.
 - 운영 서버가 `dev` 브랜치를 그대로 따라간다. 깨지는 변경은 [decisions.md](./decisions.md)에 날짜와 함께 적는다.
 
-## 13. 문서를 고칠 때
+## 14. 문서를 고칠 때
 
 이 문서의 응답 예시와 상태 코드는 아래 통합 테스트가 고정하고 있다. API를 바꾸면 테스트와 이 문서를 같은
 커밋에서 고친다.
@@ -756,6 +839,7 @@ GET /api/v1/recommends/bookmarks/today
 | 인증 | [`AuthApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/AuthApiTest.java) |
 | 회원 | [`MemberApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/MemberApiTest.java) |
 | 북마크 | [`BookmarkApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/bookmark/controller/BookmarkApiTest.java) |
+| 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
 | 분석, 5일 예보 | [`StargazingApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/stargazing/controller/StargazingApiTest.java) |
 | 없는 경로, 틀린 메서드 | [`FrameworkErrorStatusTest`](../src/test/java/xyz/ncookie/stargazer/global/exception/FrameworkErrorStatusTest.java) |
