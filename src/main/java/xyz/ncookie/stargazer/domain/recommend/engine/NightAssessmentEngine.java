@@ -274,12 +274,21 @@ public class NightAssessmentEngine {
 		return best;
 	}
 
+	/**
+	 * 추천 구간의 가중 평균 점수에 길이를 반영한다. 늦은 시간은 평균에서도 길이에서도 절반으로 센다.
+	 * 가중치의 합으로 나눠야 한다. 시간 수로 나누면 선호 시각 뒤까지 맑은 구간이 그 전에 끝나는 구간보다 낮게 나온다.
+	 */
 	private static double quality(List<NightHour> bestHours, Instant preferBefore) {
-		double weightedAverage = bestHours.stream()
+		double weightedHours = bestHours.stream()
+			.mapToDouble(hour -> weight(hour, preferBefore))
+			.sum();
+		if (weightedHours == 0) {
+			return 0;
+		}
+		double weightedScore = bestHours.stream()
 			.mapToDouble(hour -> hour.score() * weight(hour, preferBefore))
-			.average()
-			.orElse(0);
-		return weightedAverage * Math.min(bestHours.size(), QUALITY_FULL_HOURS) / QUALITY_FULL_HOURS;
+			.sum();
+		return weightedScore / weightedHours * Math.min(weightedHours, QUALITY_FULL_HOURS) / QUALITY_FULL_HOURS;
 	}
 
 	private static double weight(NightHour hour, Instant preferBefore) {
