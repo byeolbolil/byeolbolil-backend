@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import xyz.ncookie.stargazer.domain.weather.client.WeatherProviderException;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridForecast;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridSpec;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastSource;
 import xyz.ncookie.stargazer.domain.weather.model.HourlyWeather;
@@ -105,6 +108,72 @@ public class OpenMeteoClient {
 			response.longitude() != null ? response.longitude() : cell.longitude(),
 			hours
 		);
+	}
+
+	/**
+	 * 격자의 모든 점에서 시간별 총운량을 한 번의 요청으로 받는다.
+	 * 여러 좌표를 쉼표로 이어 보내면 응답이 좌표 순서대로의 배열로 온다.
+	 *
+	 * @param issuedAt 결과에 실어 둘 모델 실행 시각. 모르면 null
+	 */
+	public CloudGridForecast fetchCloudGrid(CloudGridSpec grid, Instant issuedAt) {
+		List<String> latitudes = new ArrayList<>(grid.size());
+		List<String> longitudes = new ArrayList<>(grid.size());
+		for (int row = 0; row < grid.rows(); row++) {
+			for (int column = 0; column < grid.columns(); column++) {
+				latitudes.add(String.format(Locale.ROOT, "%.1f", grid.latitudeAt(row)));
+				longitudes.add(String.format(Locale.ROOT, "%.1f", grid.longitudeAt(column)));
+			}
+		}
+		String url = baseUrl + "/v1/forecast"
+			+ "?latitude=" + String.join(",", latitudes)
+			+ "&longitude=" + String.join(",", longitudes)
+			+ "&hourly=cloud_cover"
+			+ "&forecast_days=" + FORECAST_DAYS
+			+ "&timeformat=unixtime"
+			+ "&timezone=GMT"
+			+ "&models=" + model;
+
+		OpenMeteoForecastResponse[] points = get(url, OpenMeteoForecastResponse[].class);
+		if (points.length != grid.size()) {
+			throw new WeatherProviderException(
+				"Open-Meteo가 격자 " + grid.size() + "점 가운데 " + points.length + "점만 돌려줬습니다.");
+		}
+
+		List<CloudGridForecast.Frame> frames = toFrames(points);
+		if (frames.isEmpty()) {
+			throw new WeatherProviderException("Open-Meteo 격자 응답에 쓸 수 있는 시간별 값이 없습니다.");
+		}
+		return new CloudGridForecast(ForecastSource.OPEN_METEO, issuedAt, grid, frames);
+	}
+
+	/**
+	 * 점마다 온 시간 목록을 시각별 격자로 뒤집는다.
+	 * 한 점이라도 값이 비거나 시각이 어긋나는 시각을 만나면 거기서 멈춘다. 구멍 난 격자는 그릴 수 없기 때문이다.
+	 */
+	private List<CloudGridForecast.Frame> toFrames(OpenMeteoForecastResponse[] points) {
+		List<CloudGridForecast.Frame> frames = new ArrayList<>();
+		OpenMeteoForecastResponse.Hourly first = points[0].hourly();
+		if (first == null || first.time() == null) {
+			return frames;
+		}
+
+		for (int i = 0; i < first.time().size(); i++) {
+			Long time = first.time().get(i);
+			List<Integer> cover = new ArrayList<>(points.length);
+			for (OpenMeteoForecastResponse point : points) {
+				OpenMeteoForecastResponse.Hourly hourly = point.hourly();
+				Long pointTime = (hourly != null && hourly.time() != null && i < hourly.time().size())
+					? hourly.time().get(i) : null;
+				Double value = (hourly != null) ? at(hourly.cloudCover(), i) : null;
+				if (time == null || !time.equals(pointTime) || value == null) {
+					return frames;
+				}
+				cover.add((int) Math.round(value));
+			}
+			frames.add(new CloudGridForecast.Frame(Instant.ofEpochSecond(time), cover));
+		}
+		return frames;
 	}
 
 	private <T> T get(String url, Class<T> type) {

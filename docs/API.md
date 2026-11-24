@@ -27,12 +27,13 @@
 6. [밤 추천](#6-밤-추천)
 7. [관측지](#7-관측지)
 8. [지명 검색](#8-지명-검색)
-9. [북마크](#9-북마크)
-10. [회원](#10-회원)
-11. [인증 엔드포인트](#11-인증-엔드포인트)
-12. [이전 API](#12-이전-api)
-13. [알려진 한계](#13-알려진-한계)
-14. [문서를 고칠 때](#14-문서를-고칠-때)
+9. [구름 지도](#9-구름-지도)
+10. [북마크](#10-북마크)
+11. [회원](#11-회원)
+12. [인증 엔드포인트](#12-인증-엔드포인트)
+13. [이전 API](#13-이전-api)
+14. [알려진 한계](#14-알려진-한계)
+15. [문서를 고칠 때](#15-문서를-고칠-때)
 
 ## 1. 기본 규칙
 
@@ -244,6 +245,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | GET | `/api/v1/spots` | 없음 | 관측지 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
+| GET | `/api/v1/clouds/nights/{date}` | 없음 | 하룻밤의 구름 격자 |
 | GET | `/api/v1/bookmarks` | 필요 | 내 북마크 목록 |
 | POST | `/api/v1/bookmarks` | 필요 | 북마크 추가 |
 | PATCH | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 이름과 메모 수정 |
@@ -570,7 +572,63 @@ GET /api/v1/geocode/reverse?lat=37.623&lon=128.739
 검색 결과를 보여 주는 화면에 "© OpenStreetMap contributors"를 적어야 한다. OpenStreetMap 기반 지도를 함께
 보여 주고 있어 지도에 이미 이 표기가 있으면 따로 더 적지 않아도 된다.
 
-## 9. 북마크
+## 9. 구름 지도
+
+지도에 구름이 어디에 끼는지 그리는 데 쓰는 격자 예보다. 한국과 주변 바다(위도 32.6°~39.0°, 경도 124.2°~131.0°)를
+0.4° 간격으로 나눈 17줄 18칸, 306점의 시간별 총운량을 준다. 로그인이 필요 없다.
+
+```
+GET /api/v1/clouds/nights/{date}
+```
+
+`{date}`는 밤이 시작하는 날짜(`yyyy-MM-dd`)다. 밤 추천 응답의 `date`를 그대로 넣으면 된다. 그날 저녁 5시부터
+다음 날 아침 8시 전까지 한 시간 간격으로 최대 15개가 온다. 예보가 닿지 않는 날짜면 오류가 아니라 `hours`가
+빈 배열이다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `date` | string | 요청한 날짜 |
+| `source` | string | 예보 출처. 지금은 `OPEN_METEO`뿐이다 |
+| `issuedAt` | string | 예보 모델이 계산을 시작한 시각(UTC). 확인하지 못했으면 빠진다 |
+| `grid.south`, `grid.west` | number | 남서쪽 모서리 격자점의 위도와 경도 |
+| `grid.step` | number | 줄과 칸 사이의 간격(도) |
+| `grid.rows`, `grid.columns` | integer | 줄(남→북)과 칸(서→동)의 수 |
+| `hours[].time` | string | 이 시각부터 1시간. 밤 추천의 `hours[].time`과 같은 형식이다 |
+| `hours[].cloudCover` | integer[] | 총운량(%). 길이는 `rows × columns`이고 남쪽 줄부터, 줄 안에서는 서쪽부터 적는다 |
+
+`cloudCover[i]`의 좌표는 위도 `south + step × floor(i / columns)`, 경도 `west + step × (i % columns)`다.
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": {
+    "date": "2026-11-24",
+    "source": "OPEN_METEO",
+    "issuedAt": "2026-11-23T06:00:00Z",
+    "grid": { "south": 32.6, "west": 124.2, "step": 0.4, "rows": 17, "columns": 18 },
+    "hours": [
+      { "time": "2026-11-24T17:00:00+09:00", "cloudCover": [96, 2, 9] }
+    ]
+  }
+}
+```
+
+`hours`는 하나만 남기고 `cloudCover`도 앞의 셋만 남겼다. 실제로는 시각마다 306개가 온다.
+
+쓸 때 알아 둘 것:
+
+- 격자 간격이 약 40km다. 구름의 모양이 아니라 어느 쪽이 흐린지, 밤사이 구름대가 어디로 가는지를 보는 용도다.
+  한 점씩 뽑은 값이라 옆 점과 크게 튈 수 있으니 그리기 전에 이웃 점과 평균을 내 고르게 한다.
+- 장소의 판정에는 쓰지 않는다. 장소가 맑은지는 밤 추천 응답의 그 장소 값으로 본다. 두 값은 같은 모델에서
+  나오지만 뽑은 지점이 달라 어긋날 수 있다.
+- 서버는 모델이 새로 돌 때(6시간마다)만 격자를 다시 받는다. 그 사이에는 여러 번 불러도 같은 값이다.
+- 웹 메르카토르 지도에 그림으로 얹을 때는 그림의 세로축을 위도가 아니라 메르카토르 y에 비례하게 그려야 한다.
+- 받지 못하면 503이다. 구름 그림 없이도 지도와 추천은 쓸 수 있어야 한다.
+- 출처 표기는 밤 추천과 같다([6장](#예보-출처-표기)). Open-Meteo, CC BY 4.0이다.
+
+## 10. 북마크
 
 화면에서는 "내 장소"라고 부른다. 모두 액세스 토큰이 필요하다. 두 가지가 있다.
 
@@ -660,7 +718,7 @@ DELETE /api/v1/bookmarks/{bookmarkId}
 
 성공하면 `data` 없이 200이다. 남의 북마크면 403, 없는 북마크면 404다.
 
-## 10. 회원
+## 11. 회원
 
 ### 내 정보
 
@@ -685,7 +743,7 @@ GET /api/v1/members/exists/email?email=user@example.com
 로그인 없이 부른다. `data.validated`가 `true`면 쓸 수 있는 이메일이고, `false`면 이미 가입된 이메일이다.
 경로의 `exists`와 뜻이 반대라는 점에 주의한다. 이메일 형식은 검사하지 않는다. `email`이 빠지면 400이다.
 
-## 11. 인증 엔드포인트
+## 12. 인증 엔드포인트
 
 ### 회원가입
 
@@ -745,7 +803,7 @@ POST /api/v1/auth/logout
 본문은 없다. 리프레시 토큰을 재발급과 같은 방식으로 보낸다. 서버에서 그 토큰을 없애고 쿠키를 지우는
 `Set-Cookie`를 내려 준다. 토큰 없이 불러도 200이다.
 
-## 12. 이전 API
+## 13. 이전 API
 
 밤 추천이 나오기 전의 API다. 한 시점의 점수 하나로 답하는 방식이고, 웹이 다 옮겨 가면 없앨 예정이다.
 새로 만드는 화면은 밤 추천을 쓴다.
@@ -813,7 +871,7 @@ GET /api/v1/recommends/bookmarks/today
 | `analyzedCount` | 분석에 성공한 수 |
 | `isPartialResult` | 일부를 건너뛰었으면 `true` |
 
-## 13. 알려진 한계
+## 14. 알려진 한계
 
 고칠 예정이거나 아직 정하지 않은 것들이다. 여기 적힌 동작에 기대어 만들지 않는다.
 
@@ -829,7 +887,7 @@ GET /api/v1/recommends/bookmarks/today
 - 이동 시간은 직선거리로 어림한 값이다.
 - 운영 서버가 `dev` 브랜치를 그대로 따라간다. 깨지는 변경은 [decisions.md](./decisions.md)에 날짜와 함께 적는다.
 
-## 14. 문서를 고칠 때
+## 15. 문서를 고칠 때
 
 이 문서의 응답 예시와 상태 코드는 아래 통합 테스트가 고정하고 있다. API를 바꾸면 테스트와 이 문서를 같은
 커밋에서 고친다.
@@ -839,6 +897,7 @@ GET /api/v1/recommends/bookmarks/today
 | 인증 | [`AuthApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/AuthApiTest.java) |
 | 회원 | [`MemberApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/MemberApiTest.java) |
 | 북마크 | [`BookmarkApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/bookmark/controller/BookmarkApiTest.java) |
+| 구름 지도 | [`CloudMapApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/weather/controller/CloudMapApiTest.java) |
 | 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
 | 분석, 5일 예보 | [`StargazingApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/stargazing/controller/StargazingApiTest.java) |

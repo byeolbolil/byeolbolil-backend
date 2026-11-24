@@ -94,6 +94,8 @@ Cross-domain communication always goes through Application-layer orchestration �
   `WeatherDomainService.getHourlyForecast(lat, lon)` returns up to 168 hours from the current hour: Open-Meteo
   (`ecmwf_ifs`) first, MET Norway as fallback, cached in Redis by 0.05° cell (`ForecastCell`) and model run time
   (`ForecastCache`). Failures surface as `WeatherErrorCode.FORECAST_UNAVAILABLE`, never as dummy weather.
+  `getCloudGrid()` fetches total cloud cover for a 17×18 grid over Korea (`CloudGridSpec.KOREA`, 0.4°) in one
+  Open-Meteo call per model run; `GET /api/v1/clouds/nights/{date}` serves one night of it for the map's cloud layer.
   The old `stargazing/client/openweather` path still serves the existing APIs until the roadmap's phase 3.
 - `geocode/` — place-name search and reverse lookup for the map search box and the travel origin.
   `GeocodeDomainService` calls the public Photon server (OpenStreetMap data, no key), reorders results so areas and

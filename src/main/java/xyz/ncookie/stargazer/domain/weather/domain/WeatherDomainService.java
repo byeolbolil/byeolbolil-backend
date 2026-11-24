@@ -17,6 +17,8 @@ import xyz.ncookie.stargazer.domain.weather.client.metnorway.MetNorwayForecast;
 import xyz.ncookie.stargazer.domain.weather.client.openmeteo.OpenMeteoClient;
 import xyz.ncookie.stargazer.domain.weather.exception.WeatherErrorCode;
 import xyz.ncookie.stargazer.domain.weather.exception.WeatherException;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridForecast;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridSpec;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 import xyz.ncookie.stargazer.domain.weather.model.ModelRun;
 import xyz.ncookie.stargazer.domain.weather.model.WeatherForecast;
@@ -56,6 +58,8 @@ public class WeatherDomainService {
 	private final ForecastCache forecastCache;
 	private final Clock clock;
 
+	private final Object cloudGridLock = new Object();
+
 	/**
 	 * 지금 시각이 속한 정시부터 최대 7일의 시간별 예보.
 	 * 보조 소스로 받은 경우에는 이틀 반 정도만 들어 있고 시정이 없다.
@@ -75,6 +79,57 @@ public class WeatherDomainService {
 			throw new WeatherException(WeatherErrorCode.FORECAST_UNAVAILABLE);
 		}
 		return window;
+	}
+
+	/**
+	 * 한국을 덮는 격자의 시간별 총운량. 지도에 구름을 그리는 데 쓴다.
+	 *
+	 * 모델 실행마다 한 번만 받아 캐시에 두고, 실행이 바뀌기 전까지는 누가 물어도 그것을 준다.
+	 * 여러 지점을 한 번에 받는 API는 Open-Meteo에만 있어서 보조 소스가 없다. 받지 못하면 잠시 동안은 다시 시도하지 않는다.
+	 *
+	 * @throws WeatherException 격자 예보를 받지 못했을 때
+	 */
+	public CloudGridForecast getCloudGrid() {
+		Instant now = clock.instant();
+		boolean down = forecastCache.isCloudGridDown();
+		Optional<ModelRun> run = down ? forecastCache.findModelRun(openMeteoClient.model()) : currentModelRun();
+		String key = cloudGridKey(run, now);
+
+		Optional<CloudGridForecast> cached = forecastCache.findCloudGrid(key);
+		if (cached.isPresent()) {
+			return cached.get();
+		}
+		if (down) {
+			throw new WeatherException(WeatherErrorCode.FORECAST_UNAVAILABLE);
+		}
+
+		// 요청이 몰려도 306점짜리 호출은 한 번만 나가게 한다. 기다린 요청은 앞선 요청이 넣어 둔 값을 읽는다.
+		synchronized (cloudGridLock) {
+			Optional<CloudGridForecast> filled = forecastCache.findCloudGrid(key);
+			if (filled.isPresent()) {
+				return filled.get();
+			}
+			if (forecastCache.isCloudGridDown()) {
+				throw new WeatherException(WeatherErrorCode.FORECAST_UNAVAILABLE);
+			}
+			try {
+				CloudGridForecast fetched = openMeteoClient.fetchCloudGrid(
+					CloudGridSpec.KOREA, run.map(ModelRun::initialisedAt).orElse(null));
+				forecastCache.putCloudGrid(key, fetched, primaryTtl(run));
+				return fetched;
+			} catch (WeatherProviderException e) {
+				log.warn("Open-Meteo 격자 예보를 받지 못했습니다.", e);
+				forecastCache.markCloudGridDown(PRIMARY_RETRY_DELAY);
+				throw new WeatherException(WeatherErrorCode.FORECAST_UNAVAILABLE);
+			}
+		}
+	}
+
+	private String cloudGridKey(Optional<ModelRun> run, Instant now) {
+		String runPart = run
+			.map(r -> String.valueOf(r.initialisedAt().getEpochSecond()))
+			.orElseGet(() -> "unknown-" + now.truncatedTo(ChronoUnit.HOURS).getEpochSecond());
+		return openMeteoClient.model() + ":" + runPart;
 	}
 
 	/**

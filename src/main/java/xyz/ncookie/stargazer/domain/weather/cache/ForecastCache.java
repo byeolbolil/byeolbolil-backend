@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridForecast;
 import xyz.ncookie.stargazer.domain.weather.model.ModelRun;
 import xyz.ncookie.stargazer.domain.weather.model.WeatherForecast;
 
@@ -28,6 +29,7 @@ public class ForecastCache {
 
 	private static final String PREFIX = "forecast:v1:";
 	private static final String PRIMARY_DOWN_KEY = PREFIX + "primary-down";
+	private static final String CLOUD_GRID_DOWN_KEY = PREFIX + "cloud-grid-down";
 
 	private final StringRedisTemplate redis;
 	private final ObjectMapper objectMapper;
@@ -68,12 +70,49 @@ public class ForecastCache {
 		write(runFreshKey(model), "1", freshFor);
 	}
 
+	/**
+	 * 구름 지도용 격자 예보. 모델 실행마다 하나다.
+	 */
+	public Optional<CloudGridForecast> findCloudGrid(String key) {
+		return read(cloudGridKey(key)).flatMap(json -> {
+			try {
+				return Optional.of(objectMapper.readValue(json, CloudGridForecast.class));
+			} catch (RuntimeException e) {
+				log.warn("캐시에 있던 격자 예보를 읽지 못해 버립니다.", e);
+				return Optional.empty();
+			}
+		});
+	}
+
+	public void putCloudGrid(String key, CloudGridForecast grid, Duration ttl) {
+		String json;
+		try {
+			json = objectMapper.writeValueAsString(grid);
+		} catch (RuntimeException e) {
+			log.warn("격자 예보를 직렬화하지 못해 캐시에 넣지 않습니다. key={}", key, e);
+			return;
+		}
+		write(cloudGridKey(key), json, ttl);
+	}
+
+	public boolean isCloudGridDown() {
+		return read(CLOUD_GRID_DOWN_KEY).isPresent();
+	}
+
+	public void markCloudGridDown(Duration ttl) {
+		write(CLOUD_GRID_DOWN_KEY, "1", ttl);
+	}
+
 	public boolean isPrimaryDown() {
 		return read(PRIMARY_DOWN_KEY).isPresent();
 	}
 
 	public void markPrimaryDown(Duration ttl) {
 		write(PRIMARY_DOWN_KEY, "1", ttl);
+	}
+
+	private static String cloudGridKey(String key) {
+		return PREFIX + "cloud-grid:" + key;
 	}
 
 	private static String forecastKey(String key) {
