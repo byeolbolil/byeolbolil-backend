@@ -84,6 +84,7 @@ JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 
 | 다른 날짜 | `GET /api/v1/recommendations/nights/{date}`. 오늘 밤부터 7일 |
 | 장소 자세히 | 추천 응답의 `places` 항목 하나를 그대로 쓴다. 따로 부를 API는 없다 |
 | 지도 | 추천 응답의 좌표와 `hours[].cloudCover`. 명소 전체가 필요하면 `GET /api/v1/spots` |
+| 지도의 구름 | `GET /api/v1/clouds/nights/{date}`. 격자 값을 받아 앱이 그린다 |
 | 지도의 검색창, 출발 위치 정하기 | `GET /api/v1/geocode/search`. 입력이 0.3초쯤 멈췄을 때 부른다 |
 | 현재 위치와 고른 위치의 이름 | `GET /api/v1/geocode/reverse` |
 | 내 장소 | `GET`, `POST`, `PATCH`, `DELETE /api/v1/bookmarks` |

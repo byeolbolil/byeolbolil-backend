@@ -23,6 +23,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 import xyz.ncookie.stargazer.domain.weather.client.WeatherProviderException;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridForecast;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridSpec;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastSource;
 import xyz.ncookie.stargazer.domain.weather.model.HourlyWeather;
@@ -222,6 +224,83 @@ class OpenMeteoClientTest {
 				"{\"update_interval_seconds\": 21600}", MediaType.APPLICATION_JSON));
 
 			assertThatThrownBy(() -> client.fetchLatestRun()).isInstanceOf(WeatherProviderException.class);
+		}
+	}
+
+	/**
+	 * 2026-11-24(UTC)에 2줄 3칸 격자로 실제로 받아 둔 응답으로 확인한다.
+	 */
+	@Nested
+	@DisplayName("구름 격자")
+	class CloudGrid {
+
+		private static final CloudGridSpec SMALL = new CloudGridSpec(37.0, 127.0, 0.4, 2, 3);
+		private static final String FIXTURE = "openmeteo/cloud-grid-2x3-ecmwf-ifs-20261124.json";
+
+		@Test
+		@DisplayName("남쪽 줄부터, 줄 안에서는 서쪽부터 모든 점을 한 번에 요청한다")
+		void request() {
+			server.expect(requestTo("https://api.open-meteo.com/v1/forecast"
+					+ "?latitude=37.0,37.0,37.0,37.4,37.4,37.4"
+					+ "&longitude=127.0,127.4,127.8,127.0,127.4,127.8"
+					+ "&hourly=cloud_cover&forecast_days=9&timeformat=unixtime&timezone=GMT&models=ecmwf_ifs"))
+				.andExpect(method(HttpMethod.GET))
+				.andRespond(json(FIXTURE));
+
+			client.fetchCloudGrid(SMALL, MODEL_RUN);
+
+			server.verify();
+		}
+
+		@Test
+		@DisplayName("점마다 온 시간 목록을 시각별 격자로 뒤집는다")
+		void readsFrames() {
+			server.expect(anything()).andRespond(json(FIXTURE));
+
+			CloudGridForecast grid = client.fetchCloudGrid(SMALL, MODEL_RUN);
+
+			assertThat(grid.source()).isEqualTo(ForecastSource.OPEN_METEO);
+			assertThat(grid.issuedAt()).isEqualTo(MODEL_RUN);
+			assertThat(grid.grid()).isEqualTo(SMALL);
+			assertThat(grid.frames()).hasSize(216);
+			assertThat(grid.frames().get(0).time()).isEqualTo(Instant.parse("2026-11-24T00:00:00Z"));
+			assertThat(grid.frames().get(0).cloudCover()).containsExactly(83, 91, 100, 94, 100, 84);
+			assertThat(grid.frames().get(215).time()).isEqualTo(Instant.parse("2026-12-02T23:00:00Z"));
+			assertThat(grid.frames().get(215).cloudCover()).containsExactly(100, 100, 47, 100, 100, 100);
+		}
+
+		@Test
+		@DisplayName("한 점이라도 값이 비는 시각부터는 버린다")
+		void stopsAtFirstHole() {
+			server.expect(anything()).andRespond(withSuccess("""
+				[
+				  {"hourly": {"time": [1795478400, 1795482000, 1795485600], "cloud_cover": [10, 20, 30]}},
+				  {"hourly": {"time": [1795478400, 1795482000, 1795485600], "cloud_cover": [40, null, 60]}}
+				]
+				""", MediaType.APPLICATION_JSON));
+
+			CloudGridForecast grid = client.fetchCloudGrid(new CloudGridSpec(37.0, 127.0, 0.4, 1, 2), null);
+
+			assertThat(grid.frames()).hasSize(1);
+			assertThat(grid.frames().get(0).cloudCover()).containsExactly(10, 40);
+		}
+
+		@Test
+		@DisplayName("격자의 점 수와 응답의 수가 다르면 예외로 던진다")
+		void wrongPointCount() {
+			server.expect(anything()).andRespond(json(FIXTURE));
+
+			assertThatThrownBy(() -> client.fetchCloudGrid(CloudGridSpec.KOREA, MODEL_RUN))
+				.isInstanceOf(WeatherProviderException.class);
+		}
+
+		@Test
+		@DisplayName("서버 오류는 예외로 던진다")
+		void serverError() {
+			server.expect(anything()).andRespond(withServerError());
+
+			assertThatThrownBy(() -> client.fetchCloudGrid(SMALL, MODEL_RUN))
+				.isInstanceOf(WeatherProviderException.class);
 		}
 	}
 

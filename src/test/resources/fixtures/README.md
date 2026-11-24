@@ -34,6 +34,7 @@
 |---|---|
 | `openmeteo/forecast-ecmwf-ifs-anbandegi-20261123.json` | `GET https://api.open-meteo.com/v1/forecast?latitude=37.65&longitude=128.95&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,dew_point_2m,visibility,temperature_2m&forecast_days=9&timeformat=unixtime&timezone=GMT&models=ecmwf_ifs` |
 | `openmeteo/meta-ecmwf-ifs-20261123.json` | `GET https://api.open-meteo.com/data/ecmwf_ifs/static/meta.json` |
+| `openmeteo/cloud-grid-2x3-ecmwf-ifs-20261124.json` | `GET https://api.open-meteo.com/v1/forecast?latitude=37.0,37.0,37.0,37.4,37.4,37.4&longitude=127.0,127.4,127.8,127.0,127.4,127.8&hourly=cloud_cover&forecast_days=9&timeformat=unixtime&timezone=GMT&models=ecmwf_ifs`. 2026-11-24(UTC)에 받았다. 구름 격자 요청의 형식을 2줄 3칸으로 줄여 받은 것이다 |
 | `metnorway/complete-anbandegi-20261123.json` | `GET https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=37.65&lon=128.95` |
 
 MET Norway 응답의 헤더는 파일에 없다. 받을 때의 값은 `Expires: Mon, 23 Nov 2026 19:18:57 GMT`였고, 테스트가 이 값을 직접 넣는다.

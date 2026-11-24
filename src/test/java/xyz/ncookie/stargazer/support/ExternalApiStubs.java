@@ -102,6 +102,17 @@ public class ExternalApiStubs {
 		stub(HttpMethod.GET, OPEN_METEO_FORECAST, withSuccess(body, MediaType.APPLICATION_JSON));
 	}
 
+	/**
+	 * 구름 격자 요청에 주는 응답. 명소 예보와 주소가 같고 받는 변수만 달라서 hourly 값으로 구분한다.
+	 * 명소 예보 응답과 함께 쓸 때는 이쪽을 먼저 등록해야 한다.
+	 */
+	public void openMeteoCloudGridReturnsBody(String body) {
+		server.expect(ExpectedCount.manyTimes(),
+				requestTo(allOf(startsWith(OPEN_METEO_FORECAST), containsString("&hourly=cloud_cover&"))))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+	}
+
 	public void openMeteoForecastFails() {
 		stub(HttpMethod.GET, OPEN_METEO_FORECAST, withServerError());
 	}

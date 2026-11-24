@@ -34,6 +34,8 @@ import xyz.ncookie.stargazer.domain.weather.client.metnorway.MetNorwayForecast;
 import xyz.ncookie.stargazer.domain.weather.client.openmeteo.OpenMeteoClient;
 import xyz.ncookie.stargazer.domain.weather.exception.WeatherErrorCode;
 import xyz.ncookie.stargazer.domain.weather.exception.WeatherException;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridForecast;
+import xyz.ncookie.stargazer.domain.weather.model.CloudGridSpec;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastSource;
 import xyz.ncookie.stargazer.domain.weather.model.HourlyWeather;
@@ -304,6 +306,111 @@ class WeatherDomainServiceTest {
 			when(forecastCache.findForecast(RUN_KEY)).thenReturn(Optional.of(openMeteoForecast(18)));
 
 			assertThatThrownBy(() -> service.getHourlyForecast(LAT, LON)).isInstanceOf(WeatherException.class);
+		}
+	}
+
+	@Nested
+	@DisplayName("구름 격자")
+	class CloudGrid {
+
+		private static final String GRID_KEY = "ecmwf_ifs:1795413600";
+		private static final CloudGridForecast GRID = new CloudGridForecast(
+			ForecastSource.OPEN_METEO, RUN.initialisedAt(), CloudGridSpec.KOREA,
+			List.of(new CloudGridForecast.Frame(THIS_HOUR, List.of(10, 20))));
+
+		@Test
+		@DisplayName("모델 실행을 키로 한국 격자를 받아 캐시에 넣는다. 만료는 갱신 주기의 두 배다")
+		void fetchesAndCaches() {
+			when(openMeteoClient.fetchLatestRun()).thenReturn(RUN);
+			when(openMeteoClient.fetchCloudGrid(CloudGridSpec.KOREA, RUN.initialisedAt())).thenReturn(GRID);
+
+			assertThat(service.getCloudGrid()).isEqualTo(GRID);
+			verify(forecastCache).putCloudGrid(GRID_KEY, GRID, Duration.ofHours(12));
+		}
+
+		@Test
+		@DisplayName("같은 실행의 격자가 캐시에 있으면 다시 받지 않는다")
+		void cacheHit() {
+			when(forecastCache.findModelRun(MODEL)).thenReturn(Optional.of(RUN));
+			when(forecastCache.isModelRunFresh(MODEL)).thenReturn(true);
+			when(forecastCache.findCloudGrid(GRID_KEY)).thenReturn(Optional.of(GRID));
+
+			assertThat(service.getCloudGrid()).isEqualTo(GRID);
+			verify(openMeteoClient, never()).fetchCloudGrid(any(), any());
+		}
+
+		@Test
+		@DisplayName("받지 못하면 1분 동안 다시 시도하지 않게 표시하고 예외를 던진다")
+		void failureIsRemembered() {
+			when(openMeteoClient.fetchLatestRun()).thenReturn(RUN);
+			when(openMeteoClient.fetchCloudGrid(any(), any())).thenThrow(new WeatherProviderException("시간 초과"));
+
+			assertThatThrownBy(() -> service.getCloudGrid())
+				.isInstanceOf(WeatherException.class)
+				.extracting(e -> ((WeatherException) e).getErrorCode())
+				.isEqualTo(WeatherErrorCode.FORECAST_UNAVAILABLE);
+			verify(forecastCache).markCloudGridDown(Duration.ofMinutes(1));
+			verify(forecastCache, never()).putCloudGrid(anyString(), any(), any());
+		}
+
+		@Test
+		@DisplayName("방금 실패했으면 Open-Meteo를 부르지 않는다. 명소 예보의 주 소스 상태는 건드리지 않는다")
+		void skipsWhileDown() {
+			when(forecastCache.isCloudGridDown()).thenReturn(true);
+
+			assertThatThrownBy(() -> service.getCloudGrid()).isInstanceOf(WeatherException.class);
+			verify(openMeteoClient, never()).fetchLatestRun();
+			verify(openMeteoClient, never()).fetchCloudGrid(any(), any());
+			verify(forecastCache, never()).markPrimaryDown(any());
+		}
+
+		@Test
+		@DisplayName("방금 실패했더라도 마지막으로 확인한 실행의 격자가 캐시에 있으면 그것을 준다")
+		void servesCachedWhileDown() {
+			when(forecastCache.isCloudGridDown()).thenReturn(true);
+			when(forecastCache.findModelRun(MODEL)).thenReturn(Optional.of(RUN));
+			when(forecastCache.findCloudGrid(GRID_KEY)).thenReturn(Optional.of(GRID));
+
+			assertThat(service.getCloudGrid()).isEqualTo(GRID);
+		}
+
+		@Test
+		@DisplayName("모델 실행 시각을 모르면 시각 단위 키로 1시간만 둔다")
+		void unknownRun() {
+			when(openMeteoClient.fetchLatestRun()).thenThrow(new WeatherProviderException("실패"));
+			when(openMeteoClient.fetchCloudGrid(CloudGridSpec.KOREA, null)).thenReturn(GRID);
+
+			service.getCloudGrid();
+
+			verify(forecastCache).putCloudGrid("ecmwf_ifs:unknown-1795456800", GRID, Duration.ofHours(1));
+		}
+	}
+
+	@Nested
+	@DisplayName("격자 예보를 하룻밤으로 자르기")
+	class CloudGridWindow {
+
+		@Test
+		@DisplayName("시작 시각은 넣고 끝 시각은 뺀다")
+		void between() {
+			CloudGridForecast grid = new CloudGridForecast(
+				ForecastSource.OPEN_METEO, null, CloudGridSpec.KOREA,
+				IntStream.range(0, 6)
+					.mapToObj(i -> new CloudGridForecast.Frame(MIDNIGHT.plus(i, ChronoUnit.HOURS), List.of(i)))
+					.toList());
+
+			CloudGridForecast window = grid.between(MIDNIGHT.plus(2, ChronoUnit.HOURS), MIDNIGHT.plus(4, ChronoUnit.HOURS));
+
+			assertThat(window.frames()).extracting(frame -> frame.cloudCover().get(0)).containsExactly(2, 3);
+		}
+
+		@Test
+		@DisplayName("한국 격자는 17줄 18칸이고 북동쪽 끝은 39.0°, 131.0°다")
+		void koreaGrid() {
+			assertThat(CloudGridSpec.KOREA.size()).isEqualTo(306);
+			assertThat(CloudGridSpec.KOREA.latitudeAt(0)).isEqualTo(32.6);
+			assertThat(CloudGridSpec.KOREA.latitudeAt(16)).isEqualTo(39.0);
+			assertThat(CloudGridSpec.KOREA.longitudeAt(17)).isEqualTo(131.0);
 		}
 	}
 
