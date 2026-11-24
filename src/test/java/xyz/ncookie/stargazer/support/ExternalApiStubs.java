@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 
 /**
- * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway)를 기록해 둔 응답으로 대체한다.
+ * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway, Photon)를 기록해 둔 응답으로 대체한다.
  *
  * 애플리케이션이 쓰는 RestTemplate 빈의 요청 팩토리를 바꿔 끼우므로, 이 빈으로 나가는 요청은
  * 소켓을 열지 않는다. 대체해 두지 않은 주소를 호출하면 AssertionError가 나서 테스트가 실패한다.
@@ -36,6 +36,8 @@ public class ExternalApiStubs {
 	private static final String OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
 	private static final String OPEN_METEO_MODEL_META = "https://api.open-meteo.com/data/";
 	private static final String MET_NORWAY = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
+	private static final String PHOTON_SEARCH = "https://photon.komoot.io/api/";
+	private static final String PHOTON_REVERSE = "https://photon.komoot.io/reverse";
 
 	private final MockRestServiceServer server;
 
@@ -123,6 +125,18 @@ public class ExternalApiStubs {
 
 	public void metNorwayFails() {
 		stub(HttpMethod.GET, MET_NORWAY, withServerError());
+	}
+
+	public void photonSearchReturns(String fixture) {
+		stub(HttpMethod.GET, PHOTON_SEARCH, json("photon/" + fixture));
+	}
+
+	public void photonSearchFails() {
+		stub(HttpMethod.GET, PHOTON_SEARCH, withServerError());
+	}
+
+	public void photonReverseReturns(String fixture) {
+		stub(HttpMethod.GET, PHOTON_REVERSE, json("photon/" + fixture));
 	}
 
 	private void stub(HttpMethod httpMethod, String urlPrefix, ResponseCreator response) {

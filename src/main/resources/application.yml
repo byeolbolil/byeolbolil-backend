@@ -91,6 +91,11 @@ weather:
         base-url: https://api.met.no
         user-agent: ${MET_NORWAY_USER_AGENT:}
 
+# 지명 검색. 키가 없는 공개 서버를 쓴다.
+geocode:
+    photon:
+        base-url: ${PHOTON_BASE_URL:https://photon.komoot.io}
+
 gemini:
     api:
         key: ${GEMINI_API_KEY}

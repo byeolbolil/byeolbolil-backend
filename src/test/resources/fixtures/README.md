@@ -39,6 +39,18 @@
 MET Norway 응답의 헤더는 파일에 없다. 받을 때의 값은 `Expires: Mon, 23 Nov 2026 19:18:57 GMT`였고, 테스트가 이 값을 직접 넣는다.
 두 API 모두 키가 필요 없다. MET Norway는 약관상 서비스를 식별하는 User-Agent 헤더를 요구한다.
 
+`photon/`의 JSON은 2026-11-25에 실제로 받은 응답을 고치지 않고 저장한 것이다. Photon은 키도 User-Agent 조건도 없다.
+주소 앞의 `https://photon.komoot.io`는 줄였다.
+
+| 파일 | 요청 |
+|---|---|
+| `photon/search-hwaaksan-20261125.json` | `GET /api/?q=화악산&limit=30&lang=default&bbox=124.5,33.0,131.9,38.7` |
+| `photon/search-yangpyeong-20261125.json` | 같은 요청에 `q=양평`. 이름이 같은 역과 정류장이 양평군보다 앞에 온다 |
+| `photon/search-no-result-20261125.json` | 같은 요청에 `q=육백마지기`. 결과가 없다 |
+| `photon/reverse-anbandegi-20261125.json` | `GET /reverse?lat=37.623&lon=128.739&limit=1&lang=default&radius=10` |
+| `photon/reverse-seoul-20261125.json` | 같은 요청에 `lat=37.57&lon=126.89`. 응답에 도가 없다 |
+| `photon/reverse-sea-20261125.json` | 같은 요청에 `lat=36.5&lon=130.5`. 동해 한가운데라 결과가 없다 |
+
 ## 손으로 쓴 파일을 실제 응답으로 바꾸려면
 
 API 키를 넣어 한 번 호출한 결과를 같은 경로에 저장하면 된다. 키가 응답에 들어가지는 않지만 요청 주소에는 들어가므로

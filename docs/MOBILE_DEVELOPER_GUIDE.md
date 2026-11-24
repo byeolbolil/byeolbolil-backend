@@ -84,6 +84,8 @@ JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 
 | 다른 날짜 | `GET /api/v1/recommendations/nights/{date}`. 오늘 밤부터 7일 |
 | 장소 자세히 | 추천 응답의 `places` 항목 하나를 그대로 쓴다. 따로 부를 API는 없다 |
 | 지도 | 추천 응답의 좌표와 `hours[].cloudCover`. 명소 전체가 필요하면 `GET /api/v1/spots` |
+| 지도의 검색창, 출발 위치 정하기 | `GET /api/v1/geocode/search`. 입력이 0.3초쯤 멈췄을 때 부른다 |
+| 현재 위치와 고른 위치의 이름 | `GET /api/v1/geocode/reverse` |
 | 내 장소 | `GET`, `POST`, `PATCH`, `DELETE /api/v1/bookmarks` |
 | 설정의 추천 기준 | 값을 앱에 저장해 두고 추천을 부를 때 `minClearHours`, `preferBefore`, `maxTravelMinutes`로 보낸다 |
 
@@ -94,6 +96,8 @@ JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 
   예보는 6시간마다 바뀌므로 몇 분 안에 다시 불러도 결과가 거의 같다.
 - 처음 부를 때 몇 초 걸릴 수 있다. 요청 제한 시간을 15초 넘게 잡고 로딩 화면을 둔다.
 - 예보 출처를 화면에 적어야 한다([API.md 6장](./API.md#예보-출처-표기)).
+- 출발 위치는 기기의 현재 위치만이 아니라 검색하거나 지도에서 고른 곳으로도 정할 수 있어야 한다. 추천 API는
+  받은 `lat`, `lon`이 어디서 왔는지 가리지 않는다. 지금 무엇을 출발 위치로 쓰고 있는지 화면에 이름으로 보여 준다.
 
 ## 7. 시각
 
