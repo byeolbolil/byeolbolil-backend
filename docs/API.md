@@ -224,6 +224,8 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 2. 로그인에 성공하면 서버가 `refresh_token` 쿠키를 심고 `https://www.byeolbolil.xyz/oauth/callback`으로 돌려보낸다.
 3. 그 페이지에서 `POST /api/v1/auth/reissue`를 불러 액세스 토큰을 받는다.
 
+로그인에 실패하면 `https://www.byeolbolil.xyz/login?error=oauth`로 돌려보낸다.
+
 돌아가는 주소가 웹 프론트로 고정돼 있어 네이티브 앱에서는 쓸 수 없다. 앱에서 소셜 로그인을 하려면 서버에 앱용
 흐름을 추가해야 한다. 소셜 로그인으로만 가입한 회원은 비밀번호가 없어 이메일 로그인이 되지 않는다.
 
