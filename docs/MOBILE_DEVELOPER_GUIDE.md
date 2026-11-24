@@ -1,288 +1,133 @@
-# Stargazer 모바일 앱 개발자 가이드
+# 별볼일 모바일 앱 개발자 가이드
 
-이 문서는 Stargazer 백엔드 API에 **iOS / Android** 네이티브 앱을 연동할 때 필요한 정보를 정리한 것입니다.
+iOS와 Android 앱을 별볼일 API에 붙일 때 네이티브 앱에서만 신경 쓸 것을 모았다.
 
----
+엔드포인트, 요청과 응답 필드, 오류 응답은 [API.md](./API.md)가 기준이다. 이 문서는 그 내용을 되풀이하지 않고,
+앱에서 다르게 처리해야 하는 부분만 다룬다. 예전 판에는 엔드포인트별 요약이 있었는데 실제 응답과 다른 곳이 있어
+지웠다.
 
-## 목차
+2026-11-24에 일부 오류의 상태 코드가 바뀌었다. 바뀐 목록은 [decisions.md](./decisions.md)의
+"API 오류 응답: 401은 토큰 문제에만 쓴다"에 있다.
 
-1. [개요](#1-개요)
-2. [인증 (Authentication)](#2-인증-authentication)
-3. [공통 응답 형식](#3-공통-응답-형식)
-4. [API 엔드포인트 요약](#4-api-엔드포인트-요약)
-5. [요청/응답 스키마 요약](#5-요청응답-스키마-요약)
-6. [에러 처리](#6-에러-처리)
-7. [모바일 구현 시 필수 사항](#7-모바일-구현-시-필수-사항)
-8. [OpenAPI / 클라이언트 코드 생성](#8-openapi--클라이언트-코드-생성)
+## 1. 접속 정보
 
----
+| | |
+|---|---|
+| 운영 | `https://api.byeolbolil.xyz` |
+| 로컬 | `http://localhost:8080` (Android 에뮬레이터에서는 `http://10.0.2.2:8080`) |
+| OpenAPI JSON | `https://api.byeolbolil.xyz/v3/api-docs` |
+| Swagger UI | `https://api.byeolbolil.xyz/swagger-ui/index.html` |
 
-## 1. 개요
+스테이징 서버는 없다. 운영 서버가 `dev` 브랜치를 따라가고, 배포하는 동안 1분쯤 응답이 끊긴다.
+운영 DB는 2026-11-24에 새로 만들어져 그 전의 계정은 없다.
 
-### Base URL
-- **로컬:** `http://localhost:8080`
-- **운영:** `https://api.byeolbolil.xyz` (배포 환경에 따라 변경 가능)
-- **[Swagger UI](https://api.byeolbolil.xyz/swagger-ui/index.html)**
+## 2. 리프레시 토큰
 
-### API 버전
-- 모든 API prefix: **`/api/v1`**
-- 예: `GET /api/v1/analyze`, `POST /api/v1/auth/login`
+액세스 토큰은 응답 본문으로, 리프레시 토큰은 `Set-Cookie` 헤더의 `refresh_token` 쿠키로 온다
+([API.md 4장](./API.md#4-인증)). 앱은 두 방식 가운데 하나를 고른다.
 
-### 인증 방식
-- **Access Token:** JWT, 요청 시 `Authorization: Bearer {accessToken}` 헤더에 포함
-- **Refresh Token:** HttpOnly Cookie로 주고받음 (재발급·로그아웃 시 서버가 `Set-Cookie`로 설정)
+쿠키 저장소를 쓰는 방식은 웹과 똑같이 동작하고 코드가 가장 적다.
 
-### Content-Type
-- 요청: `application/json` (Body가 있는 경우)
-- 응답: `application/json`
+- Android(OkHttp): `CookieJar`를 붙인다. `JavaNetCookieJar`에 `CookieManager`를 넘기면 되는데, 기본 구현은 메모리에만
+  두므로 앱을 다시 켜면 쿠키가 사라진다. 로그인을 유지하려면 디스크에 남기는 `CookieJar`를 써야 한다.
+- iOS(URLSession): `HTTPCookieStorage.shared`가 기본으로 쿠키를 저장하고 다시 보낸다. 세션 설정에서
+  `httpShouldSetCookies`를 끄지 않았는지만 확인한다.
 
----
+헤더로 보내는 방식은 토큰을 어디에 둘지 앱이 직접 정할 수 있다.
 
-## 2. 인증 (Authentication)
+1. 로그인, 가입, 재발급 응답의 `Set-Cookie` 헤더에서 `refresh_token` 값을 꺼낸다.
+2. Keychain(iOS)이나 Keystore로 암호화한 저장소(Android)에 둔다.
+3. 재발급과 로그아웃 때 `Authorization-Refresh: Bearer {값}` 헤더로 보낸다.
+4. 재발급에 성공할 때마다 새로 온 값으로 바꾼다. 리프레시 토큰은 한 번 쓰면 폐기된다.
 
-### 2.1 로그인
-- **POST** `/api/v1/auth/login`
-- **인증:** 불필요
-- **Body (JSON):**
-  - `email` (string, 필수): 이메일
-  - `password` (string, 필수): 비밀번호
-- **응답:**
-  - **200:** Body에 `accessToken` (string). 동시에 `Set-Cookie` 헤더로 `refresh_token` 쿠키 설정
-  - **401:** 이메일/비밀번호 불일치
+로컬 서버를 `http`로 띄워 시험할 때는 헤더 방식만 된다. 쿠키에 `Secure`가 붙어 있어 쿠키 저장소가 `http` 요청에는
+실어 보내지 않는다.
 
-### 2.2 회원가입
-- **POST** `/api/v1/auth/register`
-- **인증:** 불필요
-- **Body (JSON):**
-  - `email` (string, 필수): 이메일
-  - `password` (string, 필수): 8자 이상, 영문·숫자·특수문자(`!@#$%^&*`) 각 1개 이상
-  - `nickname` (string, 필수): 닉네임
-- **응답:** 로그인과 동일 (Access Token + Set-Cookie로 Refresh Token)
+두 방식을 섞지 않는다. 쿠키와 헤더가 함께 가면 서버는 쿠키를 쓰는데, 쿠키 저장소에 남은 옛 토큰이 실려 가면
+재발급이 401로 끝난다.
 
-### 2.3 액세스 토큰 재발급 (Reissue)
-- **POST** `/api/v1/auth/reissue`
-- **인증:** Cookie에 `refresh_token` 필요 (Body/Header에 Access Token 불필요)
-- **Body:** 없음
-- **응답:**
-  - **200:** Body에 새 `accessToken`. `Set-Cookie`로 새 Refresh Token 설정 (기존 토큰은 폐기, RTR)
-  - **401:** Refresh Token 만료/무효 → 재로그인 유도
+액세스 토큰은 메모리에 두고, 앱을 다시 켰을 때는 재발급으로 새로 받는다.
 
-### 2.4 로그아웃
-- **POST** `/api/v1/auth/logout`
-- **인증:** Cookie에 `refresh_token` 필요
-- **Body:** 없음
-- **응답:** **200** + `Set-Cookie`로 쿠키 삭제. 클라이언트는 Access Token을 메모리/저장소에서 삭제해야 함.
+## 3. 401과 재발급
 
-### 2.5 모바일에서 쿠키 처리 (필수)
+규칙은 [API.md 4.3](./API.md#43-401을-받았을-때)에 있다. 앱에서 구현할 때 놓치기 쉬운 것은 다음과 같다.
 
-서버는 Refresh Token을 **HttpOnly Cookie**로만 발급·갱신합니다. 모바일 앱은 **쿠키를 유지·재전송**해야 재발급·로그아웃이 동작합니다.
+- 재발급은 한 번에 하나만 보낸다. 화면이 뜨면서 요청 여러 개가 동시에 401을 받으면, 첫 요청만 재발급을 보내고
+  나머지는 그 결과를 기다렸다가 새 토큰으로 다시 보낸다. 재발급을 두 번 보내면 두 번째는 폐기된 토큰이라
+  401이고, 그 결과로 로그아웃시키면 멀쩡한 사용자가 로그인 화면으로 간다. Kotlin은 `Mutex`, Swift는 `actor`나
+  진행 중인 `Task`를 공유하는 방식이 맞다. OkHttp를 쓴다면 `Authenticator`가 이 자리다.
+- 재발급 요청 자체와 `POST /api/v1/auth/login`은 401 재시도 대상에서 뺀다.
+- 다시 보낸 요청이 또 401이면 더 반복하지 않는다.
+- 403과 409는 토큰 문제가 아니다. 재발급하지 않는다.
 
-- **Android (OkHttp / Retrofit)**  
-  - `JavaNetCookieJar` 등으로 `CookieHandler` 연동  
-  - 재발급·로그아웃 요청 시 **동일 도메인에 대해 저장된 쿠키가 자동으로 포함**되도록 설정
-- **iOS (URLSession / Alamofire)**  
-  - `HTTPCookieStorage.shared` 사용 또는 세션/요청에 쿠키 저장 정책 설정  
-  - 재발급·로그아웃 호출 시 해당 쿠키가 서버로 전송되도록 보장
+## 4. 로그인이 선택인 API
 
-쿠키를 저장·전송하지 않으면 로그인 직후 Refresh Token이 없어 재발급이 불가능합니다.
+밤 추천은 만료된 토큰을 붙여도 401이 아니라 200이 온다. 내 장소만 빠진 결과다
+([API.md 4.4](./API.md#44-로그인이-선택인-api)). 401을 기다리는 인터셉터만으로는 이 경우를 잡지 못한다.
 
-### 2.6 RTR 동시성 제어 (Race Condition 방지)
+로그인한 상태라면 요청을 보내기 전에 액세스 토큰의 `exp`를 확인해, 지났거나 1분 안에 지나면 먼저 재발급한다.
+JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 나온다. 서명 검증은 필요 없다.
 
-Refresh Token은 **1회용(RTR)** 이므로, Access Token 만료 시 여러 요청이 동시에 `/auth/reissue`를 호출하면 첫 요청만 성공하고 나머지는 `401 INVALID_REFRESH_TOKEN`이 될 수 있습니다.
+## 5. 소셜 로그인
 
-권장 처리:
-- **단일 재발급 플로우:** `isRefreshing` 플래그 또는 Mutex/Lock으로 동시에 하나의 reissue만 수행
-- **대기 큐:** 재발급 중인 동안 만료로 실패한 API 요청을 큐에 넣고, 재발급 완료 후 새 Access Token으로 재시도
+카카오, 구글, 네이버 로그인은 지금 웹에서만 된다. 로그인 뒤에 돌아가는 주소가 웹 프론트로 고정돼 있어서다
+([API.md 4.5](./API.md#45-소셜-로그인)). 앱은 이메일 로그인만 쓸 수 있다. 앱에서 소셜 로그인이 필요해지면
+백엔드에 앱용 흐름을 추가해야 하니 먼저 이야기한다.
 
----
+## 6. 화면과 API
 
-## 3. 공통 응답 형식
+웹의 새 화면이 쓰는 방식이다. 목표 화면은 [mockup](./mockup/)에 있다.
 
-성공 시 대부분의 API는 **공통 래퍼**로 감싸져 반환됩니다 (Swagger/OpenAPI 경로 제외).
+| 화면 | API |
+|---|---|
+| 오늘 밤 추천 | `GET /api/v1/recommendations/tonight`. 위치 권한이 있으면 `lat`, `lon`을 붙인다 |
+| 다른 날짜 | `GET /api/v1/recommendations/nights/{date}`. 오늘 밤부터 7일 |
+| 장소 자세히 | 추천 응답의 `places` 항목 하나를 그대로 쓴다. 따로 부를 API는 없다 |
+| 지도 | 추천 응답의 좌표와 `hours[].cloudCover`. 명소 전체가 필요하면 `GET /api/v1/spots` |
+| 내 장소 | `GET`, `POST`, `PATCH`, `DELETE /api/v1/bookmarks` |
+| 설정의 추천 기준 | 값을 앱에 저장해 두고 추천을 부를 때 `minClearHours`, `preferBefore`, `maxTravelMinutes`로 보낸다 |
 
-```json
-{
-  "success": true,
-  "status": 200,
-  "message": "요청이 성공적으로 처리되었습니다.",
-  "data": { ... }
-}
-```
+- 위치 권한이 없어도 추천은 동작한다. 좌표를 빼고 부르면 이동 시간 없이 날씨와 어두움만으로 순서를 매긴다.
+- 정밀한 좌표는 필요 없다. 소수 둘째 자리(1km쯤)로 줄여 보내도 이동 시간이 1~2분 달라질 뿐이다.
+- 추천 응답 하나에 모든 장소의 시간별 값이 들어 있다. 밤 전체를 받으면 180KB쯤이고 gzip으로 받으면 10KB대다.
+  `Accept-Encoding: gzip`이 켜져 있는지 확인하고, 화면을 옮길 때마다 다시 부르지 말고 받은 응답을 들고 다닌다.
+  예보는 6시간마다 바뀌므로 몇 분 안에 다시 불러도 결과가 거의 같다.
+- 처음 부를 때 몇 초 걸릴 수 있다. 요청 제한 시간을 15초 넘게 잡고 로딩 화면을 둔다.
+- 예보 출처를 화면에 적어야 한다([API.md 6장](./API.md#예보-출처-표기)).
 
-- **data:** 실제 응답 본문 (엔드포인트별 스키마)
-- **status:** HTTP 상태 코드와 동일한 값
-- 로그인/회원가입/재발급 응답도 위 형식으로 감싸지며, **data** 안에 `accessToken` 등이 들어갈 수 있음 (구현에 따라 다를 수 있으므로 Swagger 또는 실제 응답 확인 권장)
+## 7. 시각
 
----
+- 응답의 시각은 `2026-11-24T22:00:00+09:00` 형식이다. 오프셋을 살려 파싱하고, 보여 줄 때는 기기의 시간대가 아니라
+  한국 시간으로 보여 준다. 해외에 있는 사용자에게도 관측지의 현지 시각이 필요하기 때문이다.
+- "오늘 밤"은 새벽 4시에 바뀐다. 새벽 2시에 `tonight`을 부르면 응답의 `date`는 어제 날짜다. 날짜 선택 화면의
+  "오늘"은 기기 날짜가 아니라 `tonight` 응답의 `date`를 기준으로 삼는다.
 
-## 4. API 엔드포인트 요약
+## 8. 확인할 것
 
-| 메서드 | 경로 | 인증 | 설명 |
-|--------|------|------|------|
-| **별 관측** |
-| GET | `/api/v1/analyze` | X | 지정 위치·날짜·시간의 관측 적합도 분석 |
-| GET | `/api/v1/forecast` | X | 지정 위치의 주간(5일) 관측 예보 |
-| **관측지** |
-| GET | `/api/v1/spots` | X | 위도/경도/반경으로 주변 관측지 조회 |
-| **인증** |
-| POST | `/api/v1/auth/login` | X | 로그인 |
-| POST | `/api/v1/auth/register` | X | 회원가입 |
-| POST | `/api/v1/auth/reissue` | Cookie | Access Token 재발급 |
-| POST | `/api/v1/auth/logout` | Cookie | 로그아웃 |
-| **회원** |
-| GET | `/api/v1/members/me` | JWT | 내 정보 조회 |
-| GET | `/api/v1/members/exists/email` | X | 이메일 중복 검사 |
-| **북마크** |
-| GET | `/api/v1/bookmarks` | JWT | 북마크 목록 |
-| POST | `/api/v1/bookmarks` | JWT | 북마크 추가 |
-| PATCH | `/api/v1/bookmarks/{bookmarkId}` | JWT | 북마크 수정 |
-| DELETE | `/api/v1/bookmarks/{bookmarkId}` | JWT | 북마크 삭제 |
-| **추천** |
-| GET | `/api/v1/recommends/bookmarks/today` | JWT | 오늘 관측 추천 북마크 (상위 5개). 아래 밤 추천으로 대체될 예정 |
-| GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 추천. 장소별 추천 시간대와 등급 |
-| GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 (오늘 밤부터 7일) |
+- [ ] 모든 요청에 `Accept-Language: ko-KR`을 붙인다. 빠지면 일부 검증 문구가 영어로 온다.
+- [ ] 본문이 있는 요청에 `Content-Type: application/json`을 붙인다.
+- [ ] 응답에서 `data`를 꺼내는 처리를 한 곳에 둔다. `data`가 없는 성공 응답(로그아웃, 삭제)도 통과시킨다.
+- [ ] 오류는 상태 코드로 나누고 `message`는 보여 주기만 한다.
+- [ ] 리프레시 토큰을 쿠키 저장소와 헤더 가운데 한 방식으로만 다룬다.
+- [ ] 재발급을 한 번에 하나만 보낸다.
+- [ ] 로그인이 선택인 API를 부르기 전에 액세스 토큰의 만료를 확인한다.
+- [ ] 모르는 `level`, `pattern`, `notes` 값이 와도 죽지 않게 기본 처리를 둔다.
+- [ ] 없을 수 있는 필드(`bestWindow`, `travel`, `spotId`, `forecastIssuedAt`, `memo`)를 선택 값으로 받는다.
+- [ ] 추천 화면에 예보 출처를 적는다.
 
----
+## 9. 클라이언트 코드 생성
 
-## 5. 요청/응답 스키마 요약
+OpenAPI JSON으로 Kotlin, Swift, Dart 모델을 생성할 수 있다. 생성한 코드를 쓸 때는 두 가지를 손봐야 한다.
 
-### 5.1 GET /api/v1/analyze (Query)
-- **Query:** `lat` (필수), `lon` (필수), `date` (필수, yyyy-MM-dd), `time` (필수, HH:mm)
-- **응답 data:**  
-  `date`, `time`, `totalScore` (0–100), `reasons` (감점 사유 배열), `aiComment`, `weather`, `astronomy`, `lightPollution` 등
+- 스펙의 응답 스키마에는 공통 봉투(`success`, `status`, `message`, `data`)가 없다. 실제 응답은 봉투에 싸여 오므로
+  봉투 타입을 직접 만들고 생성된 모델을 `data` 자리에 넣는다.
+- `level`, `pattern`, `type` 같은 값은 스펙에 문자열로만 나온다. 값 목록은 [API.md](./API.md#값의-뜻)에서 옮긴다.
 
-### 5.2 GET /api/v1/forecast (Query)
-- **Query:** `lat` (필수), `lon` (필수). `date`, `time`는 선택(기본값 사용)
-- **응답 data:** 주간 예보 (날짜별·시간대별 점수 등)
-
-### 5.3 GET /api/v1/spots (Query)
-- **Query:** `lat` (필수), `lon` (필수), `radius` (필수, 10–500 km)
-- **응답 data:** 관측지 목록 (배열). 각 항목: id, name, 주소, 좌표, bortle 등급, 주차 가능 여부 등
-
-### 5.4 POST /api/v1/auth/login (Body)
-- **Body:** `{ "email": "string", "password": "string" }`
-- **응답:** Access Token (Body) + Refresh Token (Set-Cookie)
-
-### 5.5 POST /api/v1/auth/register (Body)
-- **Body:** `{ "email": "string", "password": "string", "nickname": "string" }`
-- **응답:** 로그인과 동일
-
-### 5.6 GET /api/v1/members/me
-- **Header:** `Authorization: Bearer {accessToken}`
-- **응답 data:** 회원 정보 (id, email, nickname 등)
-
-### 5.7 GET /api/v1/members/exists/email (Query)
-- **Query:** `email` (필수)
-- **응답 data:** `exists` (boolean) 등
-
-### 5.8 북마크
-- **POST /api/v1/bookmarks (Body)**  
-  - `type`: `"SPOT"` | `"CUSTOM"`  
-  - SPOT: `spotId`, `name`, `memo`(선택)  
-  - CUSTOM: `name`, `latitude`, `longitude`, `address`(선택), `memo`(선택)
-- **PATCH /api/v1/bookmarks/{bookmarkId} (Body)**  
-  - `name`, `memo` 수정
-- **응답 data:** 북마크 객체 (id, type, name, spot 또는 custom 좌표/주소, 메모 등)
-
-### 5.9 GET /api/v1/recommends/bookmarks/today
-- **Header:** `Authorization: Bearer {accessToken}`
-- **응답 data:** 오늘 밤 관측 추천 북마크 리스트 (최대 5개). 첫 조회 시 5~7초 소요 가능 → 로딩 UI 권장.
-
-### 5.10 밤 추천
-- **GET /api/v1/recommendations/tonight**, **GET /api/v1/recommendations/nights/{date}** (`date`는 yyyy-MM-dd)
-- **Header:** `Authorization: Bearer {accessToken}`은 선택이다. 없으면 기본 추천 명소만, 있으면 내 장소(북마크)도 함께 평가한다.
-- **Query (모두 선택):**
-  - `lat`, `lon`: 출발지. 둘을 함께 보내면 이동 시간을 추정해 순서에 반영한다
-  - `minClearHours`: 맑은 시간이 이만큼 이어지면 `STRONG`. 1~8, 기본 3
-  - `preferBefore`: 이 시각 전에 맑은 시간을 우선한다. HH:mm, 기본 02:00
-  - `maxTravelMinutes`: 이보다 오래 걸리는 장소는 뺀다. 출발지를 보냈을 때만 쓴다
-- **응답 data:**
-  - `date`: 밤이 시작하는 날짜. 새벽 4시 전에 `tonight`을 부르면 전날 날짜가 나온다
-  - `criteria`: 적용한 기준 (`minClearHours`, `preferBefore`, `maxTravelMinutes`)
-  - `candidateCount`, `evaluatedCount`, `excludedByTravelCount`: 후보 수, 예보를 받아 평가한 수, 이동 시간 한도로 뺀 수.
-    `evaluatedCount`가 `candidateCount`보다 작으면 일부 장소의 예보를 받지 못한 것이다
-  - `places`: 추천 순서대로. 첫 번째가 가장 좋은 곳이다
-- **places의 각 항목:**
-  - `type` (`SPOT` 기본 명소, `BOOKMARK` 내 장소), `id`, `spotId`, `name`, `address`, `latitude`, `longitude`
-  - `level`: `STRONG` 꼭 가볼 만해요, `GOOD` 가볼 만해요, `MAYBE` 잠깐 볼 수 있어요, `NO` 오늘은 쉬어가요
-  - `pattern`: `CLEAR_ALL_NIGHT` 밤새 맑아요, `CLEAR_EARLY` 초저녁이 가장 맑아요, `CLEARS_LATE` 늦은 밤에 개요,
-    `CLEARS_AGAIN` 흐렸다가 다시 개요, `BRIEF_CLEAR` 잠깐 맑은 틈이 있어요, `CLOUDY_ALL_NIGHT` 밤새 흐려요
-  - `notes`: `CLEARS_LATE` 추천 시간이 모두 선호 시각 뒤, `BRIGHT_MOON` 달이 밝아요, `CITY_LIGHTS` 도시 불빛이 강해요, `DEW` 이슬 주의
-  - `bestWindow`: 추천 시간대 `{ start, end, hours }`. 맑은 시간이 없으면 빠진다
-  - `travel`: `{ distanceKm, minutes }`. 직선거리로 어림한 값이고, 출발지를 보내지 않으면 빠진다
-  - `bortleClass`, `moonBrightness` (보름달을 1로 본 밝기)
-  - `forecastSource` (`OPEN_METEO` 또는 `MET_NORWAY`), `forecastIssuedAt`. 화면에 예보 출처를 표기해야 한다(CC BY 4.0)
-  - `hours`: 해가 진 뒤부터 뜨기 전까지의 시간 칸. `time`, `dark`, `clear`, `cloudCover`, `cloudCoverLow`, `cloudCoverMid`,
-    `cloudCoverHigh`, `relativeHumidity`, `moonUp`, `score`
-- 시각은 모두 한국 시간의 ISO 8601 문자열이다 (예: `2026-11-24T19:00:00+09:00`).
-- 예보를 처음 받는 칸이 많으면 몇 초 걸릴 수 있다. 같은 모델 실행 안에서는 캐시로 답한다.
-- `MET_NORWAY`로 받은 장소는 이틀 반쯤 뒤의 밤부터 `hours`가 비어 평가에서 빠질 수 있다.
-
----
-
-## 6. 에러 처리
-
-### 6.1 에러 응답 형식
-에러 시 공통 형식 예시는 다음과 같습니다.
-
-```json
-{
-  "success": false,
-  "status": 400,
-  "message": "검증 실패 메시지 또는 에러 코드 설명"
-}
-```
-
-필드가 더 있을 수 있으므로, 실제 구현은 `GlobalExceptionHandler` 및 Swagger 응답 스키마를 참고하세요.
-
-### 6.2 상태 코드별 클라이언트 동작 권장
-- **401 Unauthorized**  
-  - Access Token 만료 가능성 → `/auth/reissue` 호출 (Cookie 포함)  
-  - 재발급 실패(401) 시 → 로그인 화면으로 이동, 로컬 Access Token·Refresh Token 제거
-- **400 Bad Request**  
-  - `message`를 사용자에게 표시하거나, 필드별 검증 메시지로 매핑
-- **404 Not Found**  
-  - 리소스 없음 (예: 잘못된 bookmarkId, spotId)
-- **500 Internal Server Error**  
-  - 재시도 또는 “일시적 오류” 안내
-
----
-
-## 7. 모바일 구현 시 필수 사항
-
-- [ ] **Base URL**  
-  개발/스테이징/운영 환경별로 분리 설정
-- [ ] **모든 인증 필요 API**  
-  `Authorization: Bearer {accessToken}` 헤더 포함
-- [ ] **쿠키 저장·전송**  
-  로그인/회원가입/재발급/로그아웃 응답의 `Set-Cookie` 저장 및 재발급·로그아웃 요청 시 해당 쿠키 전송
-- [ ] **Access Token 저장**  
-  메모리 또는 보안 저장소. 재발급 성공 시 새 토큰으로 갱신
-- [ ] **401 시 재발급 플로우**  
-  한 번에 하나의 reissue만 수행하도록 동시성 제어
-- [ ] **재발급 실패 시**  
-  로그아웃 처리 후 로그인 화면으로 이동
-- [ ] **공통 응답**  
-  `success`, `status`, `message`, `data` 구조 파싱 후 `data`만 비즈니스 로직에 사용
-- [ ] **추천 API**  
-  첫 로딩 5~7초 가능성 → 로딩 인디케이터 또는 안내 문구 표시
-
----
-
-## 8. OpenAPI / 클라이언트 코드 생성
-
-- **OpenAPI JSON:** `GET {BaseURL}/v3/api-docs`  
-  예: `https://api.byeolbolil.xyz/v3/api-docs`
-- **Swagger UI:** `{BaseURL}/swagger-ui.html`  
-  브라우저에서 API 명세·Try-it-out 확인
-
-OpenAPI Generator 등으로 위 JSON을 사용해 **Kotlin**, **Swift**, **Dart** 등의 클라이언트 코드를 생성할 수 있습니다.  
-모바일 전용 모델/네트워크 레이어는 위 가이드(인증 헤더, 쿠키, 공통 응답, 에러 처리)에 맞게 한 번 더 래핑하는 것을 권장합니다.
-
----
+AI 도구로 클라이언트를 만들 때는 OpenAPI JSON과 [API.md](./API.md)를 함께 넣는다. 스펙에는 타입이, API.md에는
+스펙에 없는 동작이 있다.
 
 ## 관련 문서
 
-- [SECURITY_AUTH_GUIDE.md](./SECURITY_AUTH_GUIDE.md) - 인증·보안 상세 (RTR, 쿠키 정책)
-- [SWAGGER_GUIDE.md](./SWAGGER_GUIDE.md) - Swagger UI 및 OpenAPI JSON 사용법
-- [ARCHITECTURE_GUIDE.md](./ARCHITECTURE_GUIDE.md) - 백엔드 아키텍처 (참고용)
+- [API.md](./API.md): API 기준 문서
+- [SECURITY_AUTH_GUIDE.md](./SECURITY_AUTH_GUIDE.md): 인증 구조를 그렇게 잡은 이유
+- [decisions.md](./decisions.md): API가 바뀐 이력과 이유

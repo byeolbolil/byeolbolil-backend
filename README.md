@@ -125,10 +125,11 @@ GEMINI_API_KEY=your_google_gemini_key
 |------|------|
 | [Swagger UI](https://api.byeolbolil.xyz/swagger-ui/index.html) | API 명세 및 Try-it-out |
 | [OpenAPI JSON](http://localhost:8080/v3/api-docs) | 스펙 다운로드·클라이언트 코드 생성용 |
+| [docs/API.md](docs/API.md) | API 기준 문서 (공통 응답, 인증, 오류, 엔드포인트별 필드) |
 | [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) | 4계층 아키텍처·코딩 가이드 |
 | [docs/SECURITY_AUTH_GUIDE.md](docs/SECURITY_AUTH_GUIDE.md) | 인증·JWT·쿠키·RTR 정책 |
 | [docs/SWAGGER_GUIDE.md](docs/SWAGGER_GUIDE.md) | Swagger/OpenAPI 사용법 |
-| [docs/MOBILE_DEVELOPER_GUIDE.md](docs/MOBILE_DEVELOPER_GUIDE.md) | **모바일 앱 연동 가이드** |
+| [docs/MOBILE_DEVELOPER_GUIDE.md](docs/MOBILE_DEVELOPER_GUIDE.md) | 네이티브 앱에서 챙길 것 |
 | [docs/MONITORING_AND_ALERTS.md](docs/MONITORING_AND_ALERTS.md) | 모니터링·알림·ASG·부하 테스트 |
 
 ---
@@ -163,4 +164,4 @@ docs/                           # 설계·가이드 문서
 ## 📌 관련 링크
 
 - **Notion 기획서:** [링크]
-- **API 명세:** Swagger UI 또는 [MOBILE_DEVELOPER_GUIDE.md](docs/MOBILE_DEVELOPER_GUIDE.md) 참고
+- **API 명세:** [docs/API.md](docs/API.md)와 Swagger UI 참고

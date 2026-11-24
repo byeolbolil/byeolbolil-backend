@@ -1,83 +1,43 @@
-# Swagger API 문서 생성 가이드
+# Swagger와 OpenAPI 스펙
 
-## 개요
-이 프로젝트는 SpringDoc OpenAPI를 사용하여 Swagger API 문서를 자동 생성합니다.
+API 스펙은 SpringDoc이 컨트롤러와 DTO의 어노테이션에서 자동으로 만든다. 사람이 읽는 설명은 [API.md](./API.md)에 있고,
+이 문서는 스펙을 어디서 보고 어떻게 받는지만 다룬다.
 
-## Swagger UI 접근
-애플리케이션 실행 후 다음 URL로 접근할 수 있습니다:
-- **로컬**: http://localhost:8080/swagger-ui.html
-- **프로덕션**: https://api.byeolbolil.xyz/swagger-ui.html
+## 보는 곳
 
-## OpenAPI JSON 파일 생성 방법
+| | 로컬 | 운영 |
+|---|---|---|
+| Swagger UI | `http://localhost:8080/swagger-ui/index.html` | `https://api.byeolbolil.xyz/swagger-ui/index.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | `https://api.byeolbolil.xyz/v3/api-docs` |
 
-### 방법 1: 브라우저에서 직접 다운로드
-1. 애플리케이션을 실행합니다.
-2. 브라우저에서 다음 URL로 접근합니다:
-   - **로컬**: http://localhost:8080/v3/api-docs
-   - **프로덕션**: https://api.byeolbolil.xyz/v3/api-docs
-3. 브라우저에서 JSON 파일을 저장합니다 (Ctrl+S 또는 우클릭 > 다른 이름으로 저장).
-4. 파일명을 `openapi.json`으로 저장합니다.
+운영 서버는 `dev` 브랜치에 push될 때마다 다시 배포되므로 운영 주소의 스펙이 곧 `dev`의 스펙이다.
 
-### 방법 2: curl 명령어 사용 (Windows PowerShell)
-```powershell
-# 로컬 서버에서 다운로드
-curl -o openapi.json http://localhost:8080/v3/api-docs
+Swagger UI에서 로그인이 필요한 API를 불러 보려면 `POST /api/v1/auth/login`으로 받은 `accessToken`을 오른쪽 위
+Authorize에 넣는다.
 
-# 프로덕션 서버에서 다운로드
-curl -o openapi.json https://api.byeolbolil.xyz/v3/api-docs
-```
+## 파일로 받기
 
-### 방법 3: Gradle Task로 자동 생성 (추천)
-프로젝트 루트에 다음 스크립트를 추가할 수 있습니다:
-
-```gradle
-// build.gradle에 추가
-task generateOpenApi {
-    doLast {
-        def apiDocsUrl = "http://localhost:8080/v3/api-docs"
-        def outputFile = file("${projectDir}/openapi.json")
-        
-        println "Fetching OpenAPI docs from ${apiDocsUrl}..."
-        def connection = new URL(apiDocsUrl).openConnection()
-        connection.setRequestProperty("Accept", "application/json")
-        
-        def json = connection.inputStream.text
-        outputFile.text = json
-        println "OpenAPI JSON saved to ${outputFile.absolutePath}"
-    }
-}
-```
-
-사용 방법:
 ```bash
-# 애플리케이션 실행 후 다른 터미널에서
+# 운영 서버에서
+curl -o openapi.json https://api.byeolbolil.xyz/v3/api-docs
+
+# 로컬 서버를 띄워 둔 상태에서
 ./gradlew generateOpenApi
 ```
 
-### 방법 4: Maven 플러그인 사용 (Maven 프로젝트인 경우)
-```xml
-<plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <version>1.4</version>
-    <executions>
-        <execution>
-            <phase>integration-test</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
-</plugin>
-```
+`openapi.json`은 `.gitignore`에 들어 있다. 받은 파일은 금방 낡으므로 저장소에 넣지 않고 필요할 때 다시 받는다.
 
-## 생성된 JSON 파일 활용
-생성된 `openapi.json` 파일은 다음 용도로 사용할 수 있습니다:
-1. **프론트엔드 API 클라이언트 자동 생성**: OpenAPI Generator 등을 사용하여 TypeScript/JavaScript 클라이언트 코드 생성
-2. **API 문서 공유**: Postman, Insomnia 등 API 테스트 도구에 import
-3. **API 테스트 자동화**: 다양한 테스트 도구에서 스키마 기반 테스트 작성
+## 스펙에 없는 것
 
-## 주의사항
-- 애플리케이션이 실행 중이어야 JSON 파일을 생성할 수 있습니다.
-- 프로덕션 환경에서 다운로드할 경우, 실제 배포된 서버의 최신 API 스펙을 반영합니다.
-- 개발 중에는 로컬 서버에서 다운로드하는 것을 권장합니다.
+- 공통 응답 봉투(`success`, `status`, `message`, `data`). 스펙의 응답 스키마는 `data` 안쪽만 그린다.
+- 오류 응답의 모양과 상태 코드별 의미
+- 리프레시 토큰 쿠키와 `Authorization-Refresh` 헤더
+- `level`, `pattern` 같은 문자열 필드의 값 목록
+
+모두 [API.md](./API.md)에 있다. 스펙으로 클라이언트 코드를 생성할 때는 두 문서를 함께 본다.
+
+## 스펙을 고칠 때
+
+- 엔드포인트 설명은 컨트롤러의 `@Operation`, 필드 설명은 DTO의 `@Schema`에 쓴다.
+- 응답 상태 코드를 바꾸면 `@ApiResponse`도 같이 고친다.
+- 제목과 서버 목록은 `global/config/SwaggerConfig`에 있다.
