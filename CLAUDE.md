@@ -102,6 +102,10 @@ Cross-domain communication always goes through Application-layer orchestration �
   destinations come before stations and roads, caches in Redis for 24 hours (`GeocodeCache`), and caps outbound
   calls (`PhotonRateLimitConfig`). Serves `GET /api/v1/geocode/search` and `/reverse` (public).
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
+  Spots are either `OPEN_SITE` (free night access, the only recommendation candidates) or `FACILITY`
+  (observatories and science museums, served separately via `?kind=FACILITY`). `src/main/resources/data.sql` is the
+  source of truth: it upserts by explicit id on every start and marks removed spots `RETIRED` instead of deleting
+  them. Coordinates point at the named `viewpoint` (a parking lot or lookout), not at the area in general.
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.
 - `recommend/` — tonight's recommendation. `engine/NightAssessmentEngine` evaluates one night per place from the

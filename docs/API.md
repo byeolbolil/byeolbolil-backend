@@ -242,7 +242,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 |---|---|---|---|
 | GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 장소별 추천 |
 | GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 |
-| GET | `/api/v1/spots` | 없음 | 관측지 목록 |
+| GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
 | GET | `/api/v1/clouds/nights/{date}` | 없음 | 하룻밤의 구름 격자 |
@@ -274,7 +274,8 @@ GET /api/v1/recommendations/nights/{date}
 "오늘 밤"은 새벽 4시에 바뀐다. 새벽 4시 전에 `tonight`을 부르면 전날 저녁에 시작한 밤이 오고, 응답의 `date`도
 전날 날짜다.
 
-후보는 기본 추천 명소 전부다. 액세스 토큰을 붙이면 내 북마크도 후보에 들어간다.
+후보는 명소 가운데 밤에 자유롭게 갈 수 있는 관측지(`kind`가 `OPEN_SITE`인 곳) 전부다. 천문대와 과학관은
+후보가 아니다. 액세스 토큰을 붙이면 내 북마크도 후보에 들어가고, 북마크로 저장한 곳은 종류를 가리지 않고 평가한다.
 
 ### 쿼리
 
@@ -311,7 +312,11 @@ GET /api/v1/recommendations/nights/{date}
 | `id` | integer | `type`이 `SPOT`이면 명소 ID, `BOOKMARK`면 북마크 ID. 두 ID는 서로 다른 번호 체계다 |
 | `spotId` | integer | 명소이거나 명소를 저장한 북마크일 때 그 명소의 ID. 직접 찍은 위치의 북마크면 빠진다 |
 | `name`, `address` | string | |
-| `latitude`, `longitude` | number | |
+| `latitude`, `longitude` | number | 명소는 `viewpoint`의 좌표다 |
+| `viewpoint` | string | 실제로 차를 대고 보는 지점의 이름. 명소가 아니거나 값이 없으면 빠진다 |
+| `description` | string | 어떤 곳인지 한두 문장. 명소가 아니면 빠진다 |
+| `guide` | string | 가는 법과 주차. 명소가 아니면 빠진다 |
+| `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
 | `level` | string | 추천 등급. 아래 표 |
 | `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
 | `notes` | string[] | 주의할 점. 없으면 빈 배열 |
@@ -462,23 +467,36 @@ Open-Meteo(`https://open-meteo.com/`), `MET_NORWAY`면 MET Norway다. 웹은 출
 GET /api/v1/spots
 ```
 
+명소는 두 종류다. `OPEN_SITE`는 밤에 자유롭게 가서 맨눈으로 보는 관측지이고 밤 추천의 후보가 된다.
+`FACILITY`는 운영 시간에 프로그램으로 망원경을 보는 천문대와 과학관이고 밤 추천에는 나오지 않는다.
+
 | 쿼리 | 타입 | 설명 |
 |---|---|---|
 | `lat`, `lon` | number | 중심 좌표. 둘 다 빼면 전체 명소가 온다 |
 | `radius` | integer, 10~500 | 반경(km). 좌표만 보내고 빼면 20km로 찾는다 |
+| `kind` | string | `OPEN_SITE` 또는 `FACILITY`. 빼면 둘 다 온다. 모르는 값이면 400이다 |
 
-`data`는 배열이고, 반경 안에 명소가 없으면 빈 배열이다. 페이지 나눔은 없다. 전체 명소는 64곳이다.
+`data`는 배열이고, 조건에 맞는 명소가 없으면 빈 배열이다. 좌표를 보내면 가까운 순으로 온다. 페이지 나눔은 없다.
+명소는 39곳이고 관측지가 22곳, 천문대와 과학관이 17곳이다. 목록에서 뺀 곳은 오지 않는다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `id` | integer | 명소 ID. 북마크의 `spotId`, 밤 추천의 `spotId`와 같은 번호다 |
 | `title` | string | 이름 |
-| `address` | string | |
-| `latitude`, `longitude` | number | |
-| `description` | string | 한 줄 소개 |
-| `bortleScale` | integer | 광해 등급(Bortle 1~9) |
-| `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근 |
+| `kind` | string | `OPEN_SITE` 또는 `FACILITY` |
+| `viewpoint` | string | 실제로 차를 대고 보는 지점의 이름. 좌표가 가리키는 곳이다. `FACILITY`에서는 빠진다 |
+| `address` | string | 번지를 확인하지 못한 곳은 동리까지만 적고 괄호 안에 지점을 적었다 |
+| `latitude`, `longitude` | number | `OPEN_SITE`는 `viewpoint`의 좌표, `FACILITY`는 건물의 좌표다 |
+| `description` | string | 어떤 곳인지 한두 문장 |
+| `guide` | string | 가는 법과 주차. `FACILITY`에서는 운영 시간과 예약 방법이다 |
+| `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
+| `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 광해 등급은 밤 추천의 `bortleClass`를 본다 |
+| `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
+
+```
+GET /api/v1/spots?kind=OPEN_SITE
+```
 
 ```json
 {
@@ -489,11 +507,14 @@ GET /api/v1/spots
     {
       "id": 1,
       "title": "강릉 안반데기",
-      "address": "강원도 강릉시 왕산면 대기리 2214-187",
-      "latitude": 37.6254,
-      "longitude": 128.9392,
-      "description": "구름 위의 땅, 고랭지 배추밭과 풍력발전기가 어우러진 국내 최고의 은하수 명소입니다.",
-      "bortleScale": 1,
+      "kind": "OPEN_SITE",
+      "viewpoint": "멍에전망대 주차장",
+      "address": "강원특별자치도 강릉시 왕산면 대기리 (멍에전망대)",
+      "latitude": 37.62633,
+      "longitude": 128.73942,
+      "description": "해발 1,100m 고랭지 배추밭 위의 고원이에요. 맨눈으로 은하수가 보이는 곳으로 가장 널리 알려져 있어요.",
+      "guide": "멍에전망대 주차장에 대요. 40면쯤이라 주말에는 모자라요. 무료이고 주차장에 화장실이 있어요. 올라가는 산길이 좁고 가팔라요.",
+      "caution": "농로에는 주차와 차박이 금지예요. 주민들이 배추를 실어 내는 길이라 주차장만 써 주세요. 텐트와 취사도 안 돼요.",
       "isParkingAvailable": true,
       "isRestroomAvailable": true,
       "isCarAccess": true
@@ -501,6 +522,8 @@ GET /api/v1/spots
   ]
 }
 ```
+
+`data`는 하나만 남기고 줄였다. `description`, `guide`, `caution`은 화면에 그대로 보여 주는 문장이다.
 
 같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
 
@@ -907,6 +930,7 @@ GET /api/v1/recommends/bookmarks/today
 | 인증 | [`AuthApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/AuthApiTest.java) |
 | 회원 | [`MemberApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/member/controller/MemberApiTest.java) |
 | 북마크 | [`BookmarkApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/bookmark/controller/BookmarkApiTest.java) |
+| 관측지 | [`ObservationSpotApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/spot/controller/ObservationSpotApiTest.java) |
 | 구름 지도 | [`CloudMapApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/weather/controller/CloudMapApiTest.java) |
 | 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |

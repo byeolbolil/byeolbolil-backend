@@ -22,6 +22,13 @@ public class ObservationSpotDomainService {
 		return observationRepository.findAll();
 	}
 
+	/** 밤 추천의 후보. 지금 보여 주는 열린 관측지만이다. 천문대 같은 체험 시설과 뺀 곳은 들어가지 않는다 */
+	public List<ObservationSpot> findRecommendable() {
+		return observationRepository.findAll().stream()
+			.filter(ObservationSpot::isRecommendable)
+			.toList();
+	}
+
 	public ObservationSpot findById(Long spotId) {
 
 		return observationRepository.findById(spotId)
