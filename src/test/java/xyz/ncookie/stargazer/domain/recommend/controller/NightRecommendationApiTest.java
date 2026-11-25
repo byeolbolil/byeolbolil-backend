@@ -126,6 +126,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 				.containsEntry("forecastSource", "OPEN_METEO")
 				.containsEntry("notes", List.of());
 			assertThat((Double) place.get("skyBrightness")).isBetween(3.5, 4.7);
+			assertThat(place).doesNotContainKey("bortleClass");
 			assertThat(place.get("bestWindow")).isEqualTo(Map.of(
 				"start", "2026-11-09T19:00:00+09:00",
 				"end", "2026-11-10T02:00:00+09:00",

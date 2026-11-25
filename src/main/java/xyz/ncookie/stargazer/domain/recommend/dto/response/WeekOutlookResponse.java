@@ -71,8 +71,6 @@ public record WeekOutlookResponse(
 		Double skyBrightness,
 		@Schema(description = "하늘 밝기로 나눈 등급. NATURAL, DARK, RURAL, SUBURBAN, URBAN. 자료가 없는 곳이면 빠진다")
 		String skyClass,
-		@Schema(description = "없어질 값. skyBrightness에서 어림한 Bortle 등급이다", deprecated = true)
-		int bortleClass,
 		@Schema(description = "예보 출처. OPEN_METEO 또는 MET_NORWAY. 예보를 받지 못했으면 빠진다")
 		String forecastSource,
 		@Schema(description = "예보가 만들어진 시각. 모르면 빠진다")
@@ -93,7 +91,6 @@ public record WeekOutlookResponse(
 				place.longitude(),
 				SkyValues.brightness(outlook.light()),
 				SkyValues.className(outlook.light()),
-				outlook.light().legacyBortleClass(),
 				outlook.forecastSource() != null ? outlook.forecastSource().name() : null,
 				outlook.forecastIssuedAt() != null
 					? outlook.forecastIssuedAt().atZone(zone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)

@@ -333,7 +333,6 @@ GET /api/v1/recommendations/nights/{date}
 | `travel.minutes` | integer | 차로 걸리는 시간 어림. 직선거리의 1.3배를 시속 60km로 간다고 본 값이라 실제 길 안내와 다르다 |
 | `skyBrightness` | number | 하늘 전체에서 평균한 인공 밝기가 자연 밤하늘의 몇 배인지. 0에 가까울수록 어둡다. 불빛 자료가 없는 좌표(한국 둘레 밖)에서는 빠진다 |
 | `skyClass` | string | 하늘 밝기로 나눈 등급. 아래 표. `skyBrightness`가 없으면 같이 빠진다 |
-| `bortleClass` | integer | 없어질 값이다. `skyClass`에서 어림한 Bortle 등급(2, 4, 5, 7, 9)이고, 화면이 `skyBrightness`로 옮겨 가면 지운다 |
 | `moonBrightness` | number | 보름달을 1로 본 그 밤의 달 밝기 |
 | `moon.illuminatedFraction` | number | 달에서 밝게 보이는 면의 비율. 삭 0, 보름 1. 그 밤 자정의 값이다 |
 | `moon.waxing` | boolean | 차오르는 중이면 `true`, 기우는 중이면 `false`. 북반구에서는 차오르는 달의 오른쪽이 밝다 |
@@ -447,7 +446,6 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
         "travel": { "distanceKm": 129.4, "minutes": 168 },
         "skyBrightness": 3.99,
         "skyClass": "RURAL",
-        "bortleClass": 5,
         "moonBrightness": 0.74,
         "moon": {
           "illuminatedFraction": 0.98,
@@ -574,7 +572,7 @@ GET /api/v1/recommendations/week/mine
 |---|---|---|
 | `type`, `id`, `spotId`, `name`, `address` | | `/week/mine`에서만 온다. `type`은 `BOOKMARK`, `id`는 북마크 ID다. `spotId`는 명소를 저장한 북마크에만 있다 |
 | `latitude`, `longitude` | number | |
-| `skyBrightness`, `skyClass`, `bortleClass` | | 밤 추천과 같다 |
+| `skyBrightness`, `skyClass` | | 밤 추천과 같다 |
 | `forecastSource`, `forecastIssuedAt` | string | 밤 추천과 같다. 예보를 받지 못한 장소에서는 빠진다 |
 | `nights` | array | 날짜순의 밤. 예보가 닿지 않는 밤은 빠져서 7개보다 적을 수 있다. 예보를 받지 못한 장소는 빈 배열이다 |
 
@@ -600,7 +598,6 @@ GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
         "longitude": 128.73942,
         "skyBrightness": 3.17,
         "skyClass": "RURAL",
-        "bortleClass": 5,
         "forecastSource": "OPEN_METEO",
         "forecastIssuedAt": "2026-11-23T15:00:00+09:00",
         "nights": [

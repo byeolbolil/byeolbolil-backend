@@ -100,8 +100,6 @@ public record NightRecommendationResponse(
 		Double skyBrightness,
 		@Schema(description = "하늘 밝기로 나눈 등급. NATURAL, DARK, RURAL, SUBURBAN, URBAN. 자료가 없는 곳이면 빠진다")
 		String skyClass,
-		@Schema(description = "없어질 값. skyBrightness에서 어림한 Bortle 등급이다", deprecated = true)
-		int bortleClass,
 		@Schema(description = "보름달을 1로 본 그 밤의 달 밝기", example = "0.09")
 		double moonBrightness,
 		@Schema(description = "그 밤의 달 모양과 뜨고 지는 시각")
@@ -140,7 +138,6 @@ public record NightRecommendationResponse(
 					: null,
 				SkyValues.brightness(recommendation.light()),
 				SkyValues.className(recommendation.light()),
-				recommendation.light().legacyBortleClass(),
 				moonBrightness(night),
 				Moon.of(night.moon(), zone),
 				recommendation.forecastSource().name(),
