@@ -538,7 +538,7 @@ GET /api/v1/spots?kind=OPEN_SITE
         {
           "title": "겨울 차박족으로 몸살 앓는 별의 성지 안반데기",
           "url": "https://v.daum.net/v/Q16NWPhVPS",
-          "imageUrl": "https://img1.daumcdn.net/thumb/S800x400/?fname=https://t1.daumcdn.net/news/202311/19/traveltoktok/20231119091016326dybt.jpg"
+          "imageUrl": "https://img1.daumcdn.net/thumb/S800x400/?fname=https://t1.daumcdn.net/news/202311/19/traveltoktok/20231119091009254hsms.jpg"
         }
       ],
       "isParkingAvailable": true,
