@@ -106,9 +106,9 @@ class BookmarkApiTest extends IntegrationTestSupport {
 				    "type": "SPOT",
 				    "spotId": 1,
 				    "name": "안반데기",
-				    "latitude": 37.6254,
-				    "longitude": 128.9392,
-				    "address": "강원도 강릉시 왕산면 대기리 2214-187",
+				    "latitude": 37.62633,
+				    "longitude": 128.73942,
+				    "address": "강원특별자치도 강릉시 왕산면 대기리 (멍에전망대)",
 				    "memo": null
 				  }
 				}

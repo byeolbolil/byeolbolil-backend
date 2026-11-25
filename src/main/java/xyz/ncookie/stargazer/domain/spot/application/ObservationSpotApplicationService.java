@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
 import xyz.ncookie.stargazer.domain.spot.dto.request.ObservationSpotRequest;
 import xyz.ncookie.stargazer.domain.spot.dto.response.ObservationSpotResponse;
+import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
+import xyz.ncookie.stargazer.domain.spot.entity.SpotKind;
 import xyz.ncookie.stargazer.domain.spot.repository.ObservationRepository;
 
 @Service
@@ -29,13 +31,20 @@ public class ObservationSpotApplicationService {
 
 			return observationRepository.findSpotsWithinRadius(request.lat(), request.lon(), radiusMeters)
 				.stream()
+				.filter(spot -> matchesKind(spot, request.kind()))
 				.map(ObservationSpotResponse::from)
 				.toList();
 		}
 
 		return observationRepository.findAll()
 			.stream()
+			.filter(ObservationSpot::isActive)
+			.filter(spot -> matchesKind(spot, request.kind()))
 			.map(ObservationSpotResponse::from)
 			.toList();
+	}
+
+	private static boolean matchesKind(ObservationSpot spot, SpotKind kind) {
+		return kind == null || spot.getKind() == kind;
 	}
 }

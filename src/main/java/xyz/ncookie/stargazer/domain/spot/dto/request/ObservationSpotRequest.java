@@ -3,6 +3,7 @@ package xyz.ncookie.stargazer.domain.spot.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import xyz.ncookie.stargazer.domain.spot.entity.SpotKind;
 
 @Schema(description = "관측지 조회 요청 DTO")
 public record ObservationSpotRequest(
@@ -20,6 +21,9 @@ public record ObservationSpotRequest(
 	@Schema(description = "검색 반경 (km)", example = "50", requiredMode = Schema.RequiredMode.REQUIRED)
 	@DecimalMin(value = "10", message = "반경은 10km 이상이어야 합니다.")
 	@DecimalMax(value = "500", message = "반경은 500km 이하이어야 합니다.")
-	Integer radius
+	Integer radius,
+
+	@Schema(description = "종류. OPEN_SITE는 밤에 자유롭게 가는 관측지, FACILITY는 천문대와 과학관. 빼면 둘 다 온다", example = "FACILITY")
+	SpotKind kind
 ) {
 }

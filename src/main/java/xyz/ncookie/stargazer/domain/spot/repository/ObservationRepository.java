@@ -13,6 +13,7 @@ public interface ObservationRepository extends JpaRepository<ObservationSpot, Lo
 	// 특정 좌표(centerLon, centerLat)로부터 radius(미터 단위) 이내의 명소를 찾음
 	@Query(value = "SELECT * FROM observation_spot s " +
 		"WHERE ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(:centerLon, :centerLat)) <= :radius " +
+		"AND (s.status IS NULL OR s.status = 'ACTIVE') " +
 		"ORDER BY ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(:centerLon, :centerLat))",
 		nativeQuery = true)
 	List<ObservationSpot> findSpotsWithinRadius(@Param("centerLat") double centerLat,

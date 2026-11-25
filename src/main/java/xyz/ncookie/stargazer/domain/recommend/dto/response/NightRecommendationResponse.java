@@ -13,6 +13,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
 import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
+import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 
@@ -72,6 +73,15 @@ public record NightRecommendationResponse(
 		double latitude,
 		double longitude,
 
+		@Schema(description = "실제로 차를 대고 보는 지점. 좌표가 가리키는 곳이다. 명소에만 있다", example = "멍에전망대 주차장")
+		String viewpoint,
+		@Schema(description = "어떤 곳인지 한두 문장. 명소에만 있다")
+		String description,
+		@Schema(description = "가는 법과 주차. 명소에만 있다")
+		String guide,
+		@Schema(description = "계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다")
+		String caution,
+
 		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
 		@Schema(description = "밤 패턴. CLEAR_ALL_NIGHT, CLEAR_EARLY, CLEARS_LATE, CLEARS_AGAIN, BRIEF_CLEAR, CLOUDY_ALL_NIGHT")
@@ -100,6 +110,7 @@ public record NightRecommendationResponse(
 	) {
 		public static Place of(PlaceRecommendation recommendation, ZoneId zone) {
 			NightAssessment night = recommendation.night();
+			PlaceGuide guide = recommendation.place().guide();
 			return new Place(
 				recommendation.place().type().name(),
 				recommendation.place().id(),
@@ -108,6 +119,10 @@ public record NightRecommendationResponse(
 				recommendation.place().address(),
 				recommendation.place().latitude(),
 				recommendation.place().longitude(),
+				guide != null ? guide.viewpoint() : null,
+				guide != null ? guide.description() : null,
+				guide != null ? guide.guide() : null,
+				guide != null ? guide.caution() : null,
 				night.level().name(),
 				night.pattern().name(),
 				night.notes().stream().map(Enum::name).toList(),

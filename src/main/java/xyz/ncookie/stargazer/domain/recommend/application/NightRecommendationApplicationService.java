@@ -25,6 +25,7 @@ import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationRe
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
@@ -140,19 +141,25 @@ public class NightRecommendationApplicationService {
 				}
 				candidates.add(new CandidatePlace(
 					PlaceType.BOOKMARK, bookmark.getId(), spotId, bookmark.getName(), bookmark.getAddress(),
-					bookmark.getLatitude(), bookmark.getLongitude()));
+					bookmark.getLatitude(), bookmark.getLongitude(),
+					bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null));
 			}
 		}
 
-		for (ObservationSpot spot : observationSpotDomainService.findAll()) {
+		// 기본 후보는 밤에 자유롭게 갈 수 있는 관측지뿐이다. 천문대 같은 체험 시설은 직접 저장했을 때만 평가한다
+		for (ObservationSpot spot : observationSpotDomainService.findRecommendable()) {
 			if (bookmarkedSpotIds.contains(spot.getId())) {
 				continue;
 			}
 			candidates.add(new CandidatePlace(
 				PlaceType.SPOT, spot.getId(), spot.getId(), spot.getTitle(), spot.getAddress(),
-				spot.getLatitude(), spot.getLongitude()));
+				spot.getLatitude(), spot.getLongitude(), guideOf(spot)));
 		}
 		return candidates;
+	}
+
+	private static PlaceGuide guideOf(ObservationSpot spot) {
+		return new PlaceGuide(spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution());
 	}
 
 	/**

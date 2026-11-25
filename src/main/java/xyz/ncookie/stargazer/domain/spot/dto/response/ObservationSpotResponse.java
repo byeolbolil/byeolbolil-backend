@@ -13,8 +13,14 @@ public record ObservationSpotResponse(
 	@Schema(description = "관측지 ID", example = "1")
 	Long id,
 
-	@Schema(description = "관측지 제목", example = "강원도 평창군 대관령")
+	@Schema(description = "관측지 제목", example = "강릉 안반데기")
 	String title,
+
+	@Schema(description = "종류. OPEN_SITE는 밤에 자유롭게 가는 관측지, FACILITY는 프로그램으로 망원경을 보는 천문대와 과학관")
+	String kind,
+
+	@Schema(description = "실제로 차를 대고 보는 지점. 좌표가 가리키는 곳이다", example = "멍에전망대 주차장")
+	String viewpoint,
 	
 	@Schema(description = "주소", example = "강원도 평창군 대관령면")
 	String address,
@@ -25,8 +31,14 @@ public record ObservationSpotResponse(
 	@Schema(description = "경도", example = "126.9780")
 	Double longitude,
 
-	@Schema(description = "관측지 설명", example = "별이 잘 보이는 명소입니다.")
+	@Schema(description = "어떤 곳인지 한두 문장")
 	String description,
+
+	@Schema(description = "가는 법과 주차")
+	String guide,
+
+	@Schema(description = "계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다")
+	String caution,
 
 	@Schema(description = "보틀 등급 (1-9, 낮을수록 좋음)", example = "3")
 	Integer bortleScale,
@@ -48,10 +60,14 @@ public record ObservationSpotResponse(
 		return ObservationSpotResponse.builder()
 			.id(spot.getId())
 			.title(spot.getTitle())
+			.kind(spot.getKind().name())
+			.viewpoint(spot.getViewpoint())
 			.address(spot.getAddress())
 			.latitude(spot.getLatitude())
 			.longitude(spot.getLongitude())
 			.description(spot.getDescription())
+			.guide(spot.getGuide())
+			.caution(spot.getCaution())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
 			.isRestroomAvailable(spot.getIsRestroomAvailable())
