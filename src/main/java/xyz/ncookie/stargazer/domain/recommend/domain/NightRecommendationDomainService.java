@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.engine.NightAssessmentEngine;
 import xyz.ncookie.stargazer.domain.recommend.engine.TravelEstimator;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
@@ -43,14 +44,14 @@ public class NightRecommendationDomainService {
 		CandidatePlace place,
 		LocalDate date,
 		ZoneId zone,
-		int bortleClass,
+		LightCondition light,
 		WeatherForecast forecast,
 		Double originLatitude,
 		Double originLongitude,
 		RecommendationPolicy policy
 	) {
 		Optional<NightAssessment> night = nightAssessmentEngine.assess(
-			place.latitude(), place.longitude(), date, zone, bortleClass, forecast.hours(), policy);
+			place.latitude(), place.longitude(), date, zone, light, forecast.hours(), policy);
 
 		return night.map(assessment -> {
 			TravelEstimate travel = travelTo(place, originLatitude, originLongitude);
@@ -58,7 +59,7 @@ public class NightRecommendationDomainService {
 			double rank = assessment.quality() - travelHours * TRAVEL_PENALTY_PER_HOUR;
 
 			return new PlaceRecommendation(
-				place, assessment, bortleClass, travel, rank, forecast.source(), forecast.issuedAt());
+				place, assessment, light, travel, rank, forecast.source(), forecast.issuedAt());
 		});
 	}
 
@@ -104,13 +105,13 @@ public class NightRecommendationDomainService {
 		LocalDate startDate,
 		int days,
 		ZoneId zone,
-		int bortleClass,
+		LightCondition light,
 		WeatherForecast forecast,
 		RecommendationPolicy policy
 	) {
 		return startDate.datesUntil(startDate.plusDays(days))
 			.map(date -> nightAssessmentEngine.assess(
-				latitude, longitude, date, zone, bortleClass, forecast.hours(), policy))
+				latitude, longitude, date, zone, light, forecast.hours(), policy))
 			.flatMap(Optional::stream)
 			.toList();
 	}

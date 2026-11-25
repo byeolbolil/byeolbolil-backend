@@ -1,7 +1,6 @@
 package xyz.ncookie.stargazer.domain.recommend.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static xyz.ncookie.stargazer.support.LightPollutionFixture.gridPoint;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,7 +23,6 @@ import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
 import xyz.ncookie.stargazer.domain.spot.repository.ObservationRepository;
-import xyz.ncookie.stargazer.domain.stargazing.repository.LightPollutionRepository;
 import xyz.ncookie.stargazer.global.security.jwt.JwtTokenProvider;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 import xyz.ncookie.stargazer.support.OpenMeteoNight;
@@ -56,18 +54,12 @@ class WeekOutlookApiTest extends IntegrationTestSupport {
 	private ObservationRepository observationRepository;
 
 	@Autowired
-	private LightPollutionRepository lightPollutionRepository;
-
-	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
 
 	@BeforeEach
 	void setUp() {
 		bookmarkRepository.deleteAllInBatch();
 		memberRepository.deleteAllInBatch();
-		lightPollutionRepository.deleteAllInBatch();
-		lightPollutionRepository.save(gridPoint(37.62633, 128.73942, 3));
-		lightPollutionRepository.save(gridPoint(37.55, 126.91, 8));
 
 		clock.setTo(Instant.parse("2026-11-09T08:30:00Z")); // 한국 시간 오후 5시 30분
 	}
@@ -94,7 +86,7 @@ class WeekOutlookApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("좌표로 물은 위치에는 이름과 종류가 없고, 광해 등급과 예보 출처가 실린다")
+		@DisplayName("좌표로 물은 위치에는 이름과 종류가 없고, 하늘 밝기와 예보 출처가 실린다")
 		void placeFields() {
 			stubWeek(WEEK_CLOUDS);
 
@@ -103,9 +95,10 @@ class WeekOutlookApiTest extends IntegrationTestSupport {
 			assertThat(place)
 				.containsEntry("latitude", 37.62633)
 				.containsEntry("longitude", 128.73942)
-				.containsEntry("bortleClass", 3)
+				.containsEntry("skyClass", "RURAL")
 				.containsEntry("forecastSource", "OPEN_METEO")
 				.doesNotContainKeys("type", "id", "spotId", "name", "address");
+			assertThat((Double) place.get("skyBrightness")).isBetween(2.7, 3.7);
 		}
 
 		@Test
@@ -236,11 +229,11 @@ class WeekOutlookApiTest extends IntegrationTestSupport {
 			assertThat((List<String>) JsonPath.read(body, "$.data.places[*].type")).containsOnly("BOOKMARK");
 
 			Map<String, Object> spot = placeNamed(body, "강릉 안반데기");
-			assertThat(spot).containsEntry("bortleClass", 3).containsKeys("id", "spotId", "address");
+			assertThat(spot).containsEntry("skyClass", "RURAL").containsKeys("id", "spotId", "address");
 			assertThat(levelsOf(body, "강릉 안반데기"))
 				.containsExactly("STRONG", "NO", "STRONG", "NO", "NO", "STRONG", "STRONG");
 
-			assertThat(placeNamed(body, "우리집 옥상")).containsEntry("bortleClass", 8).doesNotContainKey("spotId");
+			assertThat(placeNamed(body, "우리집 옥상")).containsEntry("skyClass", "URBAN").doesNotContainKey("spotId");
 			assertThat(levelsOf(body, "우리집 옥상"))
 				.containsExactly("MAYBE", "NO", "MAYBE", "NO", "NO", "MAYBE", "MAYBE");
 		}

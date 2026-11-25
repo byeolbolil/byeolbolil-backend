@@ -3,7 +3,6 @@ package xyz.ncookie.stargazer.domain.recommend.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import xyz.ncookie.stargazer.domain.recommend.engine.NightAssessmentEngine;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 import xyz.ncookie.stargazer.domain.recommend.model.NightPattern;
@@ -36,6 +36,8 @@ class NightRecommendationDomainServiceTest {
 	private static final WeatherForecast FORECAST = new WeatherForecast(
 		ForecastSource.OPEN_METEO, Instant.parse("2026-11-09T00:00:00Z"), 37.5, 127.0, List.of());
 
+	private static final LightCondition LIGHT = new LightCondition(3.2, 0.9, 0.18);
+
 	private final NightAssessmentEngine engine = mock(NightAssessmentEngine.class);
 	private final NightRecommendationDomainService service = new NightRecommendationDomainService(engine);
 
@@ -49,7 +51,7 @@ class NightRecommendationDomainServiceTest {
 		assertThat(result.travel()).isNull();
 		assertThat(result.rank()).isEqualTo(80.0);
 		assertThat(result.forecastSource()).isEqualTo(ForecastSource.OPEN_METEO);
-		assertThat(result.bortleClass()).isEqualTo(3);
+		assertThat(result.light()).isEqualTo(LIGHT);
 	}
 
 	@Test
@@ -67,7 +69,7 @@ class NightRecommendationDomainServiceTest {
 	@Test
 	@DisplayName("그 밤에 평가할 예보가 없으면 결과도 없다")
 	void noAssessment() {
-		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+		when(engine.assess(anyDouble(), anyDouble(), any(), any(), any(), any(), any())).thenReturn(Optional.empty());
 
 		assertThat(evaluate(place("가", 38.0, 127.0), null, null)).isEmpty();
 	}
@@ -104,7 +106,7 @@ class NightRecommendationDomainServiceTest {
 	@Test
 	@DisplayName("여러 밤을 날짜순으로 평가하고, 예보가 닿지 않는 밤은 뺀다")
 	void assessNightsSkipsNightsWithoutForecast() {
-		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any()))
+		when(engine.assess(anyDouble(), anyDouble(), any(), any(), any(), any(), any()))
 			.thenAnswer(call -> {
 				LocalDate date = call.getArgument(2);
 				// 넷째 밤부터는 예보가 없다
@@ -117,7 +119,7 @@ class NightRecommendationDomainServiceTest {
 			});
 
 		List<NightAssessment> nights = service.assessNights(
-			37.5, 127.0, DATE, 7, SEOUL, 3, FORECAST, RecommendationPolicy.DEFAULT);
+			37.5, 127.0, DATE, 7, SEOUL, LIGHT, FORECAST, RecommendationPolicy.DEFAULT);
 
 		assertThat(nights).extracting(NightAssessment::date)
 			.containsExactly(DATE, DATE.plusDays(1), DATE.plusDays(2));
@@ -161,16 +163,16 @@ class NightRecommendationDomainServiceTest {
 	}
 
 	private void engineReturns(NightAssessment night) {
-		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.of(night));
+		when(engine.assess(anyDouble(), anyDouble(), any(), any(), any(), any(), any())).thenReturn(Optional.of(night));
 	}
 
 	private Optional<PlaceRecommendation> evaluate(CandidatePlace place, Double originLat, Double originLon) {
-		return service.evaluate(place, DATE, SEOUL, 3, FORECAST, originLat, originLon, RecommendationPolicy.DEFAULT);
+		return service.evaluate(place, DATE, SEOUL, LIGHT, FORECAST, originLat, originLon, RecommendationPolicy.DEFAULT);
 	}
 
 	private static PlaceRecommendation recommendation(String name, RecommendationLevel level, double rank) {
 		return new PlaceRecommendation(
-			place(name, 37.5, 127.0), night(level, rank), 3, null, rank, ForecastSource.OPEN_METEO, null);
+			place(name, 37.5, 127.0), night(level, rank), LIGHT, null, rank, ForecastSource.OPEN_METEO, null);
 	}
 
 	private static CandidatePlace place(String name, double lat, double lon) {

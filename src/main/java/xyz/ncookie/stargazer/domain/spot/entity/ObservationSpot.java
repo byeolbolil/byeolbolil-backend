@@ -73,6 +73,10 @@ public class ObservationSpot {
 	@Column(length = 500)
 	private String caution;         // 계절 폐쇄, 조명, 통제 같은 주의 사항
 
+	// 1km보다 먼 곳의 불빛 가운데 지형에 가리지 않고 이 자리에서 직접 보이는 양의 지수.
+	// scripts/lightpollution/terrain.py가 좌표와 고도 자료로 계산한 값을 data.sql에 적는다. 좌표를 고치면 다시 계산한다
+	private Double lightsInView;
+
 	// 참고 링크. 명소 목록을 통째로 읽는 일이 대부분이라 명소마다 따로 조회하지 않도록 묶어서 가져온다
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "observation_spot_link", joinColumns = @JoinColumn(name = "spot_id"))

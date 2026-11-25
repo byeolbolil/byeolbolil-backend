@@ -28,6 +28,7 @@ import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
@@ -95,12 +96,12 @@ public class NightRecommendationApplicationService {
 
 		List<CandidatePlace> candidates = candidates(command.memberId());
 
-		// 광해 등급은 DB 조회라 요청 스레드에서 먼저 구하고, 외부 호출인 예보만 병렬로 받는다.
+		// 외부 호출인 예보를 병렬로 받는다.
 		List<CompletableFuture<Optional<PlaceRecommendation>>> futures = new ArrayList<>();
 		for (CandidatePlace place : candidates) {
-			int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+			LightCondition light = lightOf(place);
 			futures.add(CompletableFuture.supplyAsync(
-				() -> evaluate(place, date, bortleClass, command), recommendTaskExecutor));
+				() -> evaluate(place, date, light, command), recommendTaskExecutor));
 		}
 
 		List<PlaceRecommendation> evaluated = futures.stream()
@@ -144,9 +145,9 @@ public class NightRecommendationApplicationService {
 
 		List<CompletableFuture<List<NightAssessment>>> futures = new ArrayList<>();
 		for (CandidatePlace place : withinReach) {
-			int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+			LightCondition light = lightOf(place);
 			futures.add(CompletableFuture.supplyAsync(
-				() -> outlookOrEmpty(place, bortleClass, tonight, command.policy()).nights(), recommendTaskExecutor));
+				() -> outlookOrEmpty(place, light, tonight, command.policy()).nights(), recommendTaskExecutor));
 		}
 		List<List<NightAssessment>> nightsByPlace = futures.stream().map(CompletableFuture::join).toList();
 
@@ -168,10 +169,9 @@ public class NightRecommendationApplicationService {
 		}
 		LocalDate tonight = tonight();
 		CandidatePlace place = new CandidatePlace(null, null, null, null, null, command.latitude(), command.longitude());
-		int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
 		WeatherForecast forecast = weatherDomainService.getHourlyForecast(place.latitude(), place.longitude());
 
-		WeekOutlook outlook = outlookOf(place, bortleClass, forecast, tonight, command.policy());
+		WeekOutlook outlook = outlookOf(place, lightOf(place), forecast, tonight, command.policy());
 		return WeekOutlookResponse.of(tonight, SELECTABLE_DAYS, command.policy(), List.of(outlook), ZONE);
 	}
 
@@ -186,31 +186,41 @@ public class NightRecommendationApplicationService {
 
 		List<CompletableFuture<WeekOutlook>> futures = new ArrayList<>();
 		for (CandidatePlace place : places) {
-			int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+			LightCondition light = lightOf(place);
 			futures.add(CompletableFuture.supplyAsync(
-				() -> outlookOrEmpty(place, bortleClass, tonight, command.policy()), recommendTaskExecutor));
+				() -> outlookOrEmpty(place, light, tonight, command.policy()), recommendTaskExecutor));
 		}
 		List<WeekOutlook> outlooks = futures.stream().map(CompletableFuture::join).toList();
 
 		return WeekOutlookResponse.of(tonight, SELECTABLE_DAYS, command.policy(), outlooks, ZONE);
 	}
 
-	private WeekOutlook outlookOrEmpty(CandidatePlace place, int bortleClass, LocalDate tonight, RecommendationPolicy policy) {
+	private WeekOutlook outlookOrEmpty(CandidatePlace place, LightCondition light, LocalDate tonight, RecommendationPolicy policy) {
 		try {
 			WeatherForecast forecast = weatherDomainService.getHourlyForecast(place.latitude(), place.longitude());
-			return outlookOf(place, bortleClass, forecast, tonight, policy);
+			return outlookOf(place, light, forecast, tonight, policy);
 		} catch (WeatherException e) {
 			log.warn("예보를 받지 못해 이번 주 밤을 비워 둡니다. place={}", place.name());
-			return new WeekOutlook(place, bortleClass, List.of(), null, null);
+			return new WeekOutlook(place, light, List.of(), null, null);
 		}
 	}
 
 	private WeekOutlook outlookOf(
-		CandidatePlace place, int bortleClass, WeatherForecast forecast, LocalDate tonight, RecommendationPolicy policy
+		CandidatePlace place, LightCondition light, WeatherForecast forecast, LocalDate tonight, RecommendationPolicy policy
 	) {
 		List<NightAssessment> nights = nightRecommendationDomainService.assessNights(
-			place.latitude(), place.longitude(), tonight, SELECTABLE_DAYS, ZONE, bortleClass, forecast, policy);
-		return new WeekOutlook(place, bortleClass, nights, forecast.source(), forecast.issuedAt());
+			place.latitude(), place.longitude(), tonight, SELECTABLE_DAYS, ZONE, light, forecast, policy);
+		return new WeekOutlook(place, light, nights, forecast.source(), forecast.issuedAt());
+	}
+
+	/**
+	 * 장소의 불빛 조건. 하늘 밝기와 둘레의 불빛은 좌표로 찾고, 직접 보이는 먼 불빛은 명소에 계산해 둔 값을 쓴다.
+	 * 자료가 있는 범위 밖의 좌표는 모르는 채로 둔다.
+	 */
+	private LightCondition lightOf(CandidatePlace place) {
+		return stargazingDomainService.findSkyLight(place.latitude(), place.longitude())
+			.map(sky -> new LightCondition(sky.skyBrightness(), sky.nearbyRadiance(), place.lightsInView()))
+			.orElseGet(() -> new LightCondition(null, null, place.lightsInView()));
 	}
 
 	private LocalDate tonight() {
@@ -241,7 +251,7 @@ public class NightRecommendationApplicationService {
 			}
 			candidates.add(new CandidatePlace(
 				PlaceType.SPOT, spot.getId(), spot.getId(), spot.getTitle(), spot.getAddress(),
-				spot.getLatitude(), spot.getLongitude(), guideOf(spot)));
+				spot.getLatitude(), spot.getLongitude(), guideOf(spot), spot.getLightsInView()));
 		}
 		return candidates;
 	}
@@ -257,7 +267,8 @@ public class NightRecommendationApplicationService {
 			places.add(new CandidatePlace(
 				PlaceType.BOOKMARK, bookmark.getId(), spotId, bookmark.getName(), bookmark.getAddress(),
 				bookmark.getLatitude(), bookmark.getLongitude(),
-				bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null));
+				bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null,
+				bookmark.getSpot() != null ? bookmark.getSpot().getLightsInView() : null));
 		}
 		return places;
 	}
@@ -273,12 +284,12 @@ public class NightRecommendationApplicationService {
 	 * 한 장소의 예보를 받아 평가한다. 예보를 받지 못한 장소는 전체를 실패시키지 않고 결과에서 뺀다.
 	 */
 	private Optional<PlaceRecommendation> evaluate(
-		CandidatePlace place, LocalDate date, int bortleClass, GetNightRecommendationCommand command
+		CandidatePlace place, LocalDate date, LightCondition light, GetNightRecommendationCommand command
 	) {
 		try {
 			WeatherForecast forecast = weatherDomainService.getHourlyForecast(place.latitude(), place.longitude());
 			return nightRecommendationDomainService.evaluate(
-				place, date, ZONE, bortleClass, forecast,
+				place, date, ZONE, light, forecast,
 				command.originLatitude(), command.originLongitude(), command.policy());
 		} catch (WeatherException e) {
 			log.warn("예보를 받지 못해 추천에서 뺍니다. place={}", place.name());
