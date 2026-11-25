@@ -91,3 +91,6 @@ issue_extraction_prompts.md
 hs_err_pid*.log
 replay_pid*.log
 logs/
+
+### Python ###
+__pycache__/
