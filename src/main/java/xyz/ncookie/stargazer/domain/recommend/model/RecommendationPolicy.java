@@ -5,7 +5,7 @@ import java.time.LocalTime;
 /**
  * 사용자가 설정에서 바꿀 수 있는 추천 기준. 근거는 docs/SCORING.md "관측 시간대"에 있다.
  *
- * @param minClearHours 맑은 시간이 이만큼 이어지면 "꼭 가볼 만해요"로 본다
+ * @param minClearHours 맑은 시간이 이만큼 이어지면 "별 보기 아주 좋아요"로 본다
  * @param preferBefore  이 시각 전에 맑은 시간을 우선한다. 정오 전이면 다음 날 새벽으로 읽는다
  */
 public record RecommendationPolicy(int minClearHours, LocalTime preferBefore) {

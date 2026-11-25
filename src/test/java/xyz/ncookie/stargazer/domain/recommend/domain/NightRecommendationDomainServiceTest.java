@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import xyz.ncookie.stargazer.domain.recommend.engine.NightAssessmentEngine;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
+import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 import xyz.ncookie.stargazer.domain.recommend.model.NightPattern;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
@@ -117,6 +118,8 @@ class NightRecommendationDomainServiceTest {
 	}
 
 	private static NightAssessment night(RecommendationLevel level, double quality) {
-		return new NightAssessment(DATE, List.of(), List.of(), null, level, NightPattern.BRIEF_CLEAR, List.of(), quality);
+		return new NightAssessment(
+			DATE, List.of(), List.of(), null, level, NightPattern.BRIEF_CLEAR, List.of(), quality,
+			new NightMoon(0.5, true, null, null));
 	}
 }

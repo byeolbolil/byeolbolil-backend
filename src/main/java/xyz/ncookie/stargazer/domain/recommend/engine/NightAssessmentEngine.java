@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
+import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 import xyz.ncookie.stargazer.domain.recommend.model.NightNote;
 import xyz.ncookie.stargazer.domain.recommend.model.NightPattern;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
@@ -67,7 +68,7 @@ public class NightAssessmentEngine {
 
 	// ---- 광해 ----
 
-	// 정책: Bortle 7등급(교외와 도시 사이) 이상이면 맑아도 "잠깐 볼 수 있어요"까지만 준다. 근거 자료가 없다.
+	// 정책: Bortle 7등급(교외와 도시 사이) 이상이면 맑아도 "별 보기 아쉬워요"까지만 준다. 근거 자료가 없다.
 	// 광해 기준을 연속값으로 바꾸면(로드맵 4단계) Falchi et al. 2016의 은하수 가시 한계로 대체할 값이다.
 	static final int CITY_BORTLE_MIN = 7;
 
@@ -88,7 +89,7 @@ public class NightAssessmentEngine {
 	// 정책: 추천 구간의 질을 매길 때 이 시간까지만 길이를 쳐준다. 그보다 길어도 더 좋다고 보지 않는다.
 	static final int QUALITY_FULL_HOURS = 6;
 
-	// 정책: 추천 구간이 이 시간 이상이면 "가볼 만해요", 그보다 짧으면 "잠깐 볼 수 있어요".
+	// 정책: 추천 구간이 이 시간 이상이면 "별 보기 좋아요", 그보다 짧으면 "별 보기 아쉬워요".
 	static final int GOOD_MIN_HOURS = 2;
 
 	// ---- 밤 패턴 ----
@@ -159,7 +160,24 @@ public class NightAssessmentEngine {
 			quality = quality(bestHours, preferBefore);
 		}
 
-		return Optional.of(new NightAssessment(date, hours, windows, best, level, pattern(hours, windows), notes, quality));
+		return Optional.of(new NightAssessment(
+			date, hours, windows, best, level, pattern(hours, windows), notes, quality,
+			moonOf(latitude, longitude, date, zone)));
+	}
+
+	/**
+	 * 그 밤의 달. 모양은 자정의 값으로 정한다. 하룻밤 사이에 눈에 띄게 달라지지 않기 때문이다.
+	 * 뜨고 지는 시각은 밤 시간 칸과 같은 범위(그날 정오부터 다음 날 정오)에서 찾는다.
+	 */
+	private NightMoon moonOf(double latitude, double longitude, LocalDate date, ZoneId zone) {
+		Instant noon = ZonedDateTime.of(date, LocalTime.NOON, zone).toInstant();
+		Instant midnight = noon.plus(12, ChronoUnit.HOURS);
+		return new NightMoon(
+			skyEphemeris.moonIlluminatedFraction(midnight),
+			skyEphemeris.isMoonWaxing(midnight),
+			skyEphemeris.moonrise(latitude, longitude, noon).orElse(null),
+			skyEphemeris.moonset(latitude, longitude, noon).orElse(null)
+		);
 	}
 
 	/**

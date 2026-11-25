@@ -24,7 +24,7 @@ public record GetNightRecommendationRequest(
 	@DecimalMax(value = "180.0", message = "경도는 180.0 이하이어야 합니다.")
 	Double lon,
 
-	@Schema(description = "맑은 시간이 이만큼 이어지면 '꼭 가볼 만해요'로 본다. 기본 3", example = "3")
+	@Schema(description = "맑은 시간이 이만큼 이어지면 '별 보기 아주 좋아요'로 본다. 기본 3", example = "3")
 	@Min(value = 1, message = "맑은 시간 기준은 1시간 이상이어야 합니다.")
 	@Max(value = 8, message = "맑은 시간 기준은 8시간 이하이어야 합니다.")
 	Integer minClearHours,

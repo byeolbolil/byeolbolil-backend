@@ -14,6 +14,7 @@ import java.util.List;
  * @param pattern       밤사이 하늘이 바뀌는 모양
  * @param notes         주의 사항
  * @param quality       추천 구간의 질(0~100). 같은 등급 안에서 순서를 정할 때 쓴다
+ * @param moon          그 밤의 달 모양과 뜨고 지는 시각
  */
 public record NightAssessment(
 	LocalDate date,
@@ -23,7 +24,8 @@ public record NightAssessment(
 	RecommendationLevel level,
 	NightPattern pattern,
 	List<NightNote> notes,
-	double quality
+	double quality,
+	NightMoon moon
 ) {
 
 	public NightAssessment {

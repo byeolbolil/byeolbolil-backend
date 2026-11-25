@@ -329,6 +329,14 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			Map<String, Object> place = placeNamed(body, "화천 조경철천문대");
 			assertThat((Double) place.get("moonBrightness")).isGreaterThan(0.75);
 
+			// 망의 밤이라 달이 다 차 있고, 저녁에 떠서 다음 날 아침에 진다
+			@SuppressWarnings("unchecked")
+			Map<String, Object> moon = (Map<String, Object>) place.get("moon");
+			assertThat((Double) moon.get("illuminatedFraction")).isGreaterThan(0.99);
+			assertThat(moon.get("waxing")).isInstanceOf(Boolean.class);
+			assertThat((String) moon.get("rise")).matches("2026-11-24T1[678]:[0-9]{2}:00[+]09:00");
+			assertThat((String) moon.get("set")).matches("2026-11-25T0[678]:[0-9]{2}:00[+]09:00");
+
 			List<Map<String, Object>> hours = JsonPath.read(body, "$.data.places[?(@.name == '화천 조경철천문대')].hours[*]");
 			assertThat(hours.get(1)).containsEntry("moonUp", true);
 			// 달이 없던 밤에는 83점이던 칸이다.
