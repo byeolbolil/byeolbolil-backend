@@ -394,51 +394,55 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
   "status": 200,
   "message": "요청이 성공적으로 처리되었습니다.",
   "data": {
-    "date": "2026-11-24",
+    "date": "2026-11-25",
     "criteria": { "minClearHours": 3, "preferBefore": "02:00", "maxTravelMinutes": 180 },
-    "candidateCount": 64,
-    "evaluatedCount": 64,
-    "excludedByTravelCount": 35,
+    "candidateCount": 22,
+    "evaluatedCount": 22,
+    "excludedByTravelCount": 17,
     "places": [
       {
         "type": "SPOT",
-        "id": 7,
-        "spotId": 7,
-        "name": "양구 국토정중앙천문대",
-        "address": "강원도 양구군 남면 국토정중앙로 127",
-        "latitude": 38.0163,
-        "longitude": 128.0536,
+        "id": 13,
+        "spotId": 13,
+        "name": "제천 덕주산성",
+        "address": "충청북도 제천시 한수면 미륵송계로 1405",
+        "latitude": 36.86206,
+        "longitude": 128.09643,
+        "viewpoint": "덕주산성 앞 주차장",
+        "description": "월악산 자락 도로변에 성문이 남아 있는 산성이에요. 성문 위로 뜨는 은하수 사진으로 알려져 있어요.",
+        "guide": "성문 앞 도로변 주차장에 대요.",
+        "caution": "월악산국립공원 구역이에요. 밤에는 탐방로로 들어가지 말고 성문 주변에서 보세요. 은하수는 5월이 지나야 성 위로 올라와요.",
         "level": "GOOD",
         "pattern": "CLEAR_ALL_NIGHT",
-        "notes": ["BRIGHT_MOON"],
+        "notes": ["BRIGHT_MOON", "DEW"],
         "bestWindow": {
-          "start": "2026-11-24T22:00:00+09:00",
-          "end": "2026-11-25T06:00:00+09:00",
-          "hours": 8
+          "start": "2026-11-25T19:00:00+09:00",
+          "end": "2026-11-26T06:00:00+09:00",
+          "hours": 11
         },
-        "travel": { "distanceKm": 111.7, "minutes": 145 },
-        "bortleClass": 2,
-        "moonBrightness": 0.89,
+        "travel": { "distanceKm": 129.4, "minutes": 168 },
+        "bortleClass": 3,
+        "moonBrightness": 0.74,
         "moon": {
-          "illuminatedFraction": 1.0,
-          "waxing": true,
-          "rise": "2026-11-24T16:28:00+09:00",
-          "set": "2026-11-25T08:00:00+09:00"
+          "illuminatedFraction": 0.98,
+          "waxing": false,
+          "rise": "2026-11-25T17:26:00+09:00",
+          "set": "2026-11-26T09:08:00+09:00"
         },
         "forecastSource": "OPEN_METEO",
-        "forecastIssuedAt": "2026-11-24T15:00:00+09:00",
+        "forecastIssuedAt": "2026-11-25T09:00:00+09:00",
         "hours": [
           {
-            "time": "2026-11-24T22:00:00+09:00",
+            "time": "2026-11-25T19:00:00+09:00",
             "dark": true,
             "clear": true,
             "cloudCover": 0,
             "cloudCoverLow": 0,
             "cloudCoverMid": 0,
             "cloudCoverHigh": 0,
-            "relativeHumidity": 59,
+            "relativeHumidity": 78,
             "moonUp": true,
-            "score": 69
+            "score": 68
           }
         ]
       }
@@ -447,7 +451,7 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
 }
 ```
 
-`places`와 `hours`는 하나씩만 남기고 줄였다. 실제로는 이 요청에 장소 29곳, 장소마다 시간 칸 9개가 왔다.
+`places`와 `hours`는 하나씩만 남기고 줄였다. 실제로는 이 요청에 장소 5곳, 장소마다 시간 칸 13개가 왔다.
 
 ### 응답 시간
 
