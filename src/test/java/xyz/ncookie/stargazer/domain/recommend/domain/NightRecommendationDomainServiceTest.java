@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -122,6 +123,43 @@ class NightRecommendationDomainServiceTest {
 			.containsExactly(DATE, DATE.plusDays(1), DATE.plusDays(2));
 	}
 
+	@Test
+	@DisplayName("밤마다 장소들 가운데 가장 높은 등급을 고르고, 아무도 평가하지 못한 밤은 넣지 않는다")
+	void bestLevelByNight() {
+		List<NightAssessment> first = List.of(
+			night(DATE, RecommendationLevel.NO),
+			night(DATE.plusDays(1), RecommendationLevel.STRONG),
+			night(DATE.plusDays(2), RecommendationLevel.MAYBE));
+		// 예보가 짧아 첫 밤만 평가한 장소
+		List<NightAssessment> second = List.of(night(DATE, RecommendationLevel.GOOD));
+		List<NightAssessment> third = List.of(
+			night(DATE, RecommendationLevel.MAYBE),
+			night(DATE.plusDays(1), RecommendationLevel.GOOD),
+			night(DATE.plusDays(2), RecommendationLevel.NO));
+
+		assertThat(service.bestLevelByNight(List.of(first, second, third))).containsExactly(
+			Map.entry(DATE, RecommendationLevel.GOOD),
+			Map.entry(DATE.plusDays(1), RecommendationLevel.STRONG),
+			Map.entry(DATE.plusDays(2), RecommendationLevel.MAYBE));
+	}
+
+	@Test
+	@DisplayName("평가한 장소가 없으면 밤마다의 등급도 없다")
+	void bestLevelByNightWithoutPlaces() {
+		assertThat(service.bestLevelByNight(List.of())).isEmpty();
+		assertThat(service.bestLevelByNight(List.of(List.of(), List.of()))).isEmpty();
+	}
+
+	@Test
+	@DisplayName("이동 추정은 출발지의 위도와 경도를 모두 알 때만 있다")
+	void travelToNeedsOrigin() {
+		CandidatePlace place = place("가", 38.0, 127.0);
+
+		assertThat(service.travelTo(place, null, null)).isNull();
+		assertThat(service.travelTo(place, 37.0, null)).isNull();
+		assertThat(service.travelTo(place, 37.0, 127.0).minutes()).isEqualTo(145);
+	}
+
 	private void engineReturns(NightAssessment night) {
 		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.of(night));
 	}
@@ -137,6 +175,12 @@ class NightRecommendationDomainServiceTest {
 
 	private static CandidatePlace place(String name, double lat, double lon) {
 		return new CandidatePlace(PlaceType.SPOT, 1L, 1L, name, "주소", lat, lon);
+	}
+
+	private static NightAssessment night(LocalDate date, RecommendationLevel level) {
+		return new NightAssessment(
+			date, List.of(), List.of(), null, level, NightPattern.BRIEF_CLEAR, List.of(), 50,
+			new NightMoon(0.5, true, null, null));
 	}
 
 	private static NightAssessment night(RecommendationLevel level, double quality) {
