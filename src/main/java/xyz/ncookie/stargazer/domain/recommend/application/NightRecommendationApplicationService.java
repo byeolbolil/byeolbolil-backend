@@ -23,6 +23,7 @@ import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommenda
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.domain.NightRecommendationDomainService;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
@@ -33,6 +34,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
+import xyz.ncookie.stargazer.domain.recommend.model.TravelEstimate;
 import xyz.ncookie.stargazer.domain.recommend.model.WeekOutlook;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
@@ -107,7 +109,7 @@ public class NightRecommendationApplicationService {
 			.toList();
 
 		List<PlaceRecommendation> withinReach = evaluated.stream()
-			.filter(recommendation -> isWithinReach(recommendation, command.maxTravelMinutes()))
+			.filter(recommendation -> isWithinReach(recommendation.travel(), command.maxTravelMinutes()))
 			.toList();
 
 		List<NightRecommendationResponse.Place> places = nightRecommendationDomainService.rank(withinReach).stream()
@@ -121,6 +123,39 @@ public class NightRecommendationApplicationService {
 			evaluated.size(),
 			evaluated.size() - withinReach.size(),
 			places
+		);
+	}
+
+	/**
+	 * 오늘 밤부터 7일의 밤마다 후보 가운데 가장 좋은 등급. 밤을 고르기 전에 어느 밤이 좋은지 보여 주는 데 쓴다.
+	 * 후보와 이동 시간 한도를 밤 추천과 같게 적용하므로, 밤마다의 등급은 그 밤 추천의 첫 장소 등급과 같다.
+	 * 예보를 받지 못한 장소는 빼고, 평가한 장소가 하나도 없는 밤은 등급 없이 돌려준다.
+	 */
+	@Transactional(readOnly = true)
+	public NightSummaryResponse summarize(GetNightRecommendationCommand command) {
+		LocalDate tonight = tonight();
+
+		// 이동 시간은 날짜와 상관없으므로, 한도를 넘는 곳은 예보를 받기 전에 뺀다.
+		List<CandidatePlace> withinReach = candidates(command.memberId()).stream()
+			.filter(place -> isWithinReach(
+				nightRecommendationDomainService.travelTo(place, command.originLatitude(), command.originLongitude()),
+				command.maxTravelMinutes()))
+			.toList();
+
+		List<CompletableFuture<List<NightAssessment>>> futures = new ArrayList<>();
+		for (CandidatePlace place : withinReach) {
+			int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+			futures.add(CompletableFuture.supplyAsync(
+				() -> outlookOrEmpty(place, bortleClass, tonight, command.policy()).nights(), recommendTaskExecutor));
+		}
+		List<List<NightAssessment>> nightsByPlace = futures.stream().map(CompletableFuture::join).toList();
+
+		return NightSummaryResponse.of(
+			tonight,
+			SELECTABLE_DAYS,
+			command.policy(),
+			command.maxTravelMinutes(),
+			nightRecommendationDomainService.bestLevelByNight(nightsByPlace)
 		);
 	}
 
@@ -251,10 +286,11 @@ public class NightRecommendationApplicationService {
 		}
 	}
 
-	private static boolean isWithinReach(PlaceRecommendation recommendation, Integer maxTravelMinutes) {
-		if (maxTravelMinutes == null || recommendation.travel() == null) {
+	/** 이동 시간 한도 안인지. 한도가 없거나 출발지를 몰라 이동 추정이 없으면 모두 한도 안으로 본다 */
+	private static boolean isWithinReach(TravelEstimate travel, Integer maxTravelMinutes) {
+		if (maxTravelMinutes == null || travel == null) {
 			return true;
 		}
-		return recommendation.travel().minutes() <= maxTravelMinutes;
+		return travel.minutes() <= maxTravelMinutes;
 	}
 }

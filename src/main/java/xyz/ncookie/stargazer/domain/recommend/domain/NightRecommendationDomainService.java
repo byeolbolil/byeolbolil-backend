@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import xyz.ncookie.stargazer.domain.recommend.engine.TravelEstimator;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
+import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 import xyz.ncookie.stargazer.domain.recommend.model.TravelEstimate;
 import xyz.ncookie.stargazer.domain.weather.model.WeatherForecast;
@@ -50,15 +53,42 @@ public class NightRecommendationDomainService {
 			place.latitude(), place.longitude(), date, zone, bortleClass, forecast.hours(), policy);
 
 		return night.map(assessment -> {
-			TravelEstimate travel = (originLatitude != null && originLongitude != null)
-				? TravelEstimator.estimate(originLatitude, originLongitude, place.latitude(), place.longitude())
-				: null;
+			TravelEstimate travel = travelTo(place, originLatitude, originLongitude);
 			double travelHours = (travel != null) ? travel.minutes() / 60.0 : 0;
 			double rank = assessment.quality() - travelHours * TRAVEL_PENALTY_PER_HOUR;
 
 			return new PlaceRecommendation(
 				place, assessment, bortleClass, travel, rank, forecast.source(), forecast.issuedAt());
 		});
+	}
+
+	/**
+	 * 출발지에서 장소까지의 이동 추정. 날짜와 상관없는 값이다.
+	 *
+	 * @return 출발지를 모르면 null
+	 */
+	public TravelEstimate travelTo(CandidatePlace place, Double originLatitude, Double originLongitude) {
+		if (originLatitude == null || originLongitude == null) {
+			return null;
+		}
+		return TravelEstimator.estimate(originLatitude, originLongitude, place.latitude(), place.longitude());
+	}
+
+	/**
+	 * 밤마다 장소들 가운데 가장 높은 등급을 고른다. rank()가 등급을 먼저 보므로, 같은 장소들로 만든 그 밤 추천의
+	 * 첫 장소 등급과 같다.
+	 *
+	 * @param nightsByPlace 장소마다 평가한 밤들
+	 * @return 평가한 장소가 하나도 없는 밤은 들어 있지 않다
+	 */
+	public Map<LocalDate, RecommendationLevel> bestLevelByNight(List<List<NightAssessment>> nightsByPlace) {
+		Map<LocalDate, RecommendationLevel> best = new TreeMap<>();
+		for (List<NightAssessment> nights : nightsByPlace) {
+			for (NightAssessment night : nights) {
+				best.merge(night.date(), night.level(), (a, b) -> b.isAbove(a) ? b : a);
+			}
+		}
+		return best;
 	}
 
 	/**

@@ -21,6 +21,7 @@ import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookComm
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetNightRecommendationRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetWeekOutlookRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.global.security.principal.MemberPrincipal;
 
@@ -59,6 +60,20 @@ public class NightRecommendationController {
 	) {
 		return nightRecommendationApplicationService.recommend(
 			GetNightRecommendationCommand.from(memberIdOf(principal), date, request));
+	}
+
+	@Operation(
+		summary = "밤마다 가장 좋은 등급",
+		description = "오늘 밤부터 7일의 밤마다 후보 가운데 가장 좋은 등급을 돌려준다. 밤을 고르는 버튼에 그 밤이 "
+			+ "얼마나 좋은지 미리 보여 주는 데 쓴다. 쿼리와 후보는 밤 추천과 같다. 인증 없이 쓸 수 있다."
+	)
+	@GetMapping("/nights")
+	public NightSummaryResponse getNights(
+		@AuthenticationPrincipal MemberPrincipal principal,
+		@Valid @ModelAttribute GetNightRecommendationRequest request
+	) {
+		return nightRecommendationApplicationService.summarize(
+			GetNightRecommendationCommand.from(memberIdOf(principal), null, request));
 	}
 
 	@Operation(

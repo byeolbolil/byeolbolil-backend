@@ -243,6 +243,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 |---|---|---|---|
 | GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 장소별 추천 |
 | GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 |
+| GET | `/api/v1/recommendations/nights` | 선택 | 7일의 밤마다 가장 좋은 등급 |
 | GET | `/api/v1/recommendations/week` | 없음 | 한 위치의 이번 주 밤 |
 | GET | `/api/v1/recommendations/week/mine` | 선택 | 저장한 장소들의 이번 주 밤 |
 | GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
@@ -474,6 +475,56 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
 두 예보 자료 모두 CC BY 4.0이라 추천을 보여 주는 화면에 출처를 적어야 한다. `forecastSource`가 `OPEN_METEO`면
 Open-Meteo(`https://open-meteo.com/`), `MET_NORWAY`면 MET Norway다. 웹은 출처 이름에 링크를 걸고 옆에
 "CC BY 4.0"을 적는다. 장소마다 출처가 다를 수 있으므로 장소별 값을 본다.
+
+### 밤마다 가장 좋은 등급
+
+```
+GET /api/v1/recommendations/nights
+```
+
+오늘 밤부터 7일의 밤마다, 후보 가운데 가장 좋은 등급 하나씩만 돌려준다. 밤을 고르는 버튼에 그 밤이 얼마나 좋은지
+미리 보여 주려고 만들었다. 밤을 하나씩 불러 보지 않아도 어느 밤이 좋은지 알 수 있다.
+
+쿼리와 후보는 밤 추천과 같다. 출발지와 `maxTravelMinutes`를 보내면 한도 안의 장소만 보고, 액세스 토큰을 붙이면 내
+북마크도 본다. 그래서 같은 쿼리로 `/nights/{date}`를 부르면 `places`의 첫 장소가 여기서 받은 `level`과 같은 등급이다.
+`NightSummaryApiTest`가 이 일치를 확인한다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `startDate` | string | 오늘 밤의 날짜. 새벽 4시 전에는 전날이다 |
+| `criteria` | object | 밤 추천의 `criteria`와 같다 |
+| `nights` | array | `startDate`부터 날짜순으로 항상 7개 |
+| `nights[].date` | string | 밤이 시작하는 날짜 |
+| `nights[].level` | string | 그 밤의 후보 가운데 가장 좋은 등급. 평가한 장소가 없으면 빠진다 |
+
+`level`이 빠지는 경우는 셋이다. 예보가 그 밤까지 닿지 않을 때, 예보를 받지 못했을 때, 이동 시간 한도 안에 후보가
+하나도 없을 때다. 어느 경우에도 오류가 아니라 200이 온다. 화면에서는 그 밤의 표시를 비워 둔다.
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": {
+    "startDate": "2026-11-09",
+    "criteria": { "minClearHours": 3, "preferBefore": "02:00", "maxTravelMinutes": null },
+    "nights": [
+      { "date": "2026-11-09", "level": "STRONG" },
+      { "date": "2026-11-10", "level": "NO" },
+      { "date": "2026-11-11", "level": "STRONG" },
+      { "date": "2026-11-12", "level": "NO" },
+      { "date": "2026-11-13", "level": "NO" },
+      { "date": "2026-11-14", "level": "STRONG" },
+      { "date": "2026-11-15", "level": "STRONG" }
+    ]
+  }
+}
+```
+
+`NightSummaryApiTest`가 고정한 예보로 받은 응답이다.
+
+후보 전부의 일주일을 평가하므로 밤 추천 한 번보다 계산이 많다. 예보는 밤 추천과 같은 캐시를 쓴다. 밤 추천과
+동시에 불러도 되지만, 화면은 밤 추천을 먼저 그리고 이 응답은 도착하는 대로 덧붙이는 편이 낫다.
 
 ### 한 장소의 이번 주
 
