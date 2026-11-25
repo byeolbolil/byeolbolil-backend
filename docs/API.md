@@ -151,6 +151,7 @@ OpenAPI 스펙에는 이 봉투가 나오지 않는다. 스펙의 응답 스키�
 | 상태 | `message` | 나오는 곳 |
 |---|---|---|
 | 400 | 오늘 밤부터 7일 안의 날짜만 볼 수 있습니다. | 날짜별 밤 추천 |
+| 400 | 볼 위치의 위도와 경도를 보내야 합니다. | 한 위치의 이번 주 밤 |
 | 400 | 북마크 타입과 데이터가 일치하지 않습니다. | 북마크 추가. `CUSTOM`에 `address`가 없을 때 |
 | 400 | 요청 본문을 읽을 수 없습니다. | 본문이 JSON이 아니거나 enum에 없는 값을 보냈을 때 |
 | 401 | 인증이 필요합니다. | 로그인이 필요한 모든 API |
@@ -242,6 +243,8 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 |---|---|---|---|
 | GET | `/api/v1/recommendations/tonight` | 선택 | 오늘 밤 장소별 추천 |
 | GET | `/api/v1/recommendations/nights/{date}` | 선택 | 날짜별 밤 추천 |
+| GET | `/api/v1/recommendations/week` | 없음 | 한 위치의 이번 주 밤 |
+| GET | `/api/v1/recommendations/week/mine` | 선택 | 저장한 장소들의 이번 주 밤 |
 | GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
@@ -471,6 +474,127 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
 두 예보 자료 모두 CC BY 4.0이라 추천을 보여 주는 화면에 출처를 적어야 한다. `forecastSource`가 `OPEN_METEO`면
 Open-Meteo(`https://open-meteo.com/`), `MET_NORWAY`면 MET Norway다. 웹은 출처 이름에 링크를 걸고 옆에
 "CC BY 4.0"을 적는다. 장소마다 출처가 다를 수 있으므로 장소별 값을 본다.
+
+### 한 장소의 이번 주
+
+```
+GET /api/v1/recommendations/week?lat={위도}&lon={경도}
+GET /api/v1/recommendations/week/mine
+```
+
+밤 추천이 "그 밤에 어디가 좋은가"라면 이쪽은 "그 장소는 이번 주 언제가 좋은가"다. 한 장소의 예보 하나로 오늘
+밤부터 7일을 밤마다 평가한다. 평가 방식과 값의 뜻은 밤 추천과 같고, 이동 시간은 보지 않는다.
+
+- `/week`는 좌표로 고른 한 위치를 본다. 명소가 아니어도 되고 인증이 필요 없다. `lat`, `lon`이 필수다.
+- `/week/mine`은 저장한 장소 전부를 한 번에 본다. 로그인이 선택인 API라서([4.4](#44-로그인이-선택인-api))
+  로그인하지 않았으면 `places`가 빈 배열로 온다.
+
+| 쿼리 | 타입 | 설명 |
+|---|---|---|
+| `lat`, `lon` | number | `/week`에서 볼 위치. `/week/mine`에서는 쓰지 않는다 |
+| `minClearHours` | integer, 1~8 | 밤 추천과 같다. 기본 3 |
+| `preferBefore` | `HH:mm` | 밤 추천과 같다. 기본 `02:00` |
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `startDate` | string | 오늘 밤의 날짜. 새벽 4시 전에는 전날이다 |
+| `dates` | string[] | `startDate`부터 7일. 표의 열을 그릴 때 쓴다 |
+| `criteria` | object | `minClearHours`, `preferBefore` |
+| `places` | array | `/week`는 그 위치 하나, `/week/mine`은 저장한 장소들 |
+
+`places`의 항목은 다음과 같다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `type`, `id`, `spotId`, `name`, `address` | | `/week/mine`에서만 온다. `type`은 `BOOKMARK`, `id`는 북마크 ID다. `spotId`는 명소를 저장한 북마크에만 있다 |
+| `latitude`, `longitude` | number | |
+| `bortleClass` | integer | 광해 등급 |
+| `forecastSource`, `forecastIssuedAt` | string | 밤 추천과 같다. 예보를 받지 못한 장소에서는 빠진다 |
+| `nights` | array | 날짜순의 밤. 예보가 닿지 않는 밤은 빠져서 7개보다 적을 수 있다. 예보를 받지 못한 장소는 빈 배열이다 |
+
+`nights`의 항목은 `date`와, 밤 추천의 장소 항목에 있는 `level`, `pattern`, `notes`, `bestWindow`, `moonBrightness`,
+`moon`, `hours`다. 뜻과 빠지는 조건도 같다.
+
+```
+GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
+```
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "요청이 성공적으로 처리되었습니다.",
+  "data": {
+    "startDate": "2026-11-09",
+    "dates": ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"],
+    "criteria": { "minClearHours": 3, "preferBefore": "02:00" },
+    "places": [
+      {
+        "latitude": 37.62633,
+        "longitude": 128.73942,
+        "bortleClass": 3,
+        "forecastSource": "OPEN_METEO",
+        "forecastIssuedAt": "2026-11-23T15:00:00+09:00",
+        "nights": [
+          {
+            "date": "2026-11-09",
+            "level": "STRONG",
+            "pattern": "CLEAR_ALL_NIGHT",
+            "notes": [],
+            "bestWindow": {
+              "start": "2026-11-09T19:00:00+09:00",
+              "end": "2026-11-10T06:00:00+09:00",
+              "hours": 11
+            },
+            "moonBrightness": 0.0,
+            "moon": {
+              "illuminatedFraction": 0.0,
+              "waxing": true,
+              "rise": "2026-11-10T07:54:00+09:00",
+              "set": "2026-11-09T16:52:00+09:00"
+            },
+            "hours": [
+              {
+                "time": "2026-11-09T18:00:00+09:00",
+                "dark": false,
+                "clear": false,
+                "cloudCover": 0,
+                "cloudCoverLow": 0,
+                "cloudCoverMid": 0,
+                "cloudCoverHigh": 0,
+                "relativeHumidity": 60,
+                "moonUp": false,
+                "score": 0
+              }
+            ]
+          },
+          {
+            "date": "2026-11-10",
+            "level": "NO",
+            "pattern": "CLOUDY_ALL_NIGHT",
+            "notes": [],
+            "moonBrightness": 0.0,
+            "moon": {
+              "illuminatedFraction": 0.02,
+              "waxing": true,
+              "rise": "2026-11-11T08:55:00+09:00",
+              "set": "2026-11-10T17:28:00+09:00"
+            },
+            "hours": []
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`WeekOutlookApiTest`가 고정한 예보로 받은 응답이다. `nights`는 둘만 남기고 `hours`는 하나만 남기거나 비웠다.
+실제로는 밤 7개, 밤마다 시간 칸 13개가 온다. `forecastIssuedAt`이 밤보다 뒤인 것은 테스트의 모델 실행 시각이
+고정값이기 때문이다.
+
+먼 날의 예보는 가까운 날보다 자주 바뀐다. 응답에는 신뢰도 값이 없으므로, 화면에서 뒤쪽 밤은 달라질 수 있다고
+알린다. 예보 출처는 이 화면에도 적는다.
 
 ## 7. 관측지
 
@@ -963,6 +1087,7 @@ GET /api/v1/recommends/bookmarks/today
 | 구름 지도 | [`CloudMapApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/weather/controller/CloudMapApiTest.java) |
 | 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
+| 이번 주 밤 | [`WeekOutlookApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/WeekOutlookApiTest.java) |
 | 분석, 5일 예보 | [`StargazingApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/stargazing/controller/StargazingApiTest.java) |
 | 없는 경로, 틀린 메서드 | [`FrameworkErrorStatusTest`](../src/test/java/xyz/ncookie/stargazer/global/exception/FrameworkErrorStatusTest.java) |
 

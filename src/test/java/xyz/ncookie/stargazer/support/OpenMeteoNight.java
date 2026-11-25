@@ -62,6 +62,22 @@ public final class OpenMeteoNight {
 		);
 	}
 
+	/**
+	 * 여러 밤이 이어지는 예보. 밤마다 저녁 6시부터 아침 6시 칸까지 같은 구름을 주고, 그 사이의 낮은 반쯤 흐리다.
+	 *
+	 * @param date        첫 밤이 시작하는 날짜
+	 * @param nightClouds 밤마다의 총운량(%)
+	 */
+	public static String nights(LocalDate date, int... nightClouds) {
+		int[] clouds = new int[nightClouds.length * 24];
+		for (int night = 0; night < nightClouds.length; night++) {
+			for (int hour = 0; hour < 24; hour++) {
+				clouds[night * 24 + hour] = (hour < 13) ? nightClouds[night] : 50;
+			}
+		}
+		return body(date, clouds, 60);
+	}
+
 	/** 저녁 6시부터 아침 6시 칸까지 모두 같은 구름인 밤 */
 	public static String uniform(LocalDate date, int cloud) {
 		int[] clouds = new int[13];

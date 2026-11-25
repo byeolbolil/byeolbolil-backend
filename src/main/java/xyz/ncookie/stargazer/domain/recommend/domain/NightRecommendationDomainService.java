@@ -62,6 +62,30 @@ public class NightRecommendationDomainService {
 	}
 
 	/**
+	 * 한 장소의 여러 밤을 같은 예보로 평가한다. 이동 시간은 보지 않는다.
+	 *
+	 * @param startDate 첫 밤이 시작하는 날짜
+	 * @param days      볼 밤의 수
+	 * @return 날짜순. 예보가 닿지 않는 밤은 빠진다
+	 */
+	public List<NightAssessment> assessNights(
+		double latitude,
+		double longitude,
+		LocalDate startDate,
+		int days,
+		ZoneId zone,
+		int bortleClass,
+		WeatherForecast forecast,
+		RecommendationPolicy policy
+	) {
+		return startDate.datesUntil(startDate.plusDays(days))
+			.map(date -> nightAssessmentEngine.assess(
+				latitude, longitude, date, zone, bortleClass, forecast.hours(), policy))
+			.flatMap(Optional::stream)
+			.toList();
+	}
+
+	/**
 	 * 등급이 높은 순, 등급이 같으면 rank가 큰 순으로 늘어놓는다. 그래도 같으면 이름순이다.
 	 */
 	public List<PlaceRecommendation> rank(List<PlaceRecommendation> recommendations) {
