@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.domain.recommend.model;
 
+import java.util.List;
+
 /**
  * 명소에 붙은 안내. 평가에는 쓰지 않고 화면에 보여 주기만 한다. 값마다 없을 수 있다.
  *
@@ -7,5 +9,11 @@ package xyz.ncookie.stargazer.domain.recommend.model;
  * @param description 어떤 곳인지
  * @param guide       가는 법과 주차
  * @param caution     계절 폐쇄, 조명, 통제 같은 주의 사항
+ * @param links       가는 길과 서는 자리를 더 자세히 적은 글. 없으면 빈 목록
  */
-public record PlaceGuide(String viewpoint, String description, String guide, String caution) {}
+public record PlaceGuide(String viewpoint, String description, String guide, String caution, List<PlaceLink> links) {
+
+	public PlaceGuide {
+		links = links != null ? List.copyOf(links) : List.of();
+	}
+}

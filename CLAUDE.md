@@ -105,7 +105,9 @@ Cross-domain communication always goes through Application-layer orchestration �
   Spots are either `OPEN_SITE` (free night access, the only recommendation candidates) or `FACILITY`
   (observatories and science museums, served separately via `?kind=FACILITY`). `src/main/resources/data.sql` is the
   source of truth: it upserts by explicit id on every start and marks removed spots `RETIRED` instead of deleting
-  them. Coordinates point at the named `viewpoint` (a parking lot or lookout), not at the area in general.
+  them. Coordinates point at the named `viewpoint` (a parking lot or lookout), not at the area in general; where that
+  spot could not be pinned on a map the `guide` says the position is approximate. Reference links per spot live in
+  `observation_spot_link`, which `data.sql` empties and refills on every start.
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.
 - `recommend/` — tonight's recommendation. `engine/NightAssessmentEngine` evaluates one night per place from the

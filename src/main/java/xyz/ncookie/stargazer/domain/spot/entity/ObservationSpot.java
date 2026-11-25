@@ -1,12 +1,22 @@
 package xyz.ncookie.stargazer.domain.spot.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.BatchSize;
+
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -62,6 +72,13 @@ public class ObservationSpot {
 
 	@Column(length = 500)
 	private String caution;         // 계절 폐쇄, 조명, 통제 같은 주의 사항
+
+	// 참고 링크. 명소 목록을 통째로 읽는 일이 대부분이라 명소마다 따로 조회하지 않도록 묶어서 가져온다
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "observation_spot_link", joinColumns = @JoinColumn(name = "spot_id"))
+	@OrderColumn(name = "position")
+	@BatchSize(size = 100)
+	private List<SpotLink> links = new ArrayList<>();
 
 	/** 컬럼을 더하기 전에 들어간 행은 값이 비어 있다. 비어 있으면 열린 관측지로 본다 */
 	public SpotKind getKind() {

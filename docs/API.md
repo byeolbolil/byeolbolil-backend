@@ -317,6 +317,7 @@ GET /api/v1/recommendations/nights/{date}
 | `description` | string | 어떤 곳인지 한두 문장. 명소가 아니면 빠진다 |
 | `guide` | string | 가는 법과 주차. 명소가 아니면 빠진다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
+| `links` | array | 참고 링크. 항목은 `title`과 `url`이다. 7장 관측지의 `links`와 같다. 명소가 아니거나 링크가 없으면 빠진다 |
 | `level` | string | 추천 등급. 아래 표 |
 | `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
 | `notes` | string[] | 주의할 점. 없으면 빈 배열 |
@@ -412,6 +413,12 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
         "description": "월악산 자락 도로변에 성문이 남아 있는 산성이에요. 성문 위로 뜨는 은하수 사진으로 알려져 있어요.",
         "guide": "성문 앞 도로변 주차장에 대요.",
         "caution": "월악산국립공원 구역이에요. 밤에는 탐방로로 들어가지 말고 성문 주변에서 보세요. 은하수는 5월이 지나야 성 위로 올라와요.",
+        "links": [
+          {
+            "title": "뚜벅이들을 위한 은하수지도: 덕주산성",
+            "url": "https://gall.dcinside.com/board/view/?id=dcbest&no=6620"
+          }
+        ],
         "level": "GOOD",
         "pattern": "CLEAR_ALL_NIGHT",
         "notes": ["BRIGHT_MOON", "DEW"],
@@ -481,7 +488,9 @@ GET /api/v1/spots
 | `kind` | string | `OPEN_SITE` 또는 `FACILITY`. 빼면 둘 다 온다. 모르는 값이면 400이다 |
 
 `data`는 배열이고, 조건에 맞는 명소가 없으면 빈 배열이다. 좌표를 보내면 가까운 순으로 온다. 페이지 나눔은 없다.
-명소는 39곳이고 관측지가 22곳, 천문대와 과학관이 17곳이다. 목록에서 뺀 곳은 오지 않는다.
+명소는 41곳이고 관측지가 24곳, 천문대와 과학관이 17곳이다. 목록에서 뺀 곳은 오지 않는다.
+미시령 옛길, 벗고개, 운여해변은 차를 대는 자리를 지도에서 특정하지 못해 좌표가 대략의 위치다. `guide`에 그렇게
+적혀 있고, 자리를 설명한 글이 `links`의 첫 번째에 있다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
@@ -494,6 +503,7 @@ GET /api/v1/spots
 | `description` | string | 어떤 곳인지 한두 문장 |
 | `guide` | string | 가는 법과 주차. `FACILITY`에서는 운영 시간과 예약 방법이다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
+| `links` | array | 참고 링크. 항목은 `title`(그 글의 제목)과 `url`이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
 | `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 광해 등급은 밤 추천의 `bortleClass`를 본다 |
 | `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
@@ -519,6 +529,16 @@ GET /api/v1/spots?kind=OPEN_SITE
       "description": "해발 1,100m 고랭지 배추밭 위의 고원이에요. 맨눈으로 은하수가 보이는 곳으로 가장 널리 알려져 있어요.",
       "guide": "멍에전망대 주차장에 대요. 40면쯤이라 주말에는 모자라요. 무료이고 주차장에 화장실이 있어요. 올라가는 산길이 좁고 가팔라요.",
       "caution": "농로에는 주차와 차박이 금지예요. 주민들이 배추를 실어 내는 길이라 주차장만 써 주세요. 텐트와 취사도 안 돼요.",
+      "links": [
+        {
+          "title": "해발 1,100m에서 맨눈으로 은하수 보는 겨울 명소",
+          "url": "https://www.ardentnews.co.kr/news/articleView.html?idxno=10300"
+        },
+        {
+          "title": "겨울 차박족으로 몸살 앓는 별의 성지 안반데기",
+          "url": "https://v.daum.net/v/Q16NWPhVPS"
+        }
+      ],
       "isParkingAvailable": true,
       "isRestroomAvailable": true,
       "isCarAccess": true
@@ -528,6 +548,7 @@ GET /api/v1/spots?kind=OPEN_SITE
 ```
 
 `data`는 하나만 남기고 줄였다. `description`, `guide`, `caution`은 화면에 그대로 보여 주는 문장이다.
+`links`는 남의 글이라 언제든 사라질 수 있다. 새 창으로 열고, 링크가 없는 곳도 있다는 것을 전제로 그린다.
 
 같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
 

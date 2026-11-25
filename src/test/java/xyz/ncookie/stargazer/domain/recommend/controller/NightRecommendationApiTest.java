@@ -36,6 +36,7 @@ import xyz.ncookie.stargazer.support.OpenMeteoNight;
  * 구름 값은 목업(docs/mockup/index.html의 PLACES)에서 가져왔다. 명소 여섯 곳은 data.sql에 있는 실제 관측지이고 좌표도
  * data.sql의 것이다. 내 장소 세 곳은 테스트가 북마크로 넣는다. 그 밖의 관측지는 밤새 흐린 날씨를 받는다.
  * 2026-11-25에 명소를 다시 고르면서 좌표가 관측 지점으로 옮겨졌고, 체험 시설이 된 중미산천문대 자리에 벗고개가 들어왔다.
+ * 벗고개는 같은 날 양동면 금왕리의 터널로 다시 옮겼다. 처음에 서종면의 같은 이름 고개로 잘못 옮겼기 때문이다.
  *
  * 달은 실제 날짜로 정한다. 2026-11-09는 삭, 2026-11-24는 망이다(USNO, https://aa.usno.navy.mil/data/MoonPhases).
  * 출발지는 목업과 같은 서울 마포다.
@@ -56,7 +57,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		new Place("함백산 만항재", 37.14863, 128.90208, 3, new int[] {80, 70, 60, 40, 20, 10, 5, 5, 5, 0, 0, 5, 10}),
 		new Place("강릉 안반데기", 37.62633, 128.73942, 3, new int[] {20, 15, 10, 25, 60, 80, 80, 70, 40, 20, 10, 10, 15}),
 		new Place("영양 반딧불이생태공원", 36.83047, 129.26906, 2, new int[] {10, 5, 5, 0, 0, 5, 10, 10, 20, 40, 60, 70, 70}),
-		new Place("양평 벗고개", 37.57039, 127.38999, 5, new int[] {40, 30, 20, 20, 25, 40, 60, 70, 80, 80, 90, 90, 90}),
+		new Place("양평 벗고개", 37.503, 127.7308, 5, new int[] {40, 30, 20, 20, 25, 40, 60, 70, 80, 80, 90, 90, 90}),
 		new Place("영천 보현산", 36.16667, 128.98058, 3, new int[] {90, 90, 90, 85, 80, 85, 90, 90, 95, 95, 90, 90, 90})
 	);
 
@@ -252,7 +253,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("명소에는 관측 지점, 소개, 가는 법, 주의 사항이 실리고 직접 찍은 내 장소에는 없다")
+		@DisplayName("명소에는 관측 지점, 소개, 가는 법, 주의 사항, 참고 링크가 실리고 직접 찍은 내 장소에는 없다")
 		void placeGuide() {
 			String body = bodyOf(tonight(true));
 
@@ -262,7 +263,10 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			assertThat((String) spot.get("guide")).contains("주차장");
 			assertThat((String) spot.get("caution")).contains("농로");
 
-			assertThat(placeNamed(body, "호명호수")).doesNotContainKeys("viewpoint", "description", "guide", "caution");
+			List<String> linkTitles = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].links[*].title");
+			assertThat(linkTitles).hasSize(2).first().asString().contains("은하수");
+
+			assertThat(placeNamed(body, "호명호수")).doesNotContainKeys("viewpoint", "description", "guide", "caution", "links");
 		}
 
 		@Test

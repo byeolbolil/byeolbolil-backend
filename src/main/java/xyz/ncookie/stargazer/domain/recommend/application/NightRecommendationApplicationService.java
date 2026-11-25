@@ -26,6 +26,7 @@ import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
+import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
@@ -159,7 +160,10 @@ public class NightRecommendationApplicationService {
 	}
 
 	private static PlaceGuide guideOf(ObservationSpot spot) {
-		return new PlaceGuide(spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution());
+		List<PlaceLink> links = spot.getLinks().stream()
+			.map(link -> new PlaceLink(link.getTitle(), link.getUrl()))
+			.toList();
+		return new PlaceGuide(spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution(), links);
 	}
 
 	/**
