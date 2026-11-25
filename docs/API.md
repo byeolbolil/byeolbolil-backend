@@ -323,6 +323,9 @@ GET /api/v1/recommendations/nights/{date}
 | `travel.minutes` | integer | 차로 걸리는 시간 어림. 직선거리의 1.3배를 시속 60km로 간다고 본 값이라 실제 길 안내와 다르다 |
 | `bortleClass` | integer | 광해 등급(Bortle 1~9). 낮을수록 어둡다 |
 | `moonBrightness` | number | 보름달을 1로 본 그 밤의 달 밝기 |
+| `moon.illuminatedFraction` | number | 달에서 밝게 보이는 면의 비율. 삭 0, 보름 1. 그 밤 자정의 값이다 |
+| `moon.waxing` | boolean | 차오르는 중이면 `true`, 기우는 중이면 `false`. 북반구에서는 차오르는 달의 오른쪽이 밝다 |
+| `moon.rise`, `moon.set` | string | 그날 정오부터 다음 날 정오 사이에 달이 뜨고 지는 시각. 분 단위다. 그 사이에 뜨거나 지지 않으면 빠진다 |
 | `forecastSource` | string | `OPEN_METEO` 또는 `MET_NORWAY` |
 | `forecastIssuedAt` | string | 예보가 만들어진 시각. 모르면 빠진다 |
 | `hours` | array | 해가 진 뒤부터 뜨기 전까지의 한 시간 칸 |
@@ -349,10 +352,10 @@ GET /api/v1/recommendations/nights/{date}
 
 | `level` | 문구 |
 |---|---|
-| `STRONG` | 꼭 가볼 만해요 |
-| `GOOD` | 가볼 만해요 |
-| `MAYBE` | 잠깐 볼 수 있어요 |
-| `NO` | 오늘은 쉬어가요 |
+| `STRONG` | 별 보기 아주 좋아요 |
+| `GOOD` | 별 보기 좋아요 |
+| `MAYBE` | 별 보기 아쉬워요 |
+| `NO` | 별 보기 어려워요 |
 
 | `pattern` | 문구 |
 |---|---|
@@ -411,6 +414,12 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
         "travel": { "distanceKm": 111.7, "minutes": 145 },
         "bortleClass": 2,
         "moonBrightness": 0.89,
+        "moon": {
+          "illuminatedFraction": 1.0,
+          "waxing": true,
+          "rise": "2026-11-24T16:28:00+09:00",
+          "set": "2026-11-25T08:00:00+09:00"
+        },
         "forecastSource": "OPEN_METEO",
         "forecastIssuedAt": "2026-11-24T15:00:00+09:00",
         "hours": [

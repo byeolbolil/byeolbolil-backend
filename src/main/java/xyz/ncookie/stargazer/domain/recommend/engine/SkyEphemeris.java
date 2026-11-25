@@ -1,9 +1,12 @@
 package xyz.ncookie.stargazer.domain.recommend.engine;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.util.Optional;
 
 import org.shredzone.commons.suncalc.MoonIllumination;
 import org.shredzone.commons.suncalc.MoonPosition;
+import org.shredzone.commons.suncalc.MoonTimes;
 import org.shredzone.commons.suncalc.SunPosition;
 import org.springframework.stereotype.Component;
 
@@ -29,5 +32,32 @@ public class SkyEphemeris {
 	/** 달의 위상각(°). 보름일 때 0, 삭일 때 180 */
 	public double moonPhaseAngle(Instant time) {
 		return Math.abs(MoonIllumination.compute().on(time).execute().getPhase());
+	}
+
+	/** 달에서 햇빛을 받아 밝게 보이는 면의 비율. 삭일 때 0, 보름일 때 1 */
+	public double moonIlluminatedFraction(Instant time) {
+		return MoonIllumination.compute().on(time).execute().getFraction();
+	}
+
+	/**
+	 * 달이 차오르는 중인지. 삭에서 보름으로 가는 동안 참이다.
+	 * commons-suncalc의 위상각은 삭이 -180°, 상현이 -90°, 보름이 0°, 하현이 90°다.
+	 */
+	public boolean isMoonWaxing(Instant time) {
+		return MoonIllumination.compute().on(time).execute().getPhase() < 0;
+	}
+
+	/** from부터 24시간 안에 달이 처음 뜨는 시각. 그 사이에 뜨지 않으면 비어 있다 */
+	public Optional<Instant> moonrise(double latitude, double longitude, Instant from) {
+		return Optional.ofNullable(moonTimes(latitude, longitude, from).getRise()).map(ZonedDateTime::toInstant);
+	}
+
+	/** from부터 24시간 안에 달이 처음 지는 시각. 그 사이에 지지 않으면 비어 있다 */
+	public Optional<Instant> moonset(double latitude, double longitude, Instant from) {
+		return Optional.ofNullable(moonTimes(latitude, longitude, from).getSet()).map(ZonedDateTime::toInstant);
+	}
+
+	private static MoonTimes moonTimes(double latitude, double longitude, Instant from) {
+		return MoonTimes.compute().at(latitude, longitude).on(from).oneDay().execute();
 	}
 }

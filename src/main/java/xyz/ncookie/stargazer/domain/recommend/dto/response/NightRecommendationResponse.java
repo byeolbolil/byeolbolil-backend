@@ -3,6 +3,7 @@ package xyz.ncookie.stargazer.domain.recommend.dto.response;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
+import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 
@@ -40,7 +42,7 @@ public record NightRecommendationResponse(
 
 	@Schema(description = "추천에 쓴 기준")
 	public record Criteria(
-		@Schema(description = "'꼭 가볼 만해요'가 되는 맑은 시간", example = "3")
+		@Schema(description = "'별 보기 아주 좋아요'가 되는 맑은 시간", example = "3")
 		int minClearHours,
 		@Schema(description = "이 시각 전에 맑은 시간을 우선", example = "02:00")
 		String preferBefore,
@@ -70,7 +72,7 @@ public record NightRecommendationResponse(
 		double latitude,
 		double longitude,
 
-		@Schema(description = "추천 등급. STRONG 꼭 가볼 만해요, GOOD 가볼 만해요, MAYBE 잠깐 볼 수 있어요, NO 오늘은 쉬어가요")
+		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
 		@Schema(description = "밤 패턴. CLEAR_ALL_NIGHT, CLEAR_EARLY, CLEARS_LATE, CLEARS_AGAIN, BRIEF_CLEAR, CLOUDY_ALL_NIGHT")
 		String pattern,
@@ -85,6 +87,8 @@ public record NightRecommendationResponse(
 		int bortleClass,
 		@Schema(description = "보름달을 1로 본 그 밤의 달 밝기", example = "0.09")
 		double moonBrightness,
+		@Schema(description = "그 밤의 달 모양과 뜨고 지는 시각")
+		Moon moon,
 
 		@Schema(description = "예보 출처. OPEN_METEO 또는 MET_NORWAY")
 		String forecastSource,
@@ -113,6 +117,7 @@ public record NightRecommendationResponse(
 					: null,
 				recommendation.bortleClass(),
 				moonBrightness(night),
+				Moon.of(night.moon(), zone),
 				recommendation.forecastSource().name(),
 				recommendation.forecastIssuedAt() != null ? format(recommendation.forecastIssuedAt(), zone) : null,
 				night.hours().stream().map(hour -> Hour.of(hour, zone)).toList()
@@ -126,6 +131,30 @@ public record NightRecommendationResponse(
 				.findFirst()
 				.map(hour -> Math.round(hour.moonBrightness() * 100) / 100.0)
 				.orElse(0.0);
+		}
+	}
+
+	@Schema(description = "그 장소에서 본 그 밤의 달")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record Moon(
+		@Schema(description = "밝게 보이는 면의 비율. 삭 0, 보름 1", example = "0.52")
+		double illuminatedFraction,
+		@Schema(description = "차오르는 중이면 true, 기우는 중이면 false")
+		boolean waxing,
+		@Schema(description = "그날 정오부터 다음 날 정오 사이에 달이 뜨는 시각. 그 사이에 뜨지 않으면 빠진다",
+			example = "2026-11-24T17:02:00+09:00")
+		String rise,
+		@Schema(description = "같은 사이에 달이 지는 시각. 그 사이에 지지 않으면 빠진다",
+			example = "2026-11-25T07:41:00+09:00")
+		String set
+	) {
+		static Moon of(NightMoon moon, ZoneId zone) {
+			return new Moon(
+				Math.round(moon.illuminatedFraction() * 100) / 100.0,
+				moon.waxing(),
+				moon.rise() != null ? format(moon.rise().truncatedTo(ChronoUnit.MINUTES), zone) : null,
+				moon.set() != null ? format(moon.set().truncatedTo(ChronoUnit.MINUTES), zone) : null
+			);
 		}
 	}
 

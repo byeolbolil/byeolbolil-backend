@@ -6,13 +6,13 @@ package xyz.ncookie.stargazer.domain.recommend.model;
  */
 public enum RecommendationLevel {
 
-	/** 오늘은 쉬어가요 */
+	/** 별 보기 어려워요 */
 	NO,
-	/** 잠깐 볼 수 있어요 */
+	/** 별 보기 아쉬워요 */
 	MAYBE,
-	/** 가볼 만해요 */
+	/** 별 보기 좋아요 */
 	GOOD,
-	/** 꼭 가볼 만해요 */
+	/** 별 보기 아주 좋아요 */
 	STRONG;
 
 	/** 한 단계 낮춘다. 맑은 시간이 있는 밤은 MAYBE 아래로 내리지 않는다. */
