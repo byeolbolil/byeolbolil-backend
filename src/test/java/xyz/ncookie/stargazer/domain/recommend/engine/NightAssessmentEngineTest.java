@@ -20,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
 import xyz.ncookie.stargazer.domain.recommend.model.NightNote;
@@ -41,7 +42,11 @@ class NightAssessmentEngineTest {
 	private static final LocalDate DATE = LocalDate.of(2026, 11, 24);
 	private static final double LAT = 37.5;
 	private static final double LON = 127.0;
-	private static final int DARK_SKY = 3;
+	/** 인공 불빛이 없는 하늘. 불빛으로는 점수가 깎이지 않는다 */
+	private static final LightCondition NATURAL_SKY = LightCondition.ofSky(0.1);
+	/** 하늘 밝기 감점의 4분의 1(점수의 12.5%)이 걸리는 어두운 하늘. 0.33 × (50 / 0.33)^0.25 */
+	private static final LightCondition DARK_SKY = LightCondition.ofSky(1.158);
+	private static final LightCondition CITY_SKY = LightCondition.ofSky(100);
 
 	private static final int[] ALL_CLEAR = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -120,48 +125,82 @@ class NightAssessmentEngineTest {
 		@Test
 		@DisplayName("구름도 광해도 달도 없는 완전히 어두운 시간은 100점이다")
 		void perfect() {
-			assertThat(NightAssessmentEngine.score(0, 1, false, 0.0, -30.0)).isEqualTo(100);
+			assertThat(NightAssessmentEngine.score(0, NATURAL_SKY, false, 0.0, -30.0)).isEqualTo(100);
 		}
 
 		@ParameterizedTest(name = "구름 {0}% → {1}점")
 		@CsvSource({"10, 90", "30, 70", "50, 50", "100, 0"})
 		@DisplayName("구름은 가려지지 않은 하늘의 비율만큼 남긴다")
 		void cloud(int cloudCover, int expected) {
-			assertThat(NightAssessmentEngine.score(cloudCover, 1, false, 0.0, -30.0)).isEqualTo(expected);
+			assertThat(NightAssessmentEngine.score(cloudCover, NATURAL_SKY, false, 0.0, -30.0)).isEqualTo(expected);
 		}
 
-		@ParameterizedTest(name = "Bortle {0} → {1}점")
-		@CsvSource({"1, 100", "3, 88", "5, 75", "9, 50"})
-		@DisplayName("광해는 9등급에서 절반까지 깎는다")
-		void lightPollution(int bortleClass, int expected) {
-			assertThat(NightAssessmentEngine.score(0, bortleClass, false, 0.0, -30.0)).isEqualTo(expected);
+		@ParameterizedTest(name = "하늘 밝기 {0} → {1}점")
+		@CsvSource({"0.1, 100", "0.33, 100", "2, 82", "4, 75", "10, 66", "49, 50", "50, 50", "200, 50"})
+		@DisplayName("하늘 밝기는 자연 상태(0.33)까지 깎지 않고, 눈이 어둠에 적응하지 못하는 밝기(50)에서 절반까지 깎는다")
+		void skyBrightness(double skyBrightness, int expected) {
+			assertThat(NightAssessmentEngine.score(0, LightCondition.ofSky(skyBrightness), false, 0.0, -30.0))
+				.isEqualTo(expected);
+		}
+
+		@Test
+		@DisplayName("하늘 밝기를 모르는 곳은 어두운 하늘과 시골 하늘의 경계(2)로 본다")
+		void unknownSky() {
+			assertThat(NightAssessmentEngine.score(0, LightCondition.UNKNOWN, false, 0.0, -30.0)).isEqualTo(82);
+		}
+
+		@ParameterizedTest(name = "직접 보이는 불빛 {0} → {1}점")
+		@CsvSource({"0, 100", "0.2, 100", "0.632, 90", "2, 80", "30, 80"})
+		@DisplayName("직접 보이는 먼 불빛은 0.2까지 깎지 않고 2에서 20%까지 깎는다")
+		void lightsInView(double lightsInView, int expected) {
+			LightCondition light = new LightCondition(0.1, 0.0, lightsInView);
+
+			assertThat(NightAssessmentEngine.score(0, light, false, 0.0, -30.0)).isEqualTo(expected);
+		}
+
+		@Test
+		@DisplayName("직접 보이는 불빛을 계산해 두지 않은 곳은 그 몫을 깎지 않는다")
+		void lightsInViewUnknown() {
+			LightCondition light = new LightCondition(0.1, 0.0, null);
+
+			assertThat(NightAssessmentEngine.score(0, light, false, 0.0, -30.0)).isEqualTo(100);
+		}
+
+		@Test
+		@DisplayName("둘레의 불빛은 점수를 깎지 않는다. 등급을 낮추는 데만 쓴다")
+		void nearbyRadianceDoesNotChangeScore() {
+			LightCondition light = new LightCondition(0.1, 80.0, null);
+
+			assertThat(NightAssessmentEngine.score(0, light, false, 0.0, -30.0)).isEqualTo(100);
 		}
 
 		@ParameterizedTest(name = "달 밝기 {0} → {1}점")
 		@CsvSource({"1.0, 70", "0.5, 85", "0.091, 97"})
 		@DisplayName("떠 있는 달은 보름달일 때 30%까지 깎는다")
 		void moon(double brightness, int expected) {
-			assertThat(NightAssessmentEngine.score(0, 1, true, brightness, -30.0)).isEqualTo(expected);
+			assertThat(NightAssessmentEngine.score(0, NATURAL_SKY, true, brightness, -30.0)).isEqualTo(expected);
 		}
 
 		@Test
 		@DisplayName("지평선 아래의 달은 보름달이어도 깎지 않는다")
 		void moonBelowHorizon() {
-			assertThat(NightAssessmentEngine.score(0, 1, false, 1.0, -30.0)).isEqualTo(100);
+			assertThat(NightAssessmentEngine.score(0, NATURAL_SKY, false, 1.0, -30.0)).isEqualTo(100);
 		}
 
 		@ParameterizedTest(name = "태양 고도 {0}° → {1}점")
 		@CsvSource({"-12, 80", "-15, 90", "-18, 100", "-40, 100"})
 		@DisplayName("-12°에서 20%를 깎고 -18°까지 줄여 가며, 그 아래로는 깎지 않는다")
 		void twilight(double sunAltitude, int expected) {
-			assertThat(NightAssessmentEngine.score(0, 1, false, 0.0, sunAltitude)).isEqualTo(expected);
+			assertThat(NightAssessmentEngine.score(0, NATURAL_SKY, false, 0.0, sunAltitude)).isEqualTo(expected);
 		}
 
 		@Test
 		@DisplayName("요인은 곱으로 묶인다. 광해가 심한 곳에서는 같은 달이 깎는 점수가 줄어든다")
 		void factorsMultiply() {
-			int darkSiteLoss = NightAssessmentEngine.score(0, 1, false, 0, -30) - NightAssessmentEngine.score(0, 1, true, 1.0, -30);
-			int citySiteLoss = NightAssessmentEngine.score(0, 9, false, 0, -30) - NightAssessmentEngine.score(0, 9, true, 1.0, -30);
+			int darkSiteLoss = NightAssessmentEngine.score(0, NATURAL_SKY, false, 0, -30)
+				- NightAssessmentEngine.score(0, NATURAL_SKY, true, 1.0, -30);
+			int citySiteLoss = NightAssessmentEngine.score(0, CITY_SKY, false, 0, -30)
+				- NightAssessmentEngine.score(0, CITY_SKY, true, 1.0, -30);
 
 			assertThat(darkSiteLoss).isEqualTo(30);
 			assertThat(citySiteLoss).isEqualTo(15);
@@ -238,10 +277,10 @@ class NightAssessmentEngineTest {
 		void qualityCapsAtSixHours() {
 			sky.fullyDarkAllNight();
 
-			// 광해 1등급, 구름 0%라 맑은 칸은 모두 100점이다.
-			double threeHours = assess(1, clouds(60, 0, 0, 0, 60, 60, 60, 60, 60, 60, 60, 60, 60)).quality();
-			double sixHours = assess(1, clouds(60, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60, 60)).quality();
-			double sevenHours = assess(1, clouds(60, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60)).quality();
+			// 인공 불빛이 없고 구름 0%라 맑은 칸은 모두 100점이다.
+			double threeHours = assess(NATURAL_SKY, clouds(60, 0, 0, 0, 60, 60, 60, 60, 60, 60, 60, 60, 60)).quality();
+			double sixHours = assess(NATURAL_SKY, clouds(60, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60, 60)).quality();
+			double sevenHours = assess(NATURAL_SKY, clouds(60, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60)).quality();
 
 			assertThat(threeHours).isEqualTo(50.0);
 			assertThat(sixHours).isEqualTo(100.0);
@@ -254,8 +293,8 @@ class NightAssessmentEngineTest {
 			sky.fullyDarkAllNight();
 
 			// 둘 다 새벽 2시까지는 똑같이 맑다. 하나는 2시에 구름이 끼고 하나는 아침까지 맑다.
-			double cloudsOverAtTwo = assess(1, clouds(0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60)).quality();
-			double clearUntilMorning = assess(1, clouds(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)).quality();
+			double cloudsOverAtTwo = assess(NATURAL_SKY, clouds(0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60)).quality();
+			double clearUntilMorning = assess(NATURAL_SKY, clouds(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)).quality();
 
 			assertThat(cloudsOverAtTwo).isEqualTo(100.0);
 			assertThat(clearUntilMorning).isEqualTo(100.0);
@@ -400,20 +439,49 @@ class NightAssessmentEngineTest {
 	class LightPollutionAndHumidity {
 
 		@Test
-		@DisplayName("Bortle 7등급부터는 밤새 맑아도 잠깐 볼 수 있어요까지만 준다")
+		@DisplayName("도시 한가운데는 밤새 맑아도 별 보기 아쉬워요까지만 준다")
 		void cityLights() {
-			// 우리집 옥상(서울): 밤새 맑지만 도시 한가운데다.
-			NightAssessment night = assess(8, clouds(5, 5, 5, 10, 10, 10, 15, 15, 20, 20, 20, 20, 25));
+			// 우리집 옥상(서울): 밤새 맑지만 하늘도 둘레도 밝다.
+			LightCondition seoul = new LightCondition(68.0, 60.0, null);
+			NightAssessment night = assess(seoul, clouds(5, 5, 5, 10, 10, 10, 15, 15, 20, 20, 20, 20, 25));
 
 			assertThat(night.level()).isEqualTo(RecommendationLevel.MAYBE);
 			assertThat(night.notes()).containsExactly(NightNote.CITY_LIGHTS);
 		}
 
-		@ParameterizedTest(name = "Bortle {0} → {1}")
-		@CsvSource({"6, STRONG", "7, MAYBE"})
-		@DisplayName("6등급까지는 낮추지 않는다")
-		void cityThreshold(int bortleClass, RecommendationLevel expected) {
-			assertThat(assess(bortleClass, ALL_CLEAR).level()).isEqualTo(expected);
+		@ParameterizedTest(name = "하늘 밝기 {0} → {1}")
+		@CsvSource({"9.9, STRONG", "10, MAYBE"})
+		@DisplayName("은하수가 보이지 않는 하늘 밝기(10)부터 낮춘다")
+		void skyThreshold(double skyBrightness, RecommendationLevel expected) {
+			assertThat(assess(LightCondition.ofSky(skyBrightness), ALL_CLEAR).level()).isEqualTo(expected);
+		}
+
+		@ParameterizedTest(name = "둘레 불빛 {0} → {1}")
+		@CsvSource({"9.9, STRONG", "10, MAYBE"})
+		@DisplayName("하늘이 어두워도 둘레 1km가 밝으면(10부터) 낮춘다")
+		void litSurroundings(double nearbyRadiance, RecommendationLevel expected) {
+			LightCondition smallTown = new LightCondition(5.0, nearbyRadiance, null);
+
+			assertThat(assess(smallTown, ALL_CLEAR).level()).isEqualTo(expected);
+		}
+
+		@Test
+		@DisplayName("불빛 자료가 없는 곳은 낮추지 않는다")
+		void unknownLightIsNotLowered() {
+			NightAssessment night = assess(LightCondition.UNKNOWN, ALL_CLEAR);
+
+			assertThat(night.level()).isEqualTo(RecommendationLevel.STRONG);
+			assertThat(night.notes()).isEmpty();
+		}
+
+		@ParameterizedTest(name = "직접 보이는 불빛 {0} → 알림 {1}")
+		@CsvSource({"0.6, false", "0.64, true", "2.36, true"})
+		@DisplayName("먼 불빛이 감점의 절반 넘게 보이면 알리되 등급은 그대로 둔다")
+		void lightsInViewNote(double lightsInView, boolean expectedNote) {
+			NightAssessment night = assess(new LightCondition(1.158, 1.0, lightsInView), ALL_CLEAR);
+
+			assertThat(night.notes().contains(NightNote.LIGHTS_IN_VIEW)).isEqualTo(expectedNote);
+			assertThat(night.level()).isEqualTo(RecommendationLevel.STRONG);
 		}
 
 		@ParameterizedTest(name = "습도 {0}% → 이슬 주의 {1}")
@@ -482,12 +550,12 @@ class NightAssessmentEngineTest {
 		return assess(DARK_SKY, clouds);
 	}
 
-	private NightAssessment assess(int bortleClass, int[] clouds) {
-		return assess(bortleClass, clouds, RecommendationPolicy.DEFAULT);
+	private NightAssessment assess(LightCondition light, int[] clouds) {
+		return assess(light, clouds, RecommendationPolicy.DEFAULT);
 	}
 
-	private NightAssessment assess(int bortleClass, int[] clouds, RecommendationPolicy policy) {
-		return engine.assess(LAT, LON, DATE, SEOUL, bortleClass, weather(clouds, 50), policy).orElseThrow();
+	private NightAssessment assess(LightCondition light, int[] clouds, RecommendationPolicy policy) {
+		return engine.assess(LAT, LON, DATE, SEOUL, light, weather(clouds, 50), policy).orElseThrow();
 	}
 
 	private static int[] clouds(int... values) {

@@ -331,7 +331,9 @@ GET /api/v1/recommendations/nights/{date}
 | `travel` | object | 출발지를 보내지 않았으면 빠진다 |
 | `travel.distanceKm` | number | 직선거리 |
 | `travel.minutes` | integer | 차로 걸리는 시간 어림. 직선거리의 1.3배를 시속 60km로 간다고 본 값이라 실제 길 안내와 다르다 |
-| `bortleClass` | integer | 광해 등급(Bortle 1~9). 낮을수록 어둡다 |
+| `skyBrightness` | number | 하늘 전체에서 평균한 인공 밝기가 자연 밤하늘의 몇 배인지. 0에 가까울수록 어둡다. 불빛 자료가 없는 좌표(한국 둘레 밖)에서는 빠진다 |
+| `skyClass` | string | 하늘 밝기로 나눈 등급. 아래 표. `skyBrightness`가 없으면 같이 빠진다 |
+| `bortleClass` | integer | 없어질 값이다. `skyClass`에서 어림한 Bortle 등급(2, 4, 5, 7, 9)이고, 화면이 `skyBrightness`로 옮겨 가면 지운다 |
 | `moonBrightness` | number | 보름달을 1로 본 그 밤의 달 밝기 |
 | `moon.illuminatedFraction` | number | 달에서 밝게 보이는 면의 비율. 삭 0, 보름 1. 그 밤 자정의 값이다 |
 | `moon.waxing` | boolean | 차오르는 중이면 `true`, 기우는 중이면 `false`. 북반구에서는 차오르는 달의 오른쪽이 밝다 |
@@ -380,8 +382,19 @@ GET /api/v1/recommendations/nights/{date}
 |---|---|
 | `CLEARS_LATE` | 추천 시간이 모두 선호 시각 뒤다 |
 | `BRIGHT_MOON` | 달이 밝다 |
-| `CITY_LIGHTS` | 도시 불빛이 강하다 |
+| `CITY_LIGHTS` | 도시 불빛이 강하다. 은하수가 보이지 않을 만큼 하늘이 밝거나 서 있는 곳 둘레가 밝아서 등급을 낮췄다 |
+| `LIGHTS_IN_VIEW` | 아래쪽 마을이나 도시의 불빛이 산에 가리지 않고 직접 보인다. 등급은 그대로다. 미리 계산해 둔 명소에서만 온다 |
 | `DEW` | 이슬이 맺힐 만큼 습하다 |
+
+| `skyClass` | `skyBrightness` | 뜻 |
+|---|---|---|
+| `NATURAL` | 0.33 미만 | 자연 상태와 거의 같은 하늘 |
+| `DARK` | 0.33 이상 2 미만 | 지평선 쪽에만 불빛이 비치는 어두운 하늘 |
+| `RURAL` | 2 이상 10 미만 | 은하수는 보이지만 불빛이 하늘 여러 곳에 번진 하늘 |
+| `SUBURBAN` | 10 이상 50 미만 | 은하수가 보이지 않는 하늘 |
+| `URBAN` | 50 이상 | 눈이 어둠에 적응하지 못할 만큼 밝은 하늘 |
+
+한국의 추천 후보지는 1.5(영양)에서 9.5 사이이고 서울 한복판이 68쯤이다.
 
 값 목록은 늘어날 수 있다. 모르는 값이 와도 앱이 죽지 않게 기본 처리를 둔다.
 
@@ -414,7 +427,7 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
         "latitude": 36.86206,
         "longitude": 128.09643,
         "viewpoint": "덕주산성 앞 주차장",
-        "description": "월악산 자락 도로변에 성문이 남아 있는 산성이에요. 성문 위로 뜨는 은하수 사진으로 알려져 있어요.",
+        "description": "월악산 자락 도로변에 성문이 남아 있는 산성이에요. 성문 위로 뜨는 은하수 사진으로 알려져 있고, 사방이 산이라 주변 불빛이 거의 들어오지 않아요.",
         "guide": "성문 앞 도로변 주차장에 대요.",
         "caution": "월악산국립공원 구역이에요. 밤에는 탐방로로 들어가지 말고 성문 주변에서 보세요. 은하수는 5월이 지나야 성 위로 올라와요.",
         "links": [
@@ -432,7 +445,9 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
           "hours": 11
         },
         "travel": { "distanceKm": 129.4, "minutes": 168 },
-        "bortleClass": 3,
+        "skyBrightness": 3.99,
+        "skyClass": "RURAL",
+        "bortleClass": 5,
         "moonBrightness": 0.74,
         "moon": {
           "illuminatedFraction": 0.98,
@@ -559,7 +574,7 @@ GET /api/v1/recommendations/week/mine
 |---|---|---|
 | `type`, `id`, `spotId`, `name`, `address` | | `/week/mine`에서만 온다. `type`은 `BOOKMARK`, `id`는 북마크 ID다. `spotId`는 명소를 저장한 북마크에만 있다 |
 | `latitude`, `longitude` | number | |
-| `bortleClass` | integer | 광해 등급 |
+| `skyBrightness`, `skyClass`, `bortleClass` | | 밤 추천과 같다 |
 | `forecastSource`, `forecastIssuedAt` | string | 밤 추천과 같다. 예보를 받지 못한 장소에서는 빠진다 |
 | `nights` | array | 날짜순의 밤. 예보가 닿지 않는 밤은 빠져서 7개보다 적을 수 있다. 예보를 받지 못한 장소는 빈 배열이다 |
 
@@ -583,7 +598,9 @@ GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
       {
         "latitude": 37.62633,
         "longitude": 128.73942,
-        "bortleClass": 3,
+        "skyBrightness": 3.17,
+        "skyClass": "RURAL",
+        "bortleClass": 5,
         "forecastSource": "OPEN_METEO",
         "forecastIssuedAt": "2026-11-23T15:00:00+09:00",
         "nights": [
@@ -679,7 +696,7 @@ GET /api/v1/spots
 | `guide` | string | 가는 법과 주차. `FACILITY`에서는 운영 시간과 예약 방법이다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
 | `links` | array | 참고 링크. 항목은 `title`(그 글의 제목), `url`, `imageUrl`(그 글의 대표 이미지, 없으면 빠진다)이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
-| `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 광해 등급은 밤 추천의 `bortleClass`를 본다 |
+| `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 하늘이 얼마나 어두운지는 밤 추천의 `skyBrightness`를 본다 |
 | `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
 

@@ -13,6 +13,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
 import xyz.ncookie.stargazer.domain.recommend.model.NightNote;
@@ -29,6 +30,7 @@ class NightAssessmentEngineRealSkyTest {
 	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 	private static final double LAT = 37.5665;
 	private static final double LON = 126.9780;
+	private static final LightCondition DARK_SKY = LightCondition.ofSky(1.158);
 
 	private final NightAssessmentEngine engine = new NightAssessmentEngine(new SkyEphemeris());
 
@@ -88,6 +90,6 @@ class NightAssessmentEngineRealSkyTest {
 		for (int i = 0; i < 24; i++) {
 			forecast.add(new HourlyWeather(noon.plusSeconds(3600L * i), 0, 0, 0, 0, 50, 0.0, 5.0, 20000));
 		}
-		return engine.assess(LAT, LON, date, SEOUL, 3, forecast, RecommendationPolicy.DEFAULT).orElseThrow();
+		return engine.assess(LAT, LON, date, SEOUL, DARK_SKY, forecast, RecommendationPolicy.DEFAULT).orElseThrow();
 	}
 }

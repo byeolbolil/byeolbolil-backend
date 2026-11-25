@@ -1,7 +1,6 @@
 package xyz.ncookie.stargazer.domain.recommend.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static xyz.ncookie.stargazer.support.LightPollutionFixture.gridPoint;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,7 +24,6 @@ import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
 import xyz.ncookie.stargazer.domain.spot.entity.SpotKind;
 import xyz.ncookie.stargazer.domain.spot.repository.ObservationRepository;
-import xyz.ncookie.stargazer.domain.stargazing.repository.LightPollutionRepository;
 import xyz.ncookie.stargazer.global.security.jwt.JwtTokenProvider;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 import xyz.ncookie.stargazer.support.OpenMeteoNight;
@@ -49,22 +47,25 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 	private static final String ORIGIN_LAT = "37.55";
 	private static final String ORIGIN_LON = "126.91";
 
-	/** 이름, 위도, 경도, 광해 등급, 저녁 6시 칸부터의 구름 */
-	private record Place(String name, double lat, double lon, int bortle, int[] clouds) {}
+	/**
+	 * 이름, 위도, 경도, 저녁 6시 칸부터의 구름. 불빛 조건은 앱에 실린 격자와 data.sql의 값 그대로다.
+	 * 하늘 밝기는 영양 1.5, 만항재와 안반데기 3.2, 보현산과 조경철천문대 4.1, 벗고개 6.5쯤이다.
+	 */
+	private record Place(String name, double lat, double lon, int[] clouds) {}
 
 	private static final List<Place> SPOTS = List.of(
-		new Place("화천 조경철천문대", 38.11869, 127.43406, 3, new int[] {5, 5, 10, 10, 15, 10, 20, 25, 35, 45, 55, 60, 70}),
-		new Place("함백산 만항재", 37.14863, 128.90208, 3, new int[] {80, 70, 60, 40, 20, 10, 5, 5, 5, 0, 0, 5, 10}),
-		new Place("강릉 안반데기", 37.62633, 128.73942, 3, new int[] {20, 15, 10, 25, 60, 80, 80, 70, 40, 20, 10, 10, 15}),
-		new Place("영양 반딧불이생태공원", 36.83047, 129.26906, 2, new int[] {10, 5, 5, 0, 0, 5, 10, 10, 20, 40, 60, 70, 70}),
-		new Place("양평 벗고개", 37.503, 127.7308, 5, new int[] {40, 30, 20, 20, 25, 40, 60, 70, 80, 80, 90, 90, 90}),
-		new Place("영천 보현산", 36.16667, 128.98058, 3, new int[] {90, 90, 90, 85, 80, 85, 90, 90, 95, 95, 90, 90, 90})
+		new Place("화천 조경철천문대", 38.11869, 127.43406, new int[] {5, 5, 10, 10, 15, 10, 20, 25, 35, 45, 55, 60, 70}),
+		new Place("함백산 만항재", 37.14863, 128.90208, new int[] {80, 70, 60, 40, 20, 10, 5, 5, 5, 0, 0, 5, 10}),
+		new Place("강릉 안반데기", 37.62633, 128.73942, new int[] {20, 15, 10, 25, 60, 80, 80, 70, 40, 20, 10, 10, 15}),
+		new Place("영양 반딧불이생태공원", 36.83047, 129.26906, new int[] {10, 5, 5, 0, 0, 5, 10, 10, 20, 40, 60, 70, 70}),
+		new Place("양평 벗고개", 37.503, 127.7308, new int[] {40, 30, 20, 20, 25, 40, 60, 70, 80, 80, 90, 90, 90}),
+		new Place("영천 보현산", 36.16667, 128.98058, new int[] {90, 90, 90, 85, 80, 85, 90, 90, 95, 95, 90, 90, 90})
 	);
 
 	private static final List<Place> MY_PLACES = List.of(
-		new Place("호명호수", 37.73, 127.48, 4, new int[] {10, 10, 15, 20, 25, 35, 50, 60, 70, 80, 80, 85, 90}),
-		new Place("우리집 옥상", 37.55, 126.91, 8, new int[] {5, 5, 5, 10, 10, 10, 15, 15, 20, 20, 20, 20, 25}),
-		new Place("신두리 해안사구", 36.84, 126.20, 4, new int[] {60, 70, 80, 90, 90, 90, 80, 70, 50, 25, 20, 10, 10})
+		new Place("호명호수", 37.73, 127.48, new int[] {10, 10, 15, 20, 25, 35, 50, 60, 70, 80, 80, 85, 90}),
+		new Place("우리집 옥상", 37.55, 126.91, new int[] {5, 5, 5, 10, 10, 10, 15, 15, 20, 20, 20, 20, 25}),
+		new Place("신두리 해안사구", 36.84, 126.20, new int[] {60, 70, 80, 90, 90, 90, 80, 70, 50, 25, 20, 10, 10})
 	);
 
 	@Autowired
@@ -77,9 +78,6 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 	private ObservationRepository observationRepository;
 
 	@Autowired
-	private LightPollutionRepository lightPollutionRepository;
-
-	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
 
 	private Member member;
@@ -88,7 +86,6 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 	void setUp() {
 		bookmarkRepository.deleteAllInBatch();
 		memberRepository.deleteAllInBatch();
-		lightPollutionRepository.deleteAllInBatch();
 
 		member = memberRepository.save(Member.local("stargazer@example.com", "password", "별지기"));
 		for (Place place : MY_PLACES) {
@@ -100,9 +97,6 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 				.longitude(place.lon())
 				.address("테스트 주소")
 				.build());
-		}
-		for (Place place : allPlaces()) {
-			lightPollutionRepository.save(gridPoint(place.lat(), place.lon(), place.bortle()));
 		}
 	}
 
@@ -128,9 +122,10 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 				.containsEntry("type", "SPOT")
 				.containsEntry("level", "STRONG")
 				.containsEntry("pattern", "CLEAR_EARLY")
-				.containsEntry("bortleClass", 3)
+				.containsEntry("skyClass", "RURAL")
 				.containsEntry("forecastSource", "OPEN_METEO")
 				.containsEntry("notes", List.of());
+			assertThat((Double) place.get("skyBrightness")).isBetween(3.5, 4.7);
 			assertThat(place.get("bestWindow")).isEqualTo(Map.of(
 				"start", "2026-11-09T19:00:00+09:00",
 				"end", "2026-11-10T02:00:00+09:00",
@@ -140,17 +135,16 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		@Test
 		@DisplayName("꼭 가볼 만한 곳 여섯, 가볼 만한 곳 하나, 잠깐 볼 수 있는 곳 하나 순으로 나온다")
 		void order() {
-			// 영양은 하늘이 더 어둡고 구름도 적지만 4시간 50분 거리라, 1시간 42분 거리인 조경철천문대 바로 뒤에 온다.
-			// 둘의 차이는 1점이 안 된다. 좌표를 관측 지점으로 옮기기 전(영양이 12분 가까웠다)에는 영양이 앞이었다.
-			// 이동 감점(시간당 4점)의 크기는 정책이라 따로 정한다.
+			// 영양은 4시간 50분 거리지만 하늘이 훨씬 어둡고(하늘 밝기 1.5 대 4.1) 구름도 적어서, 1시간 42분 거리인
+			// 조경철천문대 앞에 온다. 이동 감점(시간당 4점)의 크기는 정책이라 따로 정한다.
 			String body = bodyOf(tonight(true));
 
 			List<String> names = JsonPath.read(body, "$.data.places[0:8].name");
 			List<String> levels = JsonPath.read(body, "$.data.places[0:8].level");
 
 			assertThat(names).containsExactly(
-				"화천 조경철천문대",
 				"영양 반딧불이생태공원",
+				"화천 조경철천문대",
 				"함백산 만항재",
 				"호명호수",
 				"양평 벗고개",
@@ -220,7 +214,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 				.containsEntry("clear", true)
 				.containsEntry("cloudCover", 5)
 				.containsEntry("moonUp", false)
-				.containsEntry("score", 83);
+				.containsEntry("score", 67);
 		}
 
 		@Test
@@ -233,7 +227,22 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 
 			assertThat(types).hasSize(spotCount).containsOnly("SPOT");
 			assertThat((Integer) JsonPath.read(body, "$.data.candidateCount")).isEqualTo(spotCount);
-			assertThat((String) JsonPath.read(body, "$.data.places[0].name")).isEqualTo("화천 조경철천문대");
+			// 출발지를 보내지 않아 이동 감점이 없으므로, 하늘이 가장 어둡고 구름도 적은 영양이 맨 앞이다.
+			assertThat((String) JsonPath.read(body, "$.data.places[0].name")).isEqualTo("영양 반딧불이생태공원");
+		}
+
+		@Test
+		@DisplayName("명소에는 지형 너머로 직접 보이는 불빛의 값이 실려 있다. 좌표가 대략인 곳은 비어 있다")
+		void lightsInViewOfSpots() {
+			Map<String, Double> lightsInView = new java.util.HashMap<>();
+			for (ObservationSpot spot : observationRepository.findAll()) {
+				lightsInView.put(spot.getTitle(), spot.getLightsInView());
+			}
+
+			assertThat(lightsInView.get("부여 성흥산성")).isEqualTo(2.36);
+			assertThat(lightsInView.get("제천 덕주산성")).isEqualTo(0.16);
+			assertThat(lightsInView.get("고성 미시령 옛길")).isNull();
+			assertThat(lightsInView.get("영월 별마로천문대")).isNull();
 		}
 
 		@Test
@@ -376,8 +385,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 
 			List<Map<String, Object>> hours = JsonPath.read(body, "$.data.places[?(@.name == '화천 조경철천문대')].hours[*]");
 			assertThat(hours.get(1)).containsEntry("moonUp", true);
-			// 달이 없던 밤에는 83점이던 칸이다.
-			assertThat((Integer) hours.get(1).get("score")).isBetween(58, 66);
+			// 달이 없던 밤에는 67점이던 칸이다.
+			assertThat((Integer) hours.get(1).get("score")).isBetween(46, 53);
 		}
 	}
 

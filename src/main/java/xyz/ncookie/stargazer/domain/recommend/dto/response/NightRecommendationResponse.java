@@ -89,14 +89,18 @@ public record NightRecommendationResponse(
 		String level,
 		@Schema(description = "밤 패턴. CLEAR_ALL_NIGHT, CLEAR_EARLY, CLEARS_LATE, CLEARS_AGAIN, BRIEF_CLEAR, CLOUDY_ALL_NIGHT")
 		String pattern,
-		@Schema(description = "주의 사항. CLEARS_LATE, BRIGHT_MOON, CITY_LIGHTS, DEW")
+		@Schema(description = "주의 사항. CLEARS_LATE, BRIGHT_MOON, CITY_LIGHTS, LIGHTS_IN_VIEW, DEW")
 		List<String> notes,
 		@Schema(description = "추천 시간대. 맑은 시간이 없으면 빠진다")
 		Window bestWindow,
 
 		@Schema(description = "이동 추정. 출발지를 보내지 않았으면 빠진다")
 		Travel travel,
-		@Schema(description = "광해 등급(Bortle 1~9)")
+		@Schema(description = "하늘 전체의 인공 밝기가 자연 밤하늘의 몇 배인지(ALR). 자료가 없는 곳이면 빠진다", example = "3.99")
+		Double skyBrightness,
+		@Schema(description = "하늘 밝기로 나눈 등급. NATURAL, DARK, RURAL, SUBURBAN, URBAN. 자료가 없는 곳이면 빠진다")
+		String skyClass,
+		@Schema(description = "없어질 값. skyBrightness에서 어림한 Bortle 등급이다", deprecated = true)
 		int bortleClass,
 		@Schema(description = "보름달을 1로 본 그 밤의 달 밝기", example = "0.09")
 		double moonBrightness,
@@ -134,7 +138,9 @@ public record NightRecommendationResponse(
 				recommendation.travel() != null
 					? new Travel(round1(recommendation.travel().distanceKm()), recommendation.travel().minutes())
 					: null,
-				recommendation.bortleClass(),
+				SkyValues.brightness(recommendation.light()),
+				SkyValues.className(recommendation.light()),
+				recommendation.light().legacyBortleClass(),
 				moonBrightness(night),
 				Moon.of(night.moon(), zone),
 				recommendation.forecastSource().name(),

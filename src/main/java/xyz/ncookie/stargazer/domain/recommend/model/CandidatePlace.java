@@ -7,6 +7,7 @@ package xyz.ncookie.stargazer.domain.recommend.model;
  * @param id     type이 SPOT이면 명소 ID, BOOKMARK면 북마크 ID
  * @param spotId 명소이거나 명소를 저장한 북마크라면 그 명소의 ID. 같은 명소가 두 번 나오지 않게 하는 데 쓴다
  * @param guide  명소의 안내. 직접 찍은 위치를 저장한 내 장소에는 없다(null)
+ * @param lightsInView 지형 너머로 직접 보이는 먼 불빛의 지수. 미리 계산해 둔 명소에만 있다(없으면 null)
  */
 public record CandidatePlace(
 	PlaceType type,
@@ -16,12 +17,13 @@ public record CandidatePlace(
 	String address,
 	double latitude,
 	double longitude,
-	PlaceGuide guide
+	PlaceGuide guide,
+	Double lightsInView
 ) {
 
 	public CandidatePlace(
 		PlaceType type, Long id, Long spotId, String name, String address, double latitude, double longitude
 	) {
-		this(type, id, spotId, name, address, latitude, longitude, null);
+		this(type, id, spotId, name, address, latitude, longitude, null, null);
 	}
 }

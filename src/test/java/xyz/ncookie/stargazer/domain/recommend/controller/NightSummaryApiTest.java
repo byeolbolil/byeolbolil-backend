@@ -1,7 +1,6 @@
 package xyz.ncookie.stargazer.domain.recommend.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static xyz.ncookie.stargazer.support.LightPollutionFixture.gridPoint;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,7 +20,6 @@ import xyz.ncookie.stargazer.domain.bookmark.entity.BookmarkType;
 import xyz.ncookie.stargazer.domain.bookmark.repository.BookmarkRepository;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
-import xyz.ncookie.stargazer.domain.stargazing.repository.LightPollutionRepository;
 import xyz.ncookie.stargazer.global.security.jwt.JwtTokenProvider;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 import xyz.ncookie.stargazer.support.OpenMeteoNight;
@@ -61,9 +59,6 @@ class NightSummaryApiTest extends IntegrationTestSupport {
 	private BookmarkRepository bookmarkRepository;
 
 	@Autowired
-	private LightPollutionRepository lightPollutionRepository;
-
-	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
 
 	private Member member;
@@ -72,9 +67,6 @@ class NightSummaryApiTest extends IntegrationTestSupport {
 	void setUp() {
 		bookmarkRepository.deleteAllInBatch();
 		memberRepository.deleteAllInBatch();
-		lightPollutionRepository.deleteAllInBatch();
-		lightPollutionRepository.save(gridPoint(ANBANDEGI_LAT, ANBANDEGI_LON, 3));
-		lightPollutionRepository.save(gridPoint(HOME_LAT, HOME_LON, 8));
 
 		member = memberRepository.save(Member.local("stargazer@example.com", "password", "별지기"));
 		bookmarkRepository.save(Bookmark.builder()

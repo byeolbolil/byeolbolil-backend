@@ -20,6 +20,7 @@ import xyz.ncookie.stargazer.domain.stargazing.model.HourlyForecastData;
 import xyz.ncookie.stargazer.domain.stargazing.model.RawAstronomyData;
 import xyz.ncookie.stargazer.domain.stargazing.model.StarAnalysisResult;
 import xyz.ncookie.stargazer.domain.stargazing.provider.LightPollutionDataProvider;
+import xyz.ncookie.stargazer.domain.stargazing.provider.SkyBrightnessGrid;
 import xyz.ncookie.stargazer.domain.stargazing.provider.WeatherDataProvider;
 
 /**
@@ -36,7 +37,8 @@ class StargazingDomainServiceTest {
 		mock(WeatherDataProvider.class),
 		scoringEngine,
 		mock(GeminiAnalysisClient.class),
-		mock(LightPollutionDataProvider.class)
+		mock(LightPollutionDataProvider.class),
+		mock(SkyBrightnessGrid.class)
 	);
 
 	@ParameterizedTest(name = "구름 {0}% → {1}")

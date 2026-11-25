@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
+import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
 import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
@@ -25,6 +26,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.NightNote;
 import xyz.ncookie.stargazer.domain.recommend.model.NightPattern;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
+import xyz.ncookie.stargazer.domain.recommend.model.SkyClass;
 import xyz.ncookie.stargazer.domain.weather.model.HourlyWeather;
 
 /**
@@ -66,18 +68,48 @@ public class NightAssessmentEngine {
 	// 밝기 계산은 MoonBrightness(Krisciunas & Schaefer 1991)를 따르지만 0.25라는 경계는 근거 자료가 없다.
 	static final double BRIGHT_MOON_MIN = 0.25;
 
-	// ---- 광해 ----
+	// ---- 하늘 밝기 ----
+	// 하늘 밝기는 ALR(하늘 전체에서 평균한 인공 밝기가 자연 밤하늘의 몇 배인지)로 받는다. 아래 세 경계는
+	// SkyClass의 등급 경계와 같은 값이고 출처도 거기에 적었다.
+	// Duriscoe et al., JQSRT 214, 133 (2018) 표 3, Falchi et al., Science Advances 2, e1600377 (2016)
 
-	// 정책: Bortle 7등급(교외와 도시 사이) 이상이면 맑아도 "별 보기 아쉬워요"까지만 준다. 근거 자료가 없다.
-	// 광해 기준을 연속값으로 바꾸면(로드맵 4단계) Falchi et al. 2016의 은하수 가시 한계로 대체할 값이다.
-	static final int CITY_BORTLE_MIN = 7;
+	// 이 값 아래로는 자연 상태와 가르기 어려운 하늘이라 감점하지 않는다.
+	static final double NATURAL_SKY_MAX = SkyClass.NATURAL.upperBound();
+
+	// 이 값부터는 은하수가 보이지 않는다. 맑아도 "별 보기 아쉬워요"까지만 준다.
+	static final double MILKY_WAY_LOST_MIN = SkyClass.RURAL.upperBound();
+
+	// 이 값부터는 눈이 어둠에 적응하지 못한다. 하늘 밝기 감점을 끝까지 준다.
+	static final double BRIGHTEST_SKY = SkyClass.SUBURBAN.upperBound();
+
+	// 정책: 불빛 자료가 없는 좌표(격자 밖)는 이 밝기로 보고 점수를 낸다. 어두운 하늘과 시골 하늘의 경계다.
+	static final double UNKNOWN_SKY_BRIGHTNESS = SkyClass.DARK.upperBound();
+
+	// ---- 직접 보이는 불빛 ----
+
+	// 정책: 둘레 1km의 평균 레이디언스(nW/cm²/sr)가 이 값 이상이면 가로등과 건물 사이로 보고, 맑아도
+	// "별 보기 아쉬워요"까지만 준다. 근거 자료가 없다. 2024년 자료에서 추천 후보지는 모두 2 이하, 읍 중심은 7~27,
+	// 시내는 40~110이었고 그 사이에서 골랐다. 하늘 밝기만으로는 작은 도시의 시내가 걸러지지 않아서 둔 조건이다.
+	static final double LIT_SURROUNDINGS_MIN = 10.0;
+
+	// 정책: 지형 너머로 직접 보이는 먼 불빛의 지수(scripts/lightpollution/terrain.py)가 앞의 값 이하면 감점하지
+	// 않고, 뒤의 값 이상이면 끝까지 감점한다. 그 사이는 로그로 잇는다. 근거 자료가 없고, 다녀온 사람의 관찰 세
+	// 건에 맞춘 값이다: 불빛이 거의 없던 제천 덕주산성 0.16과 남원 정령치휴게소 0.08, 아래 시가지 불빛이 그대로
+	// 들어오던 부여 성흥산성 2.4.
+	static final double LIGHTS_IN_VIEW_NONE = 0.2;
+	static final double LIGHTS_IN_VIEW_STRONG = 2.0;
+
+	// 정책: 직접 보이는 불빛의 나쁜 정도(0~1)가 이 값 이상이면 주의 사항으로 알린다.
+	static final double LIGHTS_IN_VIEW_NOTE_MIN = 0.5;
 
 	// ---- 시간별 점수의 가중치 ----
-	// 정책: 아래 세 값은 근거 자료가 없다. 요인마다 0~1로 나타낸 나쁜 정도에 곱해, 그만큼 점수를 깎는 비율이다.
-	// 광해 0.5와 달 0.3은 이전 엔진의 최대 감점(50점, 30점)을 이어받았고, 박명 0.2는 새로 정했다.
+	// 정책: 아래 네 값은 근거 자료가 없다. 요인마다 0~1로 나타낸 나쁜 정도에 곱해, 그만큼 점수를 깎는 비율이다.
+	// 하늘 밝기 0.5와 달 0.3은 이전 엔진의 최대 감점(50점, 30점)을 이어받았고, 박명 0.2는 새로 정했다.
+	// 직접 보이는 불빛 0.2는 박명과 같은 크기로 두었다.
 	// 요인을 곱으로 묶은 것은 광해가 심한 곳에서는 달의 영향이 줄어든다는 관측과 맞추기 위해서다.
 	// Puschnig, Wallner & Posch, MNRAS (2020), https://arxiv.org/abs/1912.05673
 	static final double LIGHT_POLLUTION_WEIGHT = 0.5;
+	static final double LIGHTS_IN_VIEW_WEIGHT = 0.2;
 	static final double MOON_WEIGHT = 0.3;
 	static final double TWILIGHT_WEIGHT = 0.2;
 
@@ -104,7 +136,7 @@ public class NightAssessmentEngine {
 	/**
 	 * @param date        밤이 시작하는 날짜
 	 * @param zone        date를 읽을 시간대
-	 * @param bortleClass 장소의 광해 등급(1~9)
+	 * @param light       장소의 불빛 조건. 모르면 LightCondition.UNKNOWN
 	 * @param forecast    시간별 예보. 그 밤의 시각이 빠져 있으면 그 칸은 평가에서 빠진다
 	 * @return 그 밤의 어두운 시간에 예보가 하나도 없으면 비어 있다
 	 */
@@ -113,11 +145,11 @@ public class NightAssessmentEngine {
 		double longitude,
 		LocalDate date,
 		ZoneId zone,
-		int bortleClass,
+		LightCondition light,
 		List<HourlyWeather> forecast,
 		RecommendationPolicy policy
 	) {
-		List<NightHour> hours = nightHours(latitude, longitude, date, zone, bortleClass, forecast);
+		List<NightHour> hours = nightHours(latitude, longitude, date, zone, light, forecast);
 		if (hours.stream().noneMatch(NightHour::dark)) {
 			return Optional.empty();
 		}
@@ -149,9 +181,12 @@ public class NightAssessmentEngine {
 				level = level.loweredOnce();
 				notes.add(NightNote.BRIGHT_MOON);
 			}
-			if (bortleClass >= CITY_BORTLE_MIN && level.isAbove(RecommendationLevel.MAYBE)) {
+			if (isTooBright(light) && level.isAbove(RecommendationLevel.MAYBE)) {
 				level = RecommendationLevel.MAYBE;
 				notes.add(NightNote.CITY_LIGHTS);
+			}
+			if (lightsInViewBadness(light) >= LIGHTS_IN_VIEW_NOTE_MIN) {
+				notes.add(NightNote.LIGHTS_IN_VIEW);
 			}
 			if (bestHours.stream().anyMatch(hour -> hour.relativeHumidity() >= DEW_HUMIDITY_MIN)) {
 				notes.add(NightNote.DEW);
@@ -184,7 +219,7 @@ public class NightAssessmentEngine {
 	 * 그날 정오부터 다음 날 정오까지의 시간 칸 가운데, 해가 지평선 아래에 있고 예보가 있는 칸.
 	 */
 	private List<NightHour> nightHours(
-		double latitude, double longitude, LocalDate date, ZoneId zone, int bortleClass, List<HourlyWeather> forecast
+		double latitude, double longitude, LocalDate date, ZoneId zone, LightCondition light, List<HourlyWeather> forecast
 	) {
 		Map<Instant, HourlyWeather> weatherByTime = forecast.stream()
 			.collect(Collectors.toMap(HourlyWeather::time, Function.identity(), (first, second) -> first));
@@ -226,7 +261,7 @@ public class NightAssessmentEngine {
 				moonUp,
 				moonBrightness,
 				dark && weather.cloudCover() <= CLEAR_CLOUD_COVER_MAX,
-				dark ? score(weather.cloudCover(), bortleClass, moonUp, moonBrightness, sunAltitude) : 0
+				dark ? score(weather.cloudCover(), light, moonUp, moonBrightness, sunAltitude) : 0
 			));
 		}
 		return hours;
@@ -236,14 +271,48 @@ public class NightAssessmentEngine {
 	 * 어두운 칸의 점수. 100에서 시작해 요인마다 보이는 하늘의 비율을 곱해 나간다.
 	 * 구름은 가려지지 않은 하늘의 비율을 그대로 쓰고, 나머지 요인은 정책 가중치만큼만 깎는다.
 	 */
-	static int score(int cloudCover, int bortleClass, boolean moonUp, double moonBrightness, double sunAltitude) {
+	static int score(int cloudCover, LightCondition light, boolean moonUp, double moonBrightness, double sunAltitude) {
 		double cloud = 1 - clamp(cloudCover / 100.0);
-		double lightPollution = 1 - LIGHT_POLLUTION_WEIGHT * clamp((bortleClass - 1) / 8.0);
+		double skyGlow = 1 - LIGHT_POLLUTION_WEIGHT * skyBadness(light);
+		double lightsInView = 1 - LIGHTS_IN_VIEW_WEIGHT * lightsInViewBadness(light);
 		double moon = 1 - MOON_WEIGHT * (moonUp ? clamp(moonBrightness) : 0);
 		double twilight = 1 - TWILIGHT_WEIGHT * clamp(
 			(sunAltitude - FULLY_DARK_SUN_ALTITUDE) / (DARK_SUN_ALTITUDE - FULLY_DARK_SUN_ALTITUDE));
 
-		return (int) Math.round(100 * cloud * lightPollution * moon * twilight);
+		return (int) Math.round(100 * cloud * skyGlow * lightsInView * moon * twilight);
+	}
+
+	/**
+	 * 하늘이 인공 불빛으로 밝아진 정도를 0~1로. 자연 상태에 가까운 하늘이 0, 눈이 어둠에 적응하지 못하는 하늘이 1이고
+	 * 그 사이는 밝기의 로그로 잇는다. 별의 등급이 밝기의 로그라서, 밝기가 같은 배수로 늘 때마다 보이는 별의 한계
+	 * 등급도 비슷한 폭으로 얕아진다.
+	 */
+	static double skyBadness(LightCondition light) {
+		double skyBrightness = (light.skyBrightness() != null) ? light.skyBrightness() : UNKNOWN_SKY_BRIGHTNESS;
+		return logRamp(skyBrightness, NATURAL_SKY_MAX, BRIGHTEST_SKY);
+	}
+
+	/** 먼 불빛이 직접 보이는 정도를 0~1로. 계산해 둔 값이 없는 곳은 0이다 */
+	static double lightsInViewBadness(LightCondition light) {
+		if (light.lightsInView() == null) {
+			return 0;
+		}
+		return logRamp(light.lightsInView(), LIGHTS_IN_VIEW_NONE, LIGHTS_IN_VIEW_STRONG);
+	}
+
+	/** 은하수가 보이지 않을 만큼 하늘이 밝거나, 서 있는 곳 둘레가 밝은지 */
+	static boolean isTooBright(LightCondition light) {
+		boolean skyTooBright = light.skyBrightness() != null && light.skyBrightness() >= MILKY_WAY_LOST_MIN;
+		boolean litSurroundings = light.nearbyRadiance() != null && light.nearbyRadiance() >= LIT_SURROUNDINGS_MIN;
+		return skyTooBright || litSurroundings;
+	}
+
+	/** low 이하에서 0, high 이상에서 1이고 그 사이는 로그 눈금에서 곧게 잇는다 */
+	private static double logRamp(double value, double low, double high) {
+		if (value <= low) {
+			return 0;
+		}
+		return clamp(Math.log(value / low) / Math.log(high / low));
 	}
 
 	private static List<ClearWindow> clearWindows(List<NightHour> hours) {

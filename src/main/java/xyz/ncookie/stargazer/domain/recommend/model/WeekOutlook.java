@@ -15,7 +15,7 @@ import xyz.ncookie.stargazer.domain.weather.model.ForecastSource;
  */
 public record WeekOutlook(
 	CandidatePlace place,
-	int bortleClass,
+	LightCondition light,
 	List<NightAssessment> nights,
 	ForecastSource forecastSource,
 	Instant forecastIssuedAt
