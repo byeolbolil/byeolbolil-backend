@@ -161,7 +161,7 @@ public class NightRecommendationApplicationService {
 
 	private static PlaceGuide guideOf(ObservationSpot spot) {
 		List<PlaceLink> links = spot.getLinks().stream()
-			.map(link -> new PlaceLink(link.getTitle(), link.getUrl()))
+			.map(link -> new PlaceLink(link.getTitle(), link.getUrl(), link.getImageUrl()))
 			.toList();
 		return new PlaceGuide(spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution(), links);
 	}

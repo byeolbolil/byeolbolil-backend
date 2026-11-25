@@ -317,7 +317,7 @@ GET /api/v1/recommendations/nights/{date}
 | `description` | string | 어떤 곳인지 한두 문장. 명소가 아니면 빠진다 |
 | `guide` | string | 가는 법과 주차. 명소가 아니면 빠진다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
-| `links` | array | 참고 링크. 항목은 `title`과 `url`이다. 7장 관측지의 `links`와 같다. 명소가 아니거나 링크가 없으면 빠진다 |
+| `links` | array | 참고 링크. 항목은 `title`, `url`, `imageUrl`이다. 7장 관측지의 `links`와 같다. 명소가 아니거나 링크가 없으면 빠진다 |
 | `level` | string | 추천 등급. 아래 표 |
 | `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
 | `notes` | string[] | 주의할 점. 없으면 빈 배열 |
@@ -503,7 +503,7 @@ GET /api/v1/spots
 | `description` | string | 어떤 곳인지 한두 문장 |
 | `guide` | string | 가는 법과 주차. `FACILITY`에서는 운영 시간과 예약 방법이다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
-| `links` | array | 참고 링크. 항목은 `title`(그 글의 제목)과 `url`이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
+| `links` | array | 참고 링크. 항목은 `title`(그 글의 제목), `url`, `imageUrl`(그 글의 대표 이미지, 없으면 빠진다)이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
 | `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 광해 등급은 밤 추천의 `bortleClass`를 본다 |
 | `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
@@ -532,11 +532,13 @@ GET /api/v1/spots?kind=OPEN_SITE
       "links": [
         {
           "title": "해발 1,100m에서 맨눈으로 은하수 보는 겨울 명소",
-          "url": "https://www.ardentnews.co.kr/news/articleView.html?idxno=10300"
+          "url": "https://www.ardentnews.co.kr/news/articleView.html?idxno=10300",
+          "imageUrl": "https://cdn.ardentnews.co.kr/news/thumbnail/202601/10300_45700_5624_v150.jpg"
         },
         {
           "title": "겨울 차박족으로 몸살 앓는 별의 성지 안반데기",
-          "url": "https://v.daum.net/v/Q16NWPhVPS"
+          "url": "https://v.daum.net/v/Q16NWPhVPS",
+          "imageUrl": "https://img1.daumcdn.net/thumb/S800x400/?fname=https://t1.daumcdn.net/news/202311/19/traveltoktok/20231119091016326dybt.jpg"
         }
       ],
       "isParkingAvailable": true,
@@ -549,6 +551,8 @@ GET /api/v1/spots?kind=OPEN_SITE
 
 `data`는 하나만 남기고 줄였다. `description`, `guide`, `caution`은 화면에 그대로 보여 주는 문장이다.
 `links`는 남의 글이라 언제든 사라질 수 있다. 새 창으로 열고, 링크가 없는 곳도 있다는 것을 전제로 그린다.
+`imageUrl`은 그 글이 대표 이미지(og:image)로 내건 주소이고 남의 서버에 있는 파일이다. 링크의 미리보기로만 쓰고,
+리퍼러를 보내지 않고 부르며(`referrerpolicy="no-referrer"`), 받지 못하면 이미지 없이 그린다.
 
 같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
 
