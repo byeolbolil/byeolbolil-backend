@@ -397,9 +397,9 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
   "data": {
     "date": "2026-11-25",
     "criteria": { "minClearHours": 3, "preferBefore": "02:00", "maxTravelMinutes": 180 },
-    "candidateCount": 22,
-    "evaluatedCount": 22,
-    "excludedByTravelCount": 17,
+    "candidateCount": 24,
+    "evaluatedCount": 24,
+    "excludedByTravelCount": 18,
     "places": [
       {
         "type": "SPOT",
@@ -458,7 +458,7 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
 }
 ```
 
-`places`와 `hours`는 하나씩만 남기고 줄였다. 실제로는 이 요청에 장소 5곳, 장소마다 시간 칸 13개가 왔다.
+`places`와 `hours`는 하나씩만 남기고 줄였다. 실제로는 이 요청에 장소 6곳, 장소마다 시간 칸 12개가 왔다.
 
 ### 응답 시간
 
