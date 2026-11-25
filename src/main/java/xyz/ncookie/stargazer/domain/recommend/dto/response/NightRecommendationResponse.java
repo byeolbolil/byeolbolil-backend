@@ -81,6 +81,9 @@ public record NightRecommendationResponse(
 		String guide,
 		@Schema(description = "계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다")
 		String caution,
+		@Schema(description = "가는 길과 서는 자리를 더 자세히 적은 글. 없으면 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<Link> links,
 
 		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
@@ -123,6 +126,7 @@ public record NightRecommendationResponse(
 				guide != null ? guide.description() : null,
 				guide != null ? guide.guide() : null,
 				guide != null ? guide.caution() : null,
+				guide != null ? guide.links().stream().map(link -> new Link(link.title(), link.url())).toList() : null,
 				night.level().name(),
 				night.pattern().name(),
 				night.notes().stream().map(Enum::name).toList(),
@@ -148,6 +152,13 @@ public record NightRecommendationResponse(
 				.orElse(0.0);
 		}
 	}
+
+	@Schema(description = "참고 링크")
+	public record Link(
+		@Schema(description = "그 글의 제목")
+		String title,
+		String url
+	) {}
 
 	@Schema(description = "그 장소에서 본 그 밤의 달")
 	@JsonInclude(JsonInclude.Include.NON_NULL)

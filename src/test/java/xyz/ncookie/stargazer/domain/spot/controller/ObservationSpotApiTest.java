@@ -21,7 +21,7 @@ import xyz.ncookie.stargazer.support.IntegrationTestSupport;
  */
 class ObservationSpotApiTest extends IntegrationTestSupport {
 
-	private static final int OPEN_SITES = 22;
+	private static final int OPEN_SITES = 24;
 	private static final int FACILITIES = 17;
 
 	@Autowired
@@ -83,6 +83,23 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 			.doesNotContainKeys("viewpoint", "caution");
 		assertThat((String) byeolmaro.get("guide")).contains("셔틀버스");
 		assertThat(spotNamed(body, "송암스페이스센터")).containsKey("caution");
+	}
+
+	@Test
+	@DisplayName("참고 링크는 적어 둔 순서대로 오고, 링크가 없는 곳에는 항목이 없다")
+	void links() {
+		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());
+
+		// 차를 대는 자리를 지도에서 특정하지 못한 곳이라 자리를 설명한 글이 첫 번째다
+		List<Map<String, Object>> misiryeong = JsonPath.read(body, "$.data[?(@.title == '고성 미시령 옛길')].links[*]");
+
+		assertThat(misiryeong).hasSize(2);
+		assertThat(misiryeong.get(0))
+			.containsEntry("title", "울산바위 은하수 포인트 가는법 정리")
+			.containsEntry("url", "https://gall.dcinside.com/mgallery/board/view/?id=digitalpicture&no=74118");
+		assertThat((String) misiryeong.get(1).get("url")).startsWith("https://korean.visitkorea.or.kr/");
+		assertThat(spotNamed(body, "대전 시민천문대")).containsKey("links");
+		assertThat(spotNamed(body, "영월 별마로천문대")).doesNotContainKey("links");
 	}
 
 	@Test

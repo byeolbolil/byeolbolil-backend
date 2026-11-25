@@ -4,6 +4,8 @@
 -- kind가 OPEN_SITE인 곳은 밤에 자유롭게 가서 보는 관측지이고 밤 추천의 후보가 된다. FACILITY는 프로그램으로
 -- 망원경을 보는 천문대와 과학관이고 추천 후보가 아니다.
 -- 좌표는 viewpoint에 적은 주차장이나 전망대의 것이다. OpenStreetMap에서 확인했고, 12번과 15번은 위키백과의 좌표다.
+-- 8번, 10번, 14번은 차를 대는 자리를 지도에서 특정하지 못해 대략의 위치다(8번과 10번은 그 길 위의 한 점, 14번은
+-- 한국관광공사의 해변 좌표). 이런 곳은 guide에 그렇게 적고 참고 링크로 자리를 찾게 한다.
 -- light_pollution_level은 비워 둔다. 예전 값은 틀린 좌표로 매긴 것이고, 광해 등급은 좌표로 그때그때 찾는다.
 INSERT INTO observation_spot
     (id, title, address, latitude, longitude, description, light_pollution_level,
@@ -15,11 +17,13 @@ VALUES
     (4, '화천 조경철천문대', '강원도 화천군 사내면 천문대길 431', 38.11869, 127.43406, '광덕산 해발 1,010m 능선의 천문대예요. 천문대가 문을 닫은 뒤에도 주차장에서 별을 보는 사람들이 모여요.', NULL, true, true, true, 'OPEN_SITE', 'ACTIVE', '천문대 주차장', '천문대 앞까지 차로 가요. 주차장과 화장실이 있어요. 천문대는 오후 2시부터 밤 10시까지 열고 월요일은 쉬어요.', '외길에 급경사가 있고 겨울에는 얼어서 통제될 수 있어요. 야영과 취사는 금지예요. 유성우 때는 주차장이 가득 차요.'),
     (5, '정선 타임캡슐공원', '강원도 정선군 신동읍 엽기소나무길 518-23', 37.201246, 128.688059, '새비재 해발 850m 언덕의 공원이에요. 영화에 나온 소나무와 은하수를 함께 찍는 곳으로 알려져 있어요.', NULL, true, true, false, 'OPEN_SITE', 'ACTIVE', '타임캡슐공원', '공원 주차장에 대요. 밤에는 화장실과 카페가 닫혀 있어요.', '공식 운영 시간은 오전 9시부터 오후 6시이고 12월부터 3월까지는 운영을 쉬어요. 근처 리조트 쪽 하늘은 밝아요.'),
     (7, '양구 국토정중앙천문대', '강원도 양구군 남면 국토정중앙로 127', 38.06894, 128.02979, '천문대와 야영장이 함께 있어요. 별이 잘 보이는 캠핑장으로 소개돼요.', NULL, true, true, true, 'FACILITY', 'ACTIVE', NULL, '천문대 프로그램으로 관측해요. 야영장은 4월부터 11월까지 예약제로 열어요.', NULL),
+    (8, '고성 미시령 옛길', '강원특별자치도 고성군 토성면 원암리 (미시령옛길)', 38.21357, 128.46791, '울산바위를 정면으로 올려다보는 옛 고갯길이에요. 바위 위로 은하수가 서는 사진으로 널리 알려져 있어요.', NULL, false, true, false, 'OPEN_SITE', 'ACTIVE', '울산바위 전망대 쉼터', '델피노 리조트 쪽에서 옛길을 오르다 보면 벤치가 있는 쉼터가 나와요. 그 근처 길가에 차를 대요. 화장실은 없어요. 지도의 위치는 대략이라 정확한 자리는 아래 글에서 확인하세요.', '쉼터 가로등이 밤늦게까지 켜져 있고 속초 쪽 하늘은 밝아요. 겨울에는 눈 때문에 옛길을 막는 해가 많으니 가기 전에 통제 여부를 확인하세요. 은하수가 바위 위에 오는 때는 5~6월이에요.'),
     (9, '가평 화악터널 쌈지공원', '경기도 가평군 북면 화악리 산228-1', 37.99708, 127.52636, '화악산 화악터널 앞 고갯마루의 작은 공원이에요. 수도권에서 가까운 별 보기 장소로 방송에 나온 뒤 유명해졌어요.', NULL, true, true, true, 'OPEN_SITE', 'ACTIVE', '쌈지공원 전망대', '공원 앞 무료 주차장에 대요. 자리가 적어요. 24시간 열려 있어요.', '도로 가로등이 밝다는 후기가 많아요. 전망대 쪽에서 가로등을 등지고 보세요. 겨울에는 주차장이 막혀 있을 때가 있어요.'),
-    (10, '양평 벗고개', '경기도 양평군 서종면 수능리 (벗고개터널)', 37.57039, 127.38999, '서울에서 가까운 고갯마루예요. 은하수보다는 밝은 별과 별자리를 보러 가는 곳이에요.', NULL, false, true, false, 'OPEN_SITE', 'ACTIVE', '벗고개터널 앞', '주차장이 없어 터널 앞 갓길이나 공터에 대요. 화장실과 가게가 없어요.', '차가 다니는 도로라 헤드라이트가 자주 지나가고 걸을 때 위험해요. 산에 가려 하늘이 좁아요.'),
+    (10, '양평 벗고개', '경기도 양평군 양동면 금왕리 187 (벗고개터널)', 37.503, 127.7308, '양동면 산골 고갯마루의 작은 터널이에요. 터널 안에서 반원 모양으로 보이는 밤하늘 사진으로 알려져 있어요.', NULL, false, true, false, 'OPEN_SITE', 'ACTIVE', '벗고개터널 앞', '주차장이 없어 터널 근처 길가에 대요. 화장실과 가게가 없어요. 지도에서 벗고개를 찾으면 서종면의 같은 이름 고개가 함께 나오니 양동면 금왕리 쪽으로 가세요.', '차가 다니는 길이라 걸을 때 조심하세요. 들어설 때는 먼저 온 사람들을 위해 전조등을 줄이고 천천히 가 주세요.'),
     (11, '양평 중미산천문대', '경기도 양평군 옥천면 중미산로 1268', 37.58173, 127.45941, '해설을 들으며 망원경으로 보는 사설 천문대예요.', NULL, true, true, true, 'FACILITY', 'ACTIVE', NULL, '전부 예약제이고 유료예요. 예약한 사람만 주차하고 들어가요.', NULL),
     (12, '연천 당포성', '경기도 연천군 미산면 동이리 778', 38.0275, 127.01278, '임진강 절벽 위의 고구려 성터예요. 주변에 민가가 없어 수도권에서 별 보기 좋은 곳으로 꼽혀요.', NULL, true, true, true, 'OPEN_SITE', 'ACTIVE', '당포성 주차장', '주차장에서 5~7분 걸어요. 자리가 적어요. 주차장에 화장실이 있고 늘 열려 있어요.', '은하수보다는 별자리와 유성우를 보기 좋은 곳이에요. 다른 사람을 위해 헤드라이트와 플래시를 꺼 주세요.'),
     (13, '제천 덕주산성', '충청북도 제천시 한수면 미륵송계로 1405', 36.86206, 128.09643, '월악산 자락 도로변에 성문이 남아 있는 산성이에요. 성문 위로 뜨는 은하수 사진으로 알려져 있어요.', NULL, true, true, false, 'OPEN_SITE', 'ACTIVE', '덕주산성 앞 주차장', '성문 앞 도로변 주차장에 대요.', '월악산국립공원 구역이에요. 밤에는 탐방로로 들어가지 말고 성문 주변에서 보세요. 은하수는 5월이 지나야 성 위로 올라와요.'),
+    (14, '태안 운여해변', '충청남도 태안군 고남면 장삼포로 535-57', 36.43358, 126.35595, '안면도 서쪽의 한적한 해변이에요. 방파제 위 솔숲(솔섬)이 물에 비치는 풍경과 별을 함께 찍는 곳으로 알려져 있어요.', NULL, true, true, true, 'OPEN_SITE', 'ACTIVE', '솔섬 방파제 앞', '해변 주차장에 대고 남쪽 끝의 솔숲 방파제로 걸어가요. 주차장과 화장실이 있지만 자리가 넉넉하지 않아요. 지도의 위치는 해변 입구쯤이에요.', '솔숲이 물에 비치는 모습은 밀물 때만 보여요. 가기 전에 물때를 확인하세요. 맨눈으로 은하수가 보이는지는 후기가 엇갈려요. 파도가 높은 날에는 물가에 가까이 가지 마세요.'),
     (15, '부여 성흥산성', '충청남도 부여군 임천면 성흥로97번길 167', 36.19556, 126.89833, '가림성이라고도 하는 백제 산성이에요. 성벽 위의 큰 느티나무(사랑나무)와 별을 함께 찍는 곳으로 유명해요.', NULL, true, true, false, 'OPEN_SITE', 'ACTIVE', '사랑나무', '정상 아래 무료 주차 공간에 대고 계단과 오르막을 10~20분 걸어요. 올라가는 길이 좁고 가팔라요.', '해가 지면 계단이 금방 어두워져요. 랜턴을 챙기세요. 아래 마을 쪽 하늘은 밝아요.'),
     (16, '대전 시민천문대', '대전광역시 유성구 과학로 213-48', 36.38004, 127.35376, '대덕연구단지 안의 도심 시민천문대예요.', NULL, true, true, true, 'FACILITY', 'ACTIVE', NULL, '오후 2시부터 밤 10시까지 무료로 자유롭게 관람해요. 월요일은 쉬어요.', NULL),
     (17, '청양 칠갑산천문대', '충청남도 청양군 정산면 한티고개길 178-46', 36.43375, 126.88987, '칠갑산의 군립 천문대예요.', NULL, true, true, true, 'FACILITY', 'ACTIVE', NULL, '홈페이지에서 예약해야 들어가요. 월요일은 쉬어요. 주차장에서 5분 걸어요.', NULL),
@@ -67,4 +71,58 @@ ON DUPLICATE KEY UPDATE
 -- 목록에서 뺀 곳. 그 명소를 저장해 둔 북마크가 있을 수 있어 지우지 않고 감춘다. 새로 만든 DB에는 이 행들이 없다.
 UPDATE observation_spot
 SET status = 'RETIRED'
-WHERE id IN (6, 8, 14, 27, 31, 32, 35, 37, 38, 39, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 54, 55, 56, 57, 58, 59, 61, 62);
+WHERE id IN (6, 27, 31, 32, 35, 37, 38, 39, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 54, 55, 56, 57, 58, 59, 61, 62);
+
+-- 명소별 참고 링크. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 시설은 공식 페이지다.
+-- 2026-11-25에 열리는 것을 확인했다. 이 표는 통째로 이 파일이 원본이라 매번 비우고 다시 넣는다.
+DELETE FROM observation_spot_link;
+INSERT INTO observation_spot_link (spot_id, position, title, url)
+VALUES
+    (1, 0, '해발 1,100m에서 맨눈으로 은하수 보는 겨울 명소', 'https://www.ardentnews.co.kr/news/articleView.html?idxno=10300'),
+    (1, 1, '겨울 차박족으로 몸살 앓는 별의 성지 안반데기', 'https://v.daum.net/v/Q16NWPhVPS'),
+    (2, 0, '평창문화관광: 육백마지기', 'https://tour.pc.go.kr/Home/H20000/H20100/H20101/html'),
+    (2, 1, '평창군, 청옥산 야생화생태단지 동절기 운영 중단', 'https://www.gukjenews.com/news/articleView.html?idxno=3758669'),
+    (4, 0, '화천의 밤이 들려준 별들의 속삭임', 'https://www.kado.net/news/articleView.html?idxno=1229206'),
+    (4, 1, '은하수가 아름답게 수를 놓는 광덕산의 밤하늘', 'https://blog.sjkimphotos.com/879'),
+    (5, 0, '정선 타임캡슐공원, 은하수 담으려는 발길', 'https://www.kwnews.co.kr/article/20261020500607'),
+    (7, 0, '대한민국 구석구석: 양구 국토정중앙천문대 캠핑장', 'https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=58258363-4587-457b-8e8f-a4079ad6366d'),
+    (8, 0, '울산바위 은하수 포인트 가는법 정리', 'https://gall.dcinside.com/mgallery/board/view/?id=digitalpicture&no=74118'),
+    (8, 1, '대한민국 구석구석: 미시령옛길 울산바위 은하수', 'https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=eee5ecee-a493-4dc0-b82f-fe8f6c08dbd7'),
+    (9, 0, '화악터널 쌈지공원 이용 안내', 'https://m.tripinfo.co.kr/info.html?content_type_id=12&content_id=2765594'),
+    (10, 0, '별헤는 밤, 양평으로의 초대', 'https://www.imaeil.com/page/view/2025052913575170602'),
+    (10, 1, '은하수를 맨눈으로 감상할 수 있는 명소 BEST5', 'https://www.allurekorea.com/?p=202184'),
+    (11, 0, '중미산천문대 홈페이지', 'http://starwww.astrocafe.co.kr/'),
+    (12, 0, '국경 지키던 연천 당포성, 별 찾는 명소로 변신', 'https://v.daum.net/v/20260620071317204'),
+    (12, 1, '연천 당포성 별 보기 좋은 명소로 각광', 'https://www.kgnews.co.kr/news/article.html?no=663306'),
+    (13, 0, '뚜벅이들을 위한 은하수지도: 덕주산성', 'https://gall.dcinside.com/board/view/?id=dcbest&no=6620'),
+    (14, 0, '태안 운여해변, 물때 따라 달라지는 노을 풍경', 'https://news-wa.com/article/travel/tour-korea/2026/11/11/20261111500063'),
+    (14, 1, '태안 운여해변 은하수', 'https://m.cafe.daum.net/truepicture/Qt7/1305170'),
+    (15, 0, '부여 성흥산 사랑나무, 가림성 주차와 성곽길 동선', 'https://thetravelnews.co.kr/2026/08/buyeo-seongheungsan-love-tree-garimseong-sunset-guide/'),
+    (16, 0, '대전시민천문대 홈페이지', 'https://djstar.kr/'),
+    (17, 0, '칠갑산천문대 홈페이지', 'https://www.cheongyang.go.kr/star.do'),
+    (18, 0, '경북 영양군, 수하 밤하늘 별빛 명소로 인기', 'https://www.ajunews.com/view/20160217110415168'),
+    (18, 1, '영양 국제밤하늘보호공원 이용 안내', 'https://www.ktriptips.com/kor/tourspot/2704122'),
+    (19, 0, '황매산의 오월, 은하수를 보다', 'https://www.khan.co.kr/article/201805281526001'),
+    (19, 1, '합천군, 황매산 은하수 별빛 야행', 'https://www.kntoday.co.kr/news/articleView.html?idxno=192751'),
+    (20, 0, '가을밤은 낮보다 황홀했네', 'https://m.seoul.co.kr/news/2012/10/04/20121004500013'),
+    (21, 0, '경주 풍력발전소, 경풍루 전망대와 산책 코스', 'https://www.telltrip.com/domestic-travel/gyeongju-wind-power-plant-hill-of-wind/'),
+    (21, 1, '경주 풍력발전(바람의언덕) 이용 안내', 'https://www.ktriptips.com/kor/tourspot/2708718'),
+    (22, 0, '의령군, 은하수 체험 복합공간 한우산 별천지 준공', 'https://www.sisajournal.com/news/articleView.html?idxno=362781'),
+    (23, 0, '김해천문대 홈페이지', 'https://astro.ghct.or.kr'),
+    (28, 0, '대한민국 구석구석: 제주의 별 헤는 밤', 'https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=054247db-9860-480e-83ea-899b19fb8b53'),
+    (30, 0, '대한민국 구석구석: 제주의 별 헤는 밤', 'https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=054247db-9860-480e-83ea-899b19fb8b53'),
+    (30, 1, '10월 한 달 은빛으로 물드는 억새 트레킹 코스', 'https://www.newskrw.com/news/articleView.html?idxno=53184'),
+    (33, 0, '대한민국 구석구석: 송암스페이스센터', 'https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=107300bc-7923-45cf-81bf-679c441f3d2c'),
+    (36, 0, '포천아트밸리 천문과학관 홈페이지', 'https://artvalley.pcfac.or.kr/star/index.html'),
+    (40, 0, '사진 찍으러 가기 좋은 은하수 명소와 맛집 4', 'https://www.esquirekorea.co.kr/article/61348'),
+    (40, 1, '은하수가 흐르는 밤, 한국 별 관측 성지 6', 'https://www.thetrippick.com/news/articleView.html?idxno=2752'),
+    (47, 0, '좌구산천문대 관람 안내', 'https://jp.go.kr/star/sub02_01.do'),
+    (53, 0, '거창 감악산 별바람 언덕', 'https://www.kyeongin.com/article/1768395'),
+    (60, 0, '정남진천문과학관 관람 시간표', 'https://www.jangheung.go.kr/star/guide/schedule'),
+    (63, 0, '서귀포천문과학문화관 이용 안내', 'https://culture.seogwipo.go.kr/astronomy/show/intro.htm'),
+    (64, 0, '제주 밤에 즐기는 별빛 오름 트래킹 투어', 'https://www.waug.com/ko/magazines/1481'),
+    (64, 1, '용눈이오름 또 아프지 않게, 제주 관리지표 만든다', 'https://www.khan.co.kr/article/202402282056015'),
+    (65, 0, '운해와 일출을 한눈에 보는 경남 숨은 명소', 'https://www.wikitree.co.kr/articles/1142041'),
+    (65, 1, '교외 산이 부른다: 합천 오도산', 'https://knnews.co.kr/news/articleView.php?idxno=399400'),
+    (66, 0, '정선 문치재, 해발 732m 전망대에서 보는 고갯길', 'https://www.telltrip.com/domestic-travel/jeongseon-munchijae-drive/'),
+    (67, 0, '낭만이 빛나는 밤에', 'https://twig24.com/news/lifestyle/trip/2018/06/28/20180628027006');

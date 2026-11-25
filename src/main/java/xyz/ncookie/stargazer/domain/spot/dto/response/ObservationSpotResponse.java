@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.domain.spot.dto.response;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -40,6 +42,10 @@ public record ObservationSpotResponse(
 	@Schema(description = "계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다")
 	String caution,
 
+	@Schema(description = "가는 길과 서는 자리를 더 자세히 적은 글. 시설이면 공식 페이지. 없으면 빠진다")
+	@JsonInclude(JsonInclude.Include.NON_EMPTY)
+	List<Link> links,
+
 	@Schema(description = "보틀 등급 (1-9, 낮을수록 좋음)", example = "3")
 	Integer bortleScale,
 
@@ -68,6 +74,7 @@ public record ObservationSpotResponse(
 			.description(spot.getDescription())
 			.guide(spot.getGuide())
 			.caution(spot.getCaution())
+			.links(spot.getLinks().stream().map(link -> new Link(link.getTitle(), link.getUrl())).toList())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
 			.isRestroomAvailable(spot.getIsRestroomAvailable())
@@ -75,4 +82,11 @@ public record ObservationSpotResponse(
 			.thumbnailImage(spot.getThumbnailImage())
 			.build();
 	}
+
+	@Schema(description = "참고 링크")
+	public record Link(
+		@Schema(description = "그 글의 제목", example = "울산바위 은하수 포인트 가는법 정리")
+		String title,
+		String url
+	) {}
 }
