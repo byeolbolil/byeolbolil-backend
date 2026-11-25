@@ -20,4 +20,7 @@ public class SpotLink {
 
 	@Column(nullable = false, length = 300)
 	private String url;
+
+	@Column(length = 500)
+	private String imageUrl;    // 그 글이 대표 이미지(og:image)로 내건 주소. 미리보기로만 쓴다. 없는 곳이 있다
 }

@@ -86,7 +86,7 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 	}
 
 	@Test
-	@DisplayName("참고 링크는 적어 둔 순서대로 오고, 링크가 없는 곳에는 항목이 없다")
+	@DisplayName("참고 링크는 적어 둔 순서대로 오고 미리보기 이미지가 붙는다. 링크가 없는 곳에는 항목이 없다")
 	void links() {
 		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());
 
@@ -98,6 +98,9 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 			.containsEntry("title", "울산바위 은하수 포인트 가는법 정리")
 			.containsEntry("url", "https://gall.dcinside.com/mgallery/board/view/?id=digitalpicture&no=74118");
 		assertThat((String) misiryeong.get(1).get("url")).startsWith("https://korean.visitkorea.or.kr/");
+		// 미리보기 이미지는 쓸 만한 것이 있는 링크에만 있다. 첫 글의 대표 이미지는 사이트 로고라 비웠다
+		assertThat(misiryeong.get(0)).doesNotContainKey("imageUrl");
+		assertThat((String) misiryeong.get(1).get("imageUrl")).startsWith("https://cdn.visitkorea.or.kr/");
 		assertThat(spotNamed(body, "대전 시민천문대")).containsKey("links");
 		assertThat(spotNamed(body, "영월 별마로천문대")).doesNotContainKey("links");
 	}

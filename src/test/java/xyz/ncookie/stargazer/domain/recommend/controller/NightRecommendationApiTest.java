@@ -265,6 +265,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 
 			List<String> linkTitles = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].links[*].title");
 			assertThat(linkTitles).hasSize(2).first().asString().contains("은하수");
+			List<String> linkImages = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].links[*].imageUrl");
+			assertThat(linkImages).hasSize(2).allSatisfy(image -> assertThat(image).startsWith("https://"));
 
 			assertThat(placeNamed(body, "호명호수")).doesNotContainKeys("viewpoint", "description", "guide", "caution", "links");
 		}

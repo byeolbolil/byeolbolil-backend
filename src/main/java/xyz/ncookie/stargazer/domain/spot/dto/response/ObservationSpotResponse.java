@@ -74,7 +74,7 @@ public record ObservationSpotResponse(
 			.description(spot.getDescription())
 			.guide(spot.getGuide())
 			.caution(spot.getCaution())
-			.links(spot.getLinks().stream().map(link -> new Link(link.getTitle(), link.getUrl())).toList())
+			.links(spot.getLinks().stream().map(link -> new Link(link.getTitle(), link.getUrl(), link.getImageUrl())).toList())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
 			.isRestroomAvailable(spot.getIsRestroomAvailable())
@@ -83,10 +83,13 @@ public record ObservationSpotResponse(
 			.build();
 	}
 
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	@Schema(description = "참고 링크")
 	public record Link(
 		@Schema(description = "그 글의 제목", example = "울산바위 은하수 포인트 가는법 정리")
 		String title,
-		String url
+		String url,
+		@Schema(description = "그 글의 대표 이미지. 링크의 미리보기로 쓴다. 없으면 빠진다")
+		String imageUrl
 	) {}
 }
