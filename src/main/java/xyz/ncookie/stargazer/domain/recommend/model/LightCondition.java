@@ -25,22 +25,4 @@ public record LightCondition(Double skyBrightness, Double nearbyRadiance, Double
 	public SkyClass skyClass() {
 		return (skyBrightness != null) ? SkyClass.of(skyBrightness) : null;
 	}
-
-	/**
-	 * 이전 화면이 읽는 Bortle 등급의 어림값. Duriscoe et al. 2018의 표 3이 ALR 구간마다 묶어 둔 Bortle 등급
-	 * (1~3, 4, 5, 6~9)에서 하나씩 골랐다. 프론트엔드가 skyBrightness로 옮겨 가면 지운다.
-	 */
-	public int legacyBortleClass() {
-		SkyClass skyClass = skyClass();
-		if (skyClass == null) {
-			return 4;
-		}
-		return switch (skyClass) {
-			case NATURAL -> 2;
-			case DARK -> 4;
-			case RURAL -> 5;
-			case SUBURBAN -> 7;
-			case URBAN -> 9;
-		};
-	}
 }
