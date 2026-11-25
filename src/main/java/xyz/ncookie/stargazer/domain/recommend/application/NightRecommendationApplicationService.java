@@ -110,7 +110,8 @@ public class NightRecommendationApplicationService {
 			.toList();
 
 		List<PlaceRecommendation> withinReach = evaluated.stream()
-			.filter(recommendation -> isWithinReach(recommendation.travel(), command.maxTravelMinutes()))
+			.filter(recommendation -> nightRecommendationDomainService.isWithinReach(
+				recommendation.travel(), command.maxTravelMinutes()))
 			.toList();
 
 		List<NightRecommendationResponse.Place> places = nightRecommendationDomainService.rank(withinReach).stream()
@@ -138,7 +139,7 @@ public class NightRecommendationApplicationService {
 
 		// 이동 시간은 날짜와 상관없으므로, 한도를 넘는 곳은 예보를 받기 전에 뺀다.
 		List<CandidatePlace> withinReach = candidates(command.memberId()).stream()
-			.filter(place -> isWithinReach(
+			.filter(place -> nightRecommendationDomainService.isWithinReach(
 				nightRecommendationDomainService.travelTo(place, command.originLatitude(), command.originLongitude()),
 				command.maxTravelMinutes()))
 			.toList();
@@ -295,13 +296,5 @@ public class NightRecommendationApplicationService {
 			log.warn("예보를 받지 못해 추천에서 뺍니다. place={}", place.name());
 			return Optional.empty();
 		}
-	}
-
-	/** 이동 시간 한도 안인지. 한도가 없거나 출발지를 몰라 이동 추정이 없으면 모두 한도 안으로 본다 */
-	private static boolean isWithinReach(TravelEstimate travel, Integer maxTravelMinutes) {
-		if (maxTravelMinutes == null || travel == null) {
-			return true;
-		}
-		return travel.minutes() <= maxTravelMinutes;
 	}
 }

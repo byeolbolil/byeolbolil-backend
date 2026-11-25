@@ -136,8 +136,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		@Test
 		@DisplayName("꼭 가볼 만한 곳 여섯, 가볼 만한 곳 하나, 잠깐 볼 수 있는 곳 하나 순으로 나온다")
 		void order() {
-			// 영양은 4시간 50분 거리지만 하늘이 훨씬 어둡고(하늘 밝기 1.5 대 4.1) 구름도 적어서, 1시간 42분 거리인
-			// 조경철천문대 앞에 온다. 이동 감점(시간당 4점)의 크기는 정책이라 따로 정한다.
+			// 이동 시간은 순서에 넣지 않는다. 4시간 50분 거리인 영양이 하늘이 가장 어둡고(하늘 밝기 1.5) 구름도 적어서
+			// 맨 앞이고, 같은 등급 안에서는 추천 시간의 하늘이 좋은 순서다.
 			String body = bodyOf(tonight(true));
 
 			List<String> names = JsonPath.read(body, "$.data.places[0:8].name");
@@ -228,7 +228,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 
 			assertThat(types).hasSize(spotCount).containsOnly("SPOT");
 			assertThat((Integer) JsonPath.read(body, "$.data.candidateCount")).isEqualTo(spotCount);
-			// 출발지를 보내지 않아 이동 감점이 없으므로, 하늘이 가장 어둡고 구름도 적은 영양이 맨 앞이다.
+			// 하늘이 가장 어둡고 구름도 적은 영양이 맨 앞이다.
 			assertThat((String) JsonPath.read(body, "$.data.places[0].name")).isEqualTo("영양 반딧불이생태공원");
 		}
 
@@ -282,7 +282,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("이동 시간 한도를 넘는 곳은 빠지고, 몇 곳이 빠졌는지 알려 준다")
+		@DisplayName("이동 시간 한도를 여유보다 많이 넘는 곳은 빠지고, 몇 곳이 빠졌는지 알려 준다")
 		void maxTravel() {
 			MvcTestResult result = mvc.get().uri("/api/v1/recommendations/tonight")
 				.header("Authorization", bearer())
@@ -295,7 +295,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			List<Integer> minutes = JsonPath.read(body, "$.data.places[*].travel.minutes");
 
 			assertThat(names).contains("화천 조경철천문대", "호명호수").doesNotContain("영양 반딧불이생태공원", "함백산 만항재");
-			assertThat(minutes).allSatisfy(m -> assertThat(m).isLessThanOrEqualTo(120));
+			// 한도의 6분의 1(20분)까지는 넘어도 남는다. 131분 거리의 곳이 들어 있다
+			assertThat(minutes).allSatisfy(m -> assertThat(m).isLessThanOrEqualTo(140)).contains(131);
 			assertThat((Integer) JsonPath.read(body, "$.data.excludedByTravelCount")).isPositive();
 			assertThat((Integer) JsonPath.read(body, "$.data.criteria.maxTravelMinutes")).isEqualTo(120);
 		}

@@ -287,10 +287,10 @@ GET /api/v1/recommendations/nights/{date}
 
 | 이름 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `lat`, `lon` | number | 없음 | 출발지. 둘을 함께 보내야 한다. 보내면 이동 시간을 어림해 순서에 반영하고 `travel`을 채운다 |
+| `lat`, `lon` | number | 없음 | 출발지. 둘을 함께 보내야 한다. 보내면 이동 시간을 어림해 `travel`을 채운다. 순서에는 넣지 않는다 |
 | `minClearHours` | integer, 1~8 | 3 | 맑은 시간이 이만큼 이어지면 `STRONG`으로 본다 |
 | `preferBefore` | `HH:mm` | `02:00` | 이 시각 전의 맑은 시간을 우선한다. 정오 전의 값은 다음 날 새벽으로 읽는다 |
-| `maxTravelMinutes` | integer, 0 이상 | 없음 | 이동 시간이 이보다 긴 장소를 뺀다. 출발지를 보냈을 때만 쓰인다 |
+| `maxTravelMinutes` | integer, 0 이상 | 없음 | 이동 시간이 이보다 긴 장소를 뺀다. 이동 시간이 어림값이라 한도의 6분의 1만큼은 넘어도 남긴다(120이면 140분까지). 출발지를 보냈을 때만 쓰인다 |
 
 ### 응답 `data`
 
