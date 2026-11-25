@@ -26,6 +26,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
+import xyz.ncookie.stargazer.domain.recommend.model.TravelEstimate;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastSource;
 import xyz.ncookie.stargazer.domain.weather.model.WeatherForecast;
 
@@ -42,28 +43,77 @@ class NightRecommendationDomainServiceTest {
 	private final NightRecommendationDomainService service = new NightRecommendationDomainService(engine);
 
 	@Test
-	@DisplayName("출발지를 모르면 이동 추정이 없고, 순위 값은 추천 구간의 질 그대로다")
+	@DisplayName("출발지를 모르면 이동 추정이 없다")
 	void withoutOrigin() {
 		engineReturns(night(RecommendationLevel.STRONG, 80));
 
 		PlaceRecommendation result = evaluate(place("가", 38.0, 127.0), null, null).orElseThrow();
 
 		assertThat(result.travel()).isNull();
-		assertThat(result.rank()).isEqualTo(80.0);
+		assertThat(result.night().quality()).isEqualTo(80.0);
 		assertThat(result.forecastSource()).isEqualTo(ForecastSource.OPEN_METEO);
 		assertThat(result.light()).isEqualTo(LIGHT);
 	}
 
 	@Test
-	@DisplayName("출발지를 알면 이동 1시간마다 순위 값에서 4를 뺀다")
-	void travelLowersRank() {
+	@DisplayName("출발지를 알면 이동 추정을 싣는다. 추천 구간의 질은 그대로다")
+	void travelIsShownOnly() {
 		engineReturns(night(RecommendationLevel.STRONG, 80));
 
-		// 위도 1도 거리. 이동 추정 145분이므로 145 / 60 × 4 = 9.67을 뺀다.
+		// 위도 1도 거리. 이동 추정 145분
 		PlaceRecommendation result = evaluate(place("가", 38.0, 127.0), 37.0, 127.0).orElseThrow();
 
 		assertThat(result.travel().minutes()).isEqualTo(145);
-		assertThat(result.rank()).isCloseTo(70.33, org.assertj.core.api.Assertions.within(0.01));
+		assertThat(result.night().quality()).isEqualTo(80.0);
+	}
+
+	@Test
+	@DisplayName("먼 곳이어도 더 잘 보이면 앞에 온다. 이동 시간은 순서를 바꾸지 않는다")
+	void travelDoesNotChangeOrder() {
+		PlaceRecommendation near = new PlaceRecommendation(
+			place("가까운 곳", 37.1, 127.0), night(RecommendationLevel.STRONG, 60), LIGHT,
+			new TravelEstimate(10, 13), ForecastSource.OPEN_METEO, null);
+		PlaceRecommendation far = new PlaceRecommendation(
+			place("먼 곳", 35.0, 129.0), night(RecommendationLevel.STRONG, 61), LIGHT,
+			new TravelEstimate(400, 520), ForecastSource.OPEN_METEO, null);
+
+		assertThat(service.rank(List.of(near, far))).extracting(r -> r.place().name())
+			.containsExactly("먼 곳", "가까운 곳");
+	}
+
+	@Test
+	@DisplayName("등급과 질이 모두 같으면 가까운 곳이 앞이다. 흐린 밤의 목록이 가까운 순서가 된다")
+	void equalQualityNearestFirst() {
+		PlaceRecommendation far = new PlaceRecommendation(
+			place("가 먼 곳", 35.0, 129.0), night(RecommendationLevel.NO, 0), LIGHT,
+			new TravelEstimate(400, 520), ForecastSource.OPEN_METEO, null);
+		PlaceRecommendation near = new PlaceRecommendation(
+			place("나 가까운 곳", 37.1, 127.0), night(RecommendationLevel.NO, 0), LIGHT,
+			new TravelEstimate(10, 13), ForecastSource.OPEN_METEO, null);
+
+		assertThat(service.rank(List.of(far, near))).extracting(r -> r.place().name())
+			.containsExactly("나 가까운 곳", "가 먼 곳");
+	}
+
+	@Test
+	@DisplayName("이동 시간 한도에는 6분의 1만큼 여유가 있다. 2시간 한도면 2시간 20분까지 든다")
+	void travelLimitHasSlack() {
+		assertThat(service.isWithinReach(new TravelEstimate(100, 120), 120)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(110, 140), 120)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(111, 141), 120)).isFalse();
+		assertThat(service.isWithinReach(new TravelEstimate(160, 210), 180)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(161, 211), 180)).isFalse();
+		assertThat(service.isWithinReach(new TravelEstimate(50, 70), 60)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(51, 71), 60)).isFalse();
+	}
+
+	@Test
+	@DisplayName("한도가 없거나 이동 추정이 없으면 모두 한도 안이고, 한도가 0이면 제자리만 든다")
+	void travelLimitEdges() {
+		assertThat(service.isWithinReach(new TravelEstimate(400, 520), null)).isTrue();
+		assertThat(service.isWithinReach(null, 60)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(0, 0), 0)).isTrue();
+		assertThat(service.isWithinReach(new TravelEstimate(1, 1), 0)).isFalse();
 	}
 
 	@Test
@@ -75,7 +125,7 @@ class NightRecommendationDomainServiceTest {
 	}
 
 	@Test
-	@DisplayName("등급이 높은 곳이 먼저고, 등급이 같으면 순위 값이 큰 곳이 먼저다")
+	@DisplayName("등급이 높은 곳이 먼저고, 등급이 같으면 추천 구간의 질이 높은 곳이 먼저다")
 	void ranksByLevelThenRank() {
 		List<PlaceRecommendation> ranked = service.rank(List.of(
 			recommendation("가까운 가볼 만한 곳", RecommendationLevel.GOOD, 95),
@@ -93,7 +143,7 @@ class NightRecommendationDomainServiceTest {
 	}
 
 	@Test
-	@DisplayName("등급과 순위 값이 모두 같으면 이름순이다")
+	@DisplayName("등급과 추천 구간의 질이 같고 이동 시간도 모르면 이름순이다")
 	void tieBrokenByName() {
 		List<PlaceRecommendation> ranked = service.rank(List.of(
 			recommendation("나", RecommendationLevel.NO, 0),
@@ -172,7 +222,7 @@ class NightRecommendationDomainServiceTest {
 
 	private static PlaceRecommendation recommendation(String name, RecommendationLevel level, double rank) {
 		return new PlaceRecommendation(
-			place(name, 37.5, 127.0), night(level, rank), LIGHT, null, rank, ForecastSource.OPEN_METEO, null);
+			place(name, 37.5, 127.0), night(level, rank), LIGHT, null, ForecastSource.OPEN_METEO, null);
 	}
 
 	private static CandidatePlace place(String name, double lat, double lon) {
