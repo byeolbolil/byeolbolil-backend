@@ -113,7 +113,9 @@ Cross-domain communication always goes through Application-layer orchestration â
 - `recommend/` â€” tonight's recommendation. `engine/NightAssessmentEngine` evaluates one night per place from the
   hourly forecast (dark hours, clear windows, night pattern, level); `NightRecommendationApplicationService` gathers
   default spots plus the member's bookmarks, ranks them, and serves `GET /api/v1/recommendations/tonight` and
-  `/nights/{date}` (public; bookmarks only when logged in). Thresholds cite `docs/SCORING.md` at the point of use.
+  `/nights/{date}` (public; bookmarks only when logged in). The same service answers "when is this place good":
+  `/week?lat&lon` evaluates seven nights for any coordinate and `/week/mine` does it for every bookmark, each from
+  one forecast per place and without travel time. Thresholds cite `docs/SCORING.md` at the point of use.
   The older `RecommendApplicationService` (top-5 bookmarks, old engine) stays until the frontend moves over.
 
 ### Global layer (`global/`)

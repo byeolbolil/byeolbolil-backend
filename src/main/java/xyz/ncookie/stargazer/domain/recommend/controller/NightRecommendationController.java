@@ -17,8 +17,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.application.NightRecommendationApplicationService;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetNightRecommendationRequest;
+import xyz.ncookie.stargazer.domain.recommend.dto.request.GetWeekOutlookRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.global.security.principal.MemberPrincipal;
 
 @Tag(name = "밤 추천", description = "오늘 밤과 이번 주에 어디서 언제 별을 보기 좋은지 추천한다")
@@ -56,6 +59,30 @@ public class NightRecommendationController {
 	) {
 		return nightRecommendationApplicationService.recommend(
 			GetNightRecommendationCommand.from(memberIdOf(principal), date, request));
+	}
+
+	@Operation(
+		summary = "한 위치의 이번 주 밤",
+		description = "lat, lon으로 고른 위치의 오늘 밤부터 7일을 밤마다 평가해 돌려준다. 명소가 아니어도 된다. "
+			+ "이동 시간은 보지 않는다. 인증 없이 쓸 수 있다."
+	)
+	@GetMapping("/week")
+	public WeekOutlookResponse getWeek(@Valid @ModelAttribute GetWeekOutlookRequest request) {
+		return nightRecommendationApplicationService.weekAt(GetWeekOutlookCommand.forLocation(request));
+	}
+
+	@Operation(
+		summary = "내 장소의 이번 주 밤",
+		description = "저장한 장소마다 오늘 밤부터 7일을 평가해 돌려준다. lat, lon은 쓰지 않는다. "
+			+ "로그인하지 않았으면 장소가 없는 응답이 온다."
+	)
+	@GetMapping("/week/mine")
+	public WeekOutlookResponse getMyWeek(
+		@AuthenticationPrincipal MemberPrincipal principal,
+		@Valid @ModelAttribute GetWeekOutlookRequest request
+	) {
+		return nightRecommendationApplicationService.weekOfMyPlaces(
+			GetWeekOutlookCommand.forMember(memberIdOf(principal), request));
 	}
 
 	private static Long memberIdOf(MemberPrincipal principal) {

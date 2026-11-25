@@ -144,7 +144,7 @@ public record NightRecommendationResponse(
 		}
 
 		/** 달의 위상은 하룻밤 사이에 거의 변하지 않으므로 첫 어두운 칸의 값을 그 밤의 값으로 쓴다. */
-		private static double moonBrightness(NightAssessment night) {
+		static double moonBrightness(NightAssessment night) {
 			return night.hours().stream()
 				.filter(NightHour::dark)
 				.findFirst()

@@ -100,6 +100,28 @@ class NightRecommendationDomainServiceTest {
 		assertThat(ranked).extracting(r -> r.place().name()).containsExactly("가", "나");
 	}
 
+	@Test
+	@DisplayName("여러 밤을 날짜순으로 평가하고, 예보가 닿지 않는 밤은 뺀다")
+	void assessNightsSkipsNightsWithoutForecast() {
+		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any()))
+			.thenAnswer(call -> {
+				LocalDate date = call.getArgument(2);
+				// 넷째 밤부터는 예보가 없다
+				if (!date.isBefore(DATE.plusDays(3))) {
+					return Optional.empty();
+				}
+				return Optional.of(new NightAssessment(
+					date, List.of(), List.of(), null, RecommendationLevel.GOOD, NightPattern.BRIEF_CLEAR, List.of(), 50,
+					new NightMoon(0.5, true, null, null)));
+			});
+
+		List<NightAssessment> nights = service.assessNights(
+			37.5, 127.0, DATE, 7, SEOUL, 3, FORECAST, RecommendationPolicy.DEFAULT);
+
+		assertThat(nights).extracting(NightAssessment::date)
+			.containsExactly(DATE, DATE.plusDays(1), DATE.plusDays(2));
+	}
+
 	private void engineReturns(NightAssessment night) {
 		when(engine.assess(anyDouble(), anyDouble(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.of(night));
 	}

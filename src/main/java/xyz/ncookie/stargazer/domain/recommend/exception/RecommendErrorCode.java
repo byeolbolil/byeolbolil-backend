@@ -11,6 +11,7 @@ import xyz.ncookie.stargazer.global.exception.ErrorCode;
 public enum RecommendErrorCode implements ErrorCode {
 
 	DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "오늘 밤부터 7일 안의 날짜만 볼 수 있습니다."),
+	LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "볼 위치의 위도와 경도를 보내야 합니다."),
 	;
 
 	private final HttpStatus status;

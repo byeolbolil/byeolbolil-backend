@@ -20,15 +20,20 @@ import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.bookmark.domain.BookmarkDomainService;
 import xyz.ncookie.stargazer.domain.bookmark.entity.Bookmark;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.domain.NightRecommendationDomainService;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
+import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
+import xyz.ncookie.stargazer.domain.recommend.model.WeekOutlook;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
 import xyz.ncookie.stargazer.domain.stargazing.domain.StargazingDomainService;
@@ -119,6 +124,60 @@ public class NightRecommendationApplicationService {
 		);
 	}
 
+	/**
+	 * 좌표로 고른 한 위치의 이번 주 밤. 예보를 받지 못하면 예외로 알린다.
+	 */
+	public WeekOutlookResponse weekAt(GetWeekOutlookCommand command) {
+		if (command.latitude() == null || command.longitude() == null) {
+			throw new RecommendException(RecommendErrorCode.LOCATION_REQUIRED);
+		}
+		LocalDate tonight = tonight();
+		CandidatePlace place = new CandidatePlace(null, null, null, null, null, command.latitude(), command.longitude());
+		int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+		WeatherForecast forecast = weatherDomainService.getHourlyForecast(place.latitude(), place.longitude());
+
+		WeekOutlook outlook = outlookOf(place, bortleClass, forecast, tonight, command.policy());
+		return WeekOutlookResponse.of(tonight, SELECTABLE_DAYS, command.policy(), List.of(outlook), ZONE);
+	}
+
+	/**
+	 * 저장한 장소들의 이번 주 밤. 로그인하지 않았으면 장소가 없다.
+	 * 예보를 받지 못한 장소는 빼지 않고 밤이 없는 채로 돌려준다. 저장한 곳이 목록에서 사라지면 지워진 것처럼 보인다.
+	 */
+	@Transactional(readOnly = true)
+	public WeekOutlookResponse weekOfMyPlaces(GetWeekOutlookCommand command) {
+		LocalDate tonight = tonight();
+		List<CandidatePlace> places = (command.memberId() != null) ? bookmarkPlaces(command.memberId()) : List.of();
+
+		List<CompletableFuture<WeekOutlook>> futures = new ArrayList<>();
+		for (CandidatePlace place : places) {
+			int bortleClass = stargazingDomainService.getBortleClass(place.latitude(), place.longitude());
+			futures.add(CompletableFuture.supplyAsync(
+				() -> outlookOrEmpty(place, bortleClass, tonight, command.policy()), recommendTaskExecutor));
+		}
+		List<WeekOutlook> outlooks = futures.stream().map(CompletableFuture::join).toList();
+
+		return WeekOutlookResponse.of(tonight, SELECTABLE_DAYS, command.policy(), outlooks, ZONE);
+	}
+
+	private WeekOutlook outlookOrEmpty(CandidatePlace place, int bortleClass, LocalDate tonight, RecommendationPolicy policy) {
+		try {
+			WeatherForecast forecast = weatherDomainService.getHourlyForecast(place.latitude(), place.longitude());
+			return outlookOf(place, bortleClass, forecast, tonight, policy);
+		} catch (WeatherException e) {
+			log.warn("예보를 받지 못해 이번 주 밤을 비워 둡니다. place={}", place.name());
+			return new WeekOutlook(place, bortleClass, List.of(), null, null);
+		}
+	}
+
+	private WeekOutlook outlookOf(
+		CandidatePlace place, int bortleClass, WeatherForecast forecast, LocalDate tonight, RecommendationPolicy policy
+	) {
+		List<NightAssessment> nights = nightRecommendationDomainService.assessNights(
+			place.latitude(), place.longitude(), tonight, SELECTABLE_DAYS, ZONE, bortleClass, forecast, policy);
+		return new WeekOutlook(place, bortleClass, nights, forecast.source(), forecast.issuedAt());
+	}
+
 	private LocalDate tonight() {
 		ZonedDateTime now = clock.instant().atZone(ZONE);
 		return (now.getHour() < NIGHT_ROLLOVER_HOUR) ? now.toLocalDate().minusDays(1) : now.toLocalDate();
@@ -132,18 +191,11 @@ public class NightRecommendationApplicationService {
 		Set<Long> bookmarkedSpotIds = new HashSet<>();
 
 		if (memberId != null) {
-			for (Bookmark bookmark : bookmarkDomainService.findAllByMemberId(memberId)) {
-				if (bookmark.getLatitude() == null || bookmark.getLongitude() == null) {
-					continue;
+			for (CandidatePlace place : bookmarkPlaces(memberId)) {
+				if (place.spotId() != null) {
+					bookmarkedSpotIds.add(place.spotId());
 				}
-				Long spotId = (bookmark.getSpot() != null) ? bookmark.getSpot().getId() : null;
-				if (spotId != null) {
-					bookmarkedSpotIds.add(spotId);
-				}
-				candidates.add(new CandidatePlace(
-					PlaceType.BOOKMARK, bookmark.getId(), spotId, bookmark.getName(), bookmark.getAddress(),
-					bookmark.getLatitude(), bookmark.getLongitude(),
-					bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null));
+				candidates.add(place);
 			}
 		}
 
@@ -157,6 +209,22 @@ public class NightRecommendationApplicationService {
 				spot.getLatitude(), spot.getLongitude(), guideOf(spot)));
 		}
 		return candidates;
+	}
+
+	/** 회원이 저장한 장소. 좌표가 없는 북마크는 평가할 수 없어 뺀다 */
+	private List<CandidatePlace> bookmarkPlaces(Long memberId) {
+		List<CandidatePlace> places = new ArrayList<>();
+		for (Bookmark bookmark : bookmarkDomainService.findAllByMemberId(memberId)) {
+			if (bookmark.getLatitude() == null || bookmark.getLongitude() == null) {
+				continue;
+			}
+			Long spotId = (bookmark.getSpot() != null) ? bookmark.getSpot().getId() : null;
+			places.add(new CandidatePlace(
+				PlaceType.BOOKMARK, bookmark.getId(), spotId, bookmark.getName(), bookmark.getAddress(),
+				bookmark.getLatitude(), bookmark.getLongitude(),
+				bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null));
+		}
+		return places;
 	}
 
 	private static PlaceGuide guideOf(ObservationSpot spot) {
