@@ -62,13 +62,23 @@
 - 기준값과 정책값은 `docs/SCORING.md`, 평가 방식과 API를 정한 이유는 `docs/decisions.md`에 있다.
 - 새 API는 `GET /api/v1/recommendations/tonight`과 `GET /api/v1/recommendations/nights/{date}`다.
 - 기존 분석, 예보, 북마크 추천 API는 이전 엔진 그대로 남아 있다. 5단계에서 프론트엔드가 옮겨 가면 지운다.
-- 광해 등급은 아직 Bortle 정수다. 4단계에서 연속값으로 바꾼다.
+- 광해 등급은 이때 Bortle 정수였고, 4단계에서 연속값으로 바꿨다.
 
 ## 4단계. 광해 데이터 재구축
 
 - NASA Black Marble 연간 자료로 래스터를 다시 만들고, 내부 기준을 연속값으로 바꾼다. Bortle은 라벨로만 쓴다.
 - 지도용 래스터 타일을 만든다.
 - 끝나는 조건: 출처 없는 레이디언스 → Bortle 표가 코드와 스크립트에서 사라진다.
+
+상태: 2026-11-26에 밤 추천까지 했다. 남은 것은 아래 두 가지다.
+
+- 한 것: 하늘 밝기를 위성 자료에서 모형으로 계산해 밤 추천에 넣었고(`scripts/lightpollution`, `SkyBrightnessGrid`),
+  지형 너머로 직접 보이는 불빛을 명소마다 계산해 더했다. 자료는 Black Marble이 아니라 이미 받아 둔 VIIRS Nighttime
+  Lights V2 2024년 연간 합성을 썼다. 같은 센서의 자료이고 내려받는 데 계정이 필요 없었다. Bortle은 라벨로도 쓰지 않게 됐다.
+  이유와 버린 대안은 `docs/decisions.md`의 2026-11-26 "광해" 항목, 기준값은 `docs/SCORING.md`에 있다.
+- 남은 것: 이전 분석 API(`/api/v1/analyze` 등)는 아직 레이디언스 → Bortle 표로 만든 `light_pollution` 테이블을 읽는다.
+  이 API들을 지울 때 테이블과 CSV, 적재 러너를 함께 지우면 끝나는 조건이 채워진다.
+- 남은 것: 지도의 광해 레이어를 하늘 밝기 격자로 그리기. 지금 지도는 위성이 본 불빛을 그대로 보여 준다.
 
 ## 5단계. 새 프론트엔드
 

@@ -54,7 +54,8 @@ Tests need neither `.env` nor the dev containers; `src/test/resources/applicatio
 - External APIs are never called. `support/ExternalApiStubs` binds a `MockRestServiceServer` to the app's `RestTemplate`
   and serves JSON from `src/test/resources/fixtures/`; an unstubbed call fails the test.
 - `LightPollutionMigrationRunner` is mocked out in tests. Insert the few grid points a test needs with
-  `support/LightPollutionFixture`.
+  `support/LightPollutionFixture`. Only the old analysis APIs read that table; the night recommendation tests use the
+  real sky brightness grid on the classpath and the `lights_in_view` values from `data.sql`.
 - Redis cache writes are asynchronous (Spring Data Redis 4 default), so a test that reads Redis directly must wait for
   the key instead of asserting right after the call.
 - The engine, grade-table, and API tests are characterization tests: they pin what the code does today, not what is
@@ -116,6 +117,12 @@ Cross-domain communication always goes through Application-layer orchestration â
   `/nights/{date}` (public; bookmarks only when logged in). The same service answers "when is this place good":
   `/week?lat&lon` evaluates seven nights for any coordinate and `/week/mine` does it for every bookmark, each from
   one forecast per place and without travel time. Thresholds cite `docs/SCORING.md` at the point of use.
+  Light pollution enters as a `LightCondition` of three values, none of them a Bortle class: sky brightness (ALR, the
+  all-sky artificial brightness as a multiple of the natural sky, Duriscoe et al. 2018) and the mean radiance within
+  1 km, both looked up by coordinate from `stargazing/provider/SkyBrightnessGrid`
+  (`src/main/resources/skyglow/skyglow_korea.bin.gz`), and `lights_in_view`, a per-spot index of distant lights not
+  hidden by terrain, stored in `data.sql`. `scripts/lightpollution/` computes all of them from VIIRS night lights and
+  the Copernicus DEM; the raw data lives outside the repo. Re-run `terrain.py` when a spot's coordinates change.
   The older `RecommendApplicationService` (top-5 bookmarks, old engine) stays until the frontend moves over.
 
 ### Global layer (`global/`)
