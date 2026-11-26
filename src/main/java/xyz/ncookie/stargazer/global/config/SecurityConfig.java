@@ -62,7 +62,7 @@ public class SecurityConfig {
 				// Swagger UI 경로 허용
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
-				.requestMatchers("/api/v1/spots/**", "/api/v1/analyze", "/api/v1/forecast").permitAll() 	// 대부분의 기능은 인증 없이 사용 가능
+				.requestMatchers("/api/v1/spots/**").permitAll()	// 관측지 조회
 				.requestMatchers("/api/v1/recommendations/**").permitAll()	// 밤 추천은 로그인하지 않아도 기본 명소로 볼 수 있다
 				.requestMatchers(HttpMethod.GET, "/api/v1/clouds/**").permitAll()	// 지도의 구름 레이어
 				.requestMatchers(HttpMethod.GET, "/api/v1/geocode/**").permitAll()	// 출발 위치를 정할 때 쓰는 지명 검색

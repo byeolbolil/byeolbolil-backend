@@ -14,7 +14,7 @@ public final class Fixtures {
 	}
 
 	/**
-	 * @param path fixtures 디렉터리 기준 경로. 예: "openweather/forecast-gangneung.json"
+	 * @param path fixtures 디렉터리 기준 경로. 예: "photon/reverse-seoul-20261125.json"
 	 */
 	public static String read(String path) {
 		String resource = "/fixtures/" + path;

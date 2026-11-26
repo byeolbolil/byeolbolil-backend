@@ -1,4 +1,4 @@
-package xyz.ncookie.stargazer.domain.stargazing.model;
+package xyz.ncookie.stargazer.domain.skylight.model;
 
 /**
  * 한 좌표의 불빛 자료. 위성이 잰 야간 불빛에서 계산해 둔 값이다(scripts/lightpollution).

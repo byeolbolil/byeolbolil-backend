@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 
 /**
- * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway, Photon, 카카오 로컬)를 기록해 둔 응답으로 대체한다.
+ * 외부 API(Open-Meteo, MET Norway, Photon, 카카오 로컬)를 기록해 둔 응답으로 대체한다.
  *
  * 애플리케이션이 쓰는 RestTemplate 빈의 요청 팩토리를 바꿔 끼우므로, 이 빈으로 나가는 요청은
  * 소켓을 열지 않는다. 대체해 두지 않은 주소를 호출하면 AssertionError가 나서 테스트가 실패한다.
@@ -30,9 +30,6 @@ import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
  */
 public class ExternalApiStubs {
 
-	private static final String OPENWEATHER_CURRENT = "https://api.openweathermap.org/data/2.5/weather";
-	private static final String OPENWEATHER_FORECAST = "https://api.openweathermap.org/data/2.5/forecast";
-	private static final String GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/";
 	private static final String OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast";
 	private static final String OPEN_METEO_MODEL_META = "https://api.open-meteo.com/data/";
 	private static final String MET_NORWAY = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
@@ -57,30 +54,6 @@ public class ExternalApiStubs {
 	/** 등록한 응답이 모두 한 번 이상 호출됐는지 확인한다. */
 	public void verifyAllCalled() {
 		server.verify();
-	}
-
-	public void openWeatherCurrentReturns(String fixture) {
-		stub(HttpMethod.GET, OPENWEATHER_CURRENT, json("openweather/" + fixture));
-	}
-
-	public void openWeatherCurrentFails() {
-		stub(HttpMethod.GET, OPENWEATHER_CURRENT, withServerError());
-	}
-
-	public void openWeatherForecastReturns(String fixture) {
-		stub(HttpMethod.GET, OPENWEATHER_FORECAST, json("openweather/" + fixture));
-	}
-
-	public void openWeatherForecastFails() {
-		stub(HttpMethod.GET, OPENWEATHER_FORECAST, withServerError());
-	}
-
-	public void geminiReturns(String fixture) {
-		stub(HttpMethod.POST, GEMINI, json("gemini/" + fixture));
-	}
-
-	public void geminiFails() {
-		stub(HttpMethod.POST, GEMINI, withServerError());
 	}
 
 	public void openMeteoForecastReturns(String fixture) {
