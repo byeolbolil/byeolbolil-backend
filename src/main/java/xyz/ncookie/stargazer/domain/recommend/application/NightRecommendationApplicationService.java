@@ -169,7 +169,8 @@ public class NightRecommendationApplicationService {
 			SELECTABLE_DAYS,
 			command.policy(),
 			command.maxTravelMinutes(),
-			nightRecommendationDomainService.bestLevelByNight(nightsByPlace)
+			nightRecommendationDomainService.bestLevelByNight(nightsByPlace),
+			nightRecommendationDomainService.goodCountByNight(nightsByPlace)
 		);
 	}
 

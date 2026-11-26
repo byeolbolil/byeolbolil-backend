@@ -11,7 +11,7 @@ import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationRe
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 
-@Schema(description = "오늘 밤부터 7일의 밤마다 후보 가운데 가장 좋은 등급")
+@Schema(description = "오늘 밤부터 7일의 밤마다 후보 가운데 가장 좋은 등급과 별 보기 좋은 곳의 수")
 public record NightSummaryResponse(
 
 	@Schema(description = "오늘 밤의 날짜. 새벽 4시 전에는 전날이다", example = "2026-11-25")
@@ -26,19 +26,21 @@ public record NightSummaryResponse(
 
 	/**
 	 * @param bestLevels 밤마다 가장 좋은 등급. 평가한 장소가 없는 밤은 들어 있지 않다
+	 * @param goodCounts 밤마다 별 보기 좋은 곳(GOOD 이상)의 수. 평가한 장소가 없는 밤은 들어 있지 않다
 	 */
 	public static NightSummaryResponse of(
 		LocalDate startDate,
 		int days,
 		RecommendationPolicy policy,
 		Integer maxTravelMinutes,
-		Map<LocalDate, RecommendationLevel> bestLevels
+		Map<LocalDate, RecommendationLevel> bestLevels,
+		Map<LocalDate, Integer> goodCounts
 	) {
 		return new NightSummaryResponse(
 			startDate.toString(),
 			Criteria.of(policy, maxTravelMinutes),
 			startDate.datesUntil(startDate.plusDays(days))
-				.map(date -> Night.of(date, bestLevels.get(date)))
+				.map(date -> Night.of(date, bestLevels.get(date), goodCounts.get(date)))
 				.toList()
 		);
 	}
@@ -50,10 +52,13 @@ public record NightSummaryResponse(
 		String date,
 		@Schema(description = "그 밤의 후보 가운데 가장 좋은 등급. STRONG, GOOD, MAYBE, NO. "
 			+ "같은 조건으로 부른 날짜별 밤 추천의 첫 장소 등급과 같다. 평가한 장소가 없으면 빠진다")
-		String level
+		String level,
+		@Schema(description = "그 밤에 별 보기 좋은 곳(STRONG, GOOD)의 수. 같은 조건으로 부른 날짜별 밤 추천에서 "
+			+ "그 등급인 장소의 수와 같다. 평가한 장소가 없으면 빠진다", example = "8")
+		Integer goodCount
 	) {
-		static Night of(LocalDate date, RecommendationLevel level) {
-			return new Night(date.toString(), level != null ? level.name() : null);
+		static Night of(LocalDate date, RecommendationLevel level, Integer goodCount) {
+			return new Night(date.toString(), level != null ? level.name() : null, goodCount);
 		}
 	}
 }

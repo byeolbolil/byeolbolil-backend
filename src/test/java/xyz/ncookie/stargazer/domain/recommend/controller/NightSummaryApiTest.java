@@ -94,6 +94,8 @@ class NightSummaryApiTest extends IntegrationTestSupport {
 		// 안반데기만 맑은 밤이 있다. 구름이 40%인 넷째 밤은 맑은 시간이 없어 어려운 밤이다
 		assertThat((List<String>) JsonPath.read(body, "$.data.nights[*].level")).containsExactly(
 			"STRONG", "NO", "STRONG", "NO", "NO", "STRONG", "STRONG");
+		// 별 보기 좋은 곳은 맑은 밤의 안반데기 한 곳뿐이다
+		assertThat((List<Integer>) JsonPath.read(body, "$.data.nights[*].goodCount")).containsExactly(1, 0, 1, 0, 0, 1, 1);
 		assertThat((Map<String, Object>) JsonPath.read(body, "$.data.criteria"))
 			.containsEntry("minClearHours", 3)
 			.containsEntry("preferBefore", "02:00")
@@ -126,6 +128,12 @@ class NightSummaryApiTest extends IntegrationTestSupport {
 			assertThat((String) JsonPath.read(detail, "$.data.places[0].level"))
 				.as("%s 밤", night.get("date"))
 				.isEqualTo(night.get("level"));
+			// 별 보기 좋은 곳의 수는 그 밤 추천에서 STRONG이나 GOOD인 장소의 수와 같다
+			List<String> levels = JsonPath.read(detail, "$.data.places[*].level");
+			long good = levels.stream().filter(level -> level.equals("STRONG") || level.equals("GOOD")).count();
+			assertThat(((Number) night.get("goodCount")).longValue())
+				.as("%s 밤의 별 보기 좋은 곳", night.get("date"))
+				.isEqualTo(good);
 		}
 	}
 
