@@ -1,8 +1,10 @@
 """목업용 한국 야간광 지도 이미지를 만든다.
 
-    python scripts/mockup/render_night_map.py src/main/resources/light_pollution_korea.csv docs/mockup/korea-night.jpg
+    git show e987548:src/main/resources/light_pollution_korea.csv > light_pollution_korea.csv
+    python scripts/mockup/render_night_map.py light_pollution_korea.csv docs/mockup/korea-night.jpg
 
-입력은 저장소의 VIIRS 기반 CSV(lat, lon, radiance, bortle)다. 위도 33.0~38.75, 경도 124.5~131.0 범위를
+입력은 VIIRS 기반 CSV(lat, lon, radiance, bortle)다. 이전 분석 API와 함께 2026-11-27에 저장소에서 지웠으므로
+그 전 커밋에서 꺼내 쓴다. 위도 33.0~38.75, 경도 124.5~131.0 범위를
 가로 1100px로 그리고, 경도 방향은 cos(36°)로 보정한다. 목업의 핀 좌표 계산(mx, my)이 같은 투영을 쓰므로
 범위나 크기를 바꾸면 docs/mockup/index.html의 MAPW, MAPH, PPD도 함께 바꿔야 한다.
 

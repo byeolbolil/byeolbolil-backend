@@ -23,7 +23,7 @@ PC(1080px 이상)는 왼쪽 지도와 오른쪽 추천 패널, 모바일은 한 
 | `sky-clear.jpg` | ["밤하늘의 은하수"](https://commons.wikimedia.org/wiki/File:%EB%B0%A4%ED%95%98%EB%8A%98%EC%9D%98_%EC%9D%80%ED%95%98%EC%88%98.jpg), 이원웅(INSOLMAE) | CC BY-SA 3.0 |
 | `sky-moon.jpg` | ["덕유산의 밤"](https://commons.wikimedia.org/wiki/File:%EB%8D%95%EC%9C%A0%EC%82%B0%EC%9D%98_%EB%B0%A4.jpg), Mg shin | CC BY-SA 3.0 |
 | `sky-cloudy.jpg` | ["Night Clouds"](https://commons.wikimedia.org/wiki/File:Night_Clouds_(11424694453).jpg), Bureau of Land Management Oregon and Washington | 퍼블릭 도메인 |
-| `korea-night.jpg` | VIIRS Nighttime Lights 2024 (Earth Observation Group, Payne Institute) 기반 `light_pollution_korea.csv`를 `scripts/mockup/render_night_map.py`로 그림 | |
+| `korea-night.jpg` | VIIRS Nighttime Lights 2024 (Earth Observation Group, Payne Institute) 기반 `light_pollution_korea.csv`(2026-11-27에 지움, 커밋 `e987548`에 있다)를 `scripts/mockup/render_night_map.py`로 그림 | |
 | `korea-base.jpg` | [Natural Earth](https://www.naturalearthdata.com/) 10m 레이어를 `scripts/mockup/render_base_map.py`로 그림 | 퍼블릭 도메인 |
 
 사진은 1400px로 줄이기만 했고 잘라내거나 보정하지 않았다.

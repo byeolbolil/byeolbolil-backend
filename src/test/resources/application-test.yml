@@ -9,8 +9,6 @@ MYSQL_PASSWORD: test
 # Base64로 인코딩한 39바이트 문자열. HS256에 필요한 32바이트를 넘긴다.
 JWT_KEY: c3RhcmdhemVyLXRlc3Qtb25seS1qd3Qtc2VjcmV0LWtleS0wMDAw
 
-WEATHER_API_KEY: test-weather-key
-GEMINI_API_KEY: test-gemini-key
 MET_NORWAY_USER_AGENT: stargazer-test
 KAKAO_REST_API_KEY: test-kakao-rest-api-key
 

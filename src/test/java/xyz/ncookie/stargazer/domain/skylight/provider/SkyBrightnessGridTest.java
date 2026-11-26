@@ -1,4 +1,4 @@
-package xyz.ncookie.stargazer.domain.stargazing.provider;
+package xyz.ncookie.stargazer.domain.skylight.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
-import xyz.ncookie.stargazer.domain.stargazing.model.SkyLight;
+import xyz.ncookie.stargazer.domain.skylight.model.SkyLight;
 
 class SkyBrightnessGridTest {
 

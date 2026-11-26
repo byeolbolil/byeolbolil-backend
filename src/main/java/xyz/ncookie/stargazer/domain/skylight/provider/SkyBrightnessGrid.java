@@ -1,4 +1,4 @@
-package xyz.ncookie.stargazer.domain.stargazing.provider;
+package xyz.ncookie.stargazer.domain.skylight.provider;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -12,7 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
-import xyz.ncookie.stargazer.domain.stargazing.model.SkyLight;
+import xyz.ncookie.stargazer.domain.skylight.model.SkyLight;
 
 /**
  * 좌표로 하늘 밝기와 둘레의 불빛을 찾는다.

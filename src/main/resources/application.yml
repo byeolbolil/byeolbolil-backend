@@ -27,9 +27,6 @@ spring:
             # data.sql의 한글을 JVM 기본 문자셋으로 읽으면 환경에 따라 깨진 이름으로 들어간다.
             encoding: UTF-8
 
-    cache:
-        type: redis
-
     data:
         redis:
             host: ${REDIS_HOST:localhost}
@@ -80,8 +77,6 @@ jwt:
     secret: ${JWT_KEY}
 
 weather:
-    api:
-        key: ${WEATHER_API_KEY}
     # 1시간 단위 예보의 주 소스. 유료 플랜으로 바꾸면 base-url이 달라진다.
     open-meteo:
         base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
@@ -99,10 +94,6 @@ geocode:
     kakao:
         base-url: ${KAKAO_LOCAL_BASE_URL:https://dapi.kakao.com}
         rest-api-key: ${KAKAO_REST_API_KEY:}
-
-gemini:
-    api:
-        key: ${GEMINI_API_KEY}
 
 client:
     redirect-base-url: ${CLIENT_REDIRECT_BASE_URL}

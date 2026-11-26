@@ -42,7 +42,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.TravelEstimate;
 import xyz.ncookie.stargazer.domain.recommend.model.WeekOutlook;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
-import xyz.ncookie.stargazer.domain.stargazing.domain.StargazingDomainService;
+import xyz.ncookie.stargazer.domain.skylight.domain.SkyLightDomainService;
 import xyz.ncookie.stargazer.domain.weather.domain.WeatherDomainService;
 import xyz.ncookie.stargazer.domain.weather.exception.WeatherException;
 import xyz.ncookie.stargazer.domain.weather.model.WeatherForecast;
@@ -65,7 +65,7 @@ public class NightRecommendationApplicationService {
 
 	private final NightRecommendationDomainService nightRecommendationDomainService;
 	private final WeatherDomainService weatherDomainService;
-	private final StargazingDomainService stargazingDomainService;
+	private final SkyLightDomainService skyLightDomainService;
 	private final BookmarkDomainService bookmarkDomainService;
 	private final ObservationSpotDomainService observationSpotDomainService;
 	private final Executor recommendTaskExecutor;
@@ -74,7 +74,7 @@ public class NightRecommendationApplicationService {
 	public NightRecommendationApplicationService(
 		NightRecommendationDomainService nightRecommendationDomainService,
 		WeatherDomainService weatherDomainService,
-		StargazingDomainService stargazingDomainService,
+		SkyLightDomainService skyLightDomainService,
 		BookmarkDomainService bookmarkDomainService,
 		ObservationSpotDomainService observationSpotDomainService,
 		@Qualifier("recommendTaskExecutor") Executor recommendTaskExecutor,
@@ -82,7 +82,7 @@ public class NightRecommendationApplicationService {
 	) {
 		this.nightRecommendationDomainService = nightRecommendationDomainService;
 		this.weatherDomainService = weatherDomainService;
-		this.stargazingDomainService = stargazingDomainService;
+		this.skyLightDomainService = skyLightDomainService;
 		this.bookmarkDomainService = bookmarkDomainService;
 		this.observationSpotDomainService = observationSpotDomainService;
 		this.recommendTaskExecutor = recommendTaskExecutor;
@@ -229,7 +229,7 @@ public class NightRecommendationApplicationService {
 	 * 자료가 있는 범위 밖의 좌표는 모르는 채로 둔다.
 	 */
 	private LightCondition lightOf(CandidatePlace place) {
-		return stargazingDomainService.findSkyLight(place.latitude(), place.longitude())
+		return skyLightDomainService.findSkyLight(place.latitude(), place.longitude())
 			.map(sky -> new LightCondition(sky.skyBrightness(), sky.nearbyRadiance(), place.lightsInView()))
 			.orElseGet(() -> new LightCondition(null, null, place.lightsInView()));
 	}

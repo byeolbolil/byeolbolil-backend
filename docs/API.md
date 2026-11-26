@@ -31,9 +31,8 @@
 10. [북마크](#10-북마크)
 11. [회원](#11-회원)
 12. [인증 엔드포인트](#12-인증-엔드포인트)
-13. [이전 API](#13-이전-api)
-14. [알려진 한계](#14-알려진-한계)
-15. [문서를 고칠 때](#15-문서를-고칠-때)
+13. [알려진 한계](#13-알려진-한계)
+14. [문서를 고칠 때](#14-문서를-고칠-때)
 
 ## 1. 기본 규칙
 
@@ -260,9 +259,6 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | POST | `/api/v1/auth/login` | 없음 | 로그인 |
 | POST | `/api/v1/auth/reissue` | 리프레시 토큰 | 토큰 재발급 |
 | POST | `/api/v1/auth/logout` | 리프레시 토큰 | 로그아웃 |
-| GET | `/api/v1/analyze` | 없음 | 한 시점의 관측 점수 (이전 API) |
-| GET | `/api/v1/forecast` | 없음 | 5일 치 3시간 간격 점수 (이전 API) |
-| GET | `/api/v1/recommends/bookmarks/today` | 필요 | 북마크 가운데 오늘 추천 5곳 (이전 API) |
 
 ## 6. 밤 추천
 
@@ -1081,75 +1077,7 @@ POST /api/v1/auth/logout
 본문은 없다. 리프레시 토큰을 재발급과 같은 방식으로 보낸다. 서버에서 그 토큰을 없애고 쿠키를 지우는
 `Set-Cookie`를 내려 준다. 토큰 없이 불러도 200이다.
 
-## 13. 이전 API
-
-밤 추천이 나오기 전의 API다. 한 시점의 점수 하나로 답하는 방식이고, 웹이 다 옮겨 가면 없앨 예정이다.
-새로 만드는 화면은 밤 추천을 쓴다.
-
-### 한 시점 분석
-
-```
-GET /api/v1/analyze?lat=37.5665&lon=126.9780&date=2026-11-24&time=22:00
-```
-
-네 값 모두 필수다. 한 줄 평을 받으려고 Gemini를 부르기 때문에 다른 API보다 느리다.
-
-```json
-{
-  "date": "2026-11-24",
-  "time": "22:00",
-  "totalScore": 20,
-  "reasons": ["달 밝기 100% (-30점)", "광해 등급 Class 9 (-50점)"],
-  "aiComment": "AI 연결 지연",
-  "weather": { "cloudIndex": 0, "humidityIndex": 59, "visibilityText": "매우 좋음" },
-  "astronomy": {
-    "moonPhase": "FULL_MOON",
-    "sunrise": "07:21",
-    "sunset": "17:16",
-    "moonrise": "17:28",
-    "moonset": "08:03"
-  },
-  "lightPollution": { "bortleClass": "Class 9", "brightness": "매우 밝음", "limitingMag": "3.0등급" }
-}
-```
-
-위는 `data`의 내용이다.
-
-- `aiComment`는 Gemini 호출이 실패하거나 늦으면 "AI 연결 지연"으로 온다. 오류가 아니다.
-- `moonPhase`는 `NEW_MOON`, `WAXING_CRESCENT`, `FIRST_QUARTER`, `WAXING_GIBBOUS`, `FULL_MOON`, `WANING_GIBBOUS`,
-  `LAST_QUARTER`, `WANING_CRESCENT` 가운데 하나다.
-- `visibilityText`는 "최상", "매우 좋음", "좋음", "보통", "나쁨" 가운데 하나다.
-- 그날 달이 뜨거나 지지 않으면 `moonrise`, `moonset`이 `--:--`로 온다.
-
-### 5일 예보
-
-```
-GET /api/v1/forecast?lat=37.6254&lon=128.9392&date=2026-11-24&time=22:00
-```
-
-`date`와 `time`은 결과에 쓰이지 않지만 빠지면 400이다. 아무 날짜와 시각이나 넣는다.
-
-`data.dailyForecasts`는 날짜별 배열이다. 날짜마다 `date`, `sunrise`, `sunset`, `moonrise`, `moonset`과
-3시간 간격의 `hourlyForecasts`가 있고, 칸마다 `time`, `score`, `reasons`, `starGrade`, `cloudCover`, `moonPhase`가 있다.
-
-### 오늘의 추천 북마크
-
-```
-GET /api/v1/recommends/bookmarks/today
-```
-
-액세스 토큰이 필요하다. 내 북마크 가운데 오늘 밤 점수가 높은 다섯 곳을 준다.
-
-| 필드 | 설명 |
-|---|---|
-| `items` | 추천 목록. 북마크가 하나도 없으면 빈 배열이 아니라 `null`이다 |
-| `items[].bookmarkId`, `name`, `latitude`, `longitude`, `address` | 북마크 정보 |
-| `items[].score`, `reasons`, `starGrade`, `cloudCover`, `moonPhase`, `bestTime` | 가장 좋은 시각의 점수와 조건 |
-| `totalRequested` | 분석하려던 북마크 수 |
-| `analyzedCount` | 분석에 성공한 수 |
-| `isPartialResult` | 일부를 건너뛰었으면 `true` |
-
-## 14. 알려진 한계
+## 13. 알려진 한계
 
 고칠 예정이거나 아직 정하지 않은 것들이다. 여기 적힌 동작에 기대어 만들지 않는다.
 
@@ -1157,15 +1085,13 @@ GET /api/v1/recommends/bookmarks/today
 - 500 응답의 `message`에 내부 예외 문구가 그대로 실린다.
 - `CUSTOM` 북마크는 주소가 필수다. 현재 위치를 주소 없이 저장할 수 없고, 빠졌을 때의 오류에 `data`가 없다.
 - 북마크를 수정할 때 `memo`를 빼면 지워진다.
-- `GET /api/v1/forecast`가 쓰지 않는 `date`, `time`을 요구한다.
-- `GET /api/v1/recommends/bookmarks/today`의 `items`가 `null`일 수 있다.
 - 네이티브 앱용 소셜 로그인 흐름이 없다.
 - 닉네임 변경, 비밀번호 변경, 회원 탈퇴 API가 없다.
 - 밤 추천은 등록된 명소와 북마크만 평가한다. 임의의 좌표를 평가하는 API는 없다.
 - 이동 시간은 직선거리로 어림한 값이다.
 - 운영 서버가 `dev` 브랜치를 그대로 따라간다. 깨지는 변경은 [decisions.md](./decisions.md)에 날짜와 함께 적는다.
 
-## 15. 문서를 고칠 때
+## 14. 문서를 고칠 때
 
 이 문서의 응답 예시와 상태 코드는 아래 통합 테스트가 고정하고 있다. API를 바꾸면 테스트와 이 문서를 같은
 커밋에서 고친다.
@@ -1180,7 +1106,6 @@ GET /api/v1/recommends/bookmarks/today
 | 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
 | 이번 주 밤 | [`WeekOutlookApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/WeekOutlookApiTest.java) |
-| 분석, 5일 예보 | [`StargazingApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/stargazing/controller/StargazingApiTest.java) |
 | 없는 경로, 틀린 메서드 | [`FrameworkErrorStatusTest`](../src/test/java/xyz/ncookie/stargazer/global/exception/FrameworkErrorStatusTest.java) |
 
 관련 문서는 다음과 같다.

@@ -1,3 +1,8 @@
+-- 이전 분석 API가 읽던 광해 격자(위성 레이디언스를 출처 없는 표로 Bortle 등급에 옮긴 값)다. 2026-11-27에 그 API와
+-- 함께 지웠다. ddl-auto가 update라 엔티티를 지워도 테이블은 남아서 여기서 지운다. 밤 추천의 하늘 밝기는
+-- src/main/resources/skyglow의 격자 파일에서 읽는다.
+DROP TABLE IF EXISTS light_pollution;
+
 -- 명소 데이터. 2026-11-25에 다시 골랐다(docs/decisions.md "명소 목록 재선정", 조사 기록은 docs/issues/spots.md).
 --
 -- 실행할 때마다 아래 값으로 덮어쓴다. 명소 정보는 이 파일이 원본이라서, 고치려면 여기를 고치고 배포한다.

@@ -72,8 +72,6 @@ jobs:
                   SITE_ADDRESS: ${{ vars.SITE_ADDRESS }}
                   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
                   JWT_KEY: ${{ secrets.JWT_KEY }}
-                  WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
-                  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
                   MET_NORWAY_USER_AGENT: ${{ vars.MET_NORWAY_USER_AGENT }}
                   SERVER_BASE_URL: ${{ secrets.SERVER_BASE_URL }}
                   CLIENT_REDIRECT_BASE_URL: ${{ secrets.CLIENT_REDIRECT_BASE_URL }}
@@ -102,8 +100,6 @@ jobs:
                   put DB_USERNAME stargazer
                   put DB_PASSWORD "$DB_PASSWORD"
                   put JWT_KEY "$JWT_KEY"
-                  put WEATHER_API_KEY "$WEATHER_API_KEY"
-                  put GEMINI_API_KEY "$GEMINI_API_KEY"
                   put MET_NORWAY_USER_AGENT "$MET_NORWAY_USER_AGENT"
                   put SERVER_BASE_URL "$SERVER_BASE_URL"
                   put CLIENT_REDIRECT_BASE_URL "$CLIENT_REDIRECT_BASE_URL"
