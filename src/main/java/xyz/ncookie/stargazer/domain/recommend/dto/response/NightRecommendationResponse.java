@@ -90,9 +90,6 @@ public record NightRecommendationResponse(
 		@Schema(description = "이 명소에서 별을 본 유튜브 영상. 찾지 못한 곳에서는 빠진다")
 		@JsonInclude(JsonInclude.Include.NON_EMPTY)
 		List<Video> videos,
-		@Schema(description = "이 명소에서 별을 본 인스타그램 게시물. 받아 둔 주소가 있는 곳에만 있다")
-		@JsonInclude(JsonInclude.Include.NON_EMPTY)
-		List<Reel> reels,
 
 		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
@@ -147,11 +144,6 @@ public record NightRecommendationResponse(
 					? guide.videos().stream()
 						.map(video -> new Video(
 							video.title(), video.channel(), video.url(), video.thumbnailUrl(), video.shortForm()))
-						.toList()
-					: null,
-				guide != null
-					? guide.reels().stream()
-						.map(reel -> new Reel(reel.title(), reel.account(), reel.url(), reel.embedUrl()))
 						.toList()
 					: null,
 				night.level().name(),
@@ -215,18 +207,6 @@ public record NightRecommendationResponse(
 		String thumbnailUrl,
 		@Schema(description = "쇼츠(세로로 찍은 짧은 영상)인지")
 		boolean shortForm
-	) {}
-
-	@Schema(description = "명소에서 별을 본 인스타그램 게시물")
-	public record Reel(
-		@Schema(description = "어떤 영상인지 적은 한 줄")
-		String title,
-		@Schema(description = "올린 계정의 이름")
-		String account,
-		@Schema(description = "인스타그램에서 여는 주소")
-		String url,
-		@Schema(description = "화면 안에 넣어 보여 주는 임베드 주소. iframe의 src로 쓴다")
-		String embedUrl
 	) {}
 
 	@Schema(description = "그 장소에서 본 그 밤의 달")

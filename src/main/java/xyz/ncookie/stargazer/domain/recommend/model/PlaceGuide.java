@@ -12,17 +12,15 @@ import java.util.List;
  * @param links       가는 길과 서는 자리를 더 자세히 적은 글. 없으면 빈 목록
  * @param points      이 명소 안에서 서서 보는 자리들. 자리가 하나뿐이면 빈 목록
  * @param videos      이 명소에서 별을 본 유튜브 영상. 찾지 못했으면 빈 목록
- * @param reels       이 명소에서 별을 본 인스타그램 게시물. 없으면 빈 목록
  */
 public record PlaceGuide(
 	String viewpoint, String description, String guide, String caution,
-	List<PlaceLink> links, List<PlacePoint> points, List<PlaceVideo> videos, List<PlaceReel> reels
+	List<PlaceLink> links, List<PlacePoint> points, List<PlaceVideo> videos
 ) {
 
 	public PlaceGuide {
 		links = links != null ? List.copyOf(links) : List.of();
 		points = points != null ? List.copyOf(points) : List.of();
 		videos = videos != null ? List.copyOf(videos) : List.of();
-		reels = reels != null ? List.copyOf(reels) : List.of();
 	}
 }

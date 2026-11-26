@@ -126,22 +126,6 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 	}
 
 	@Test
-	@DisplayName("인스타그램 게시물은 여는 주소와 임베드 주소로 준다. 받아 둔 주소가 없는 곳에는 항목이 없다")
-	void reels() {
-		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());
-
-		List<Map<String, Object>> hwangmae = JsonPath.read(body, "$.data[?(@.title == '합천 황매산')].reels[*]");
-
-		assertThat(hwangmae).hasSize(1);
-		assertThat(hwangmae.get(0))
-			.containsEntry("title", "황매산에서 본 은하수")
-			.containsEntry("account", "yeomi.travel")
-			.containsEntry("url", "https://www.instagram.com/reel/DNnVdixS3LY/")
-			.containsEntry("embedUrl", "https://www.instagram.com/reel/DNnVdixS3LY/embed/");
-		assertThat(spotNamed(body, "강릉 안반데기")).doesNotContainKey("reels");
-	}
-
-	@Test
 	@DisplayName("참고 링크는 적어 둔 순서대로 오고 미리보기 이미지가 붙는다. 링크가 없는 곳에는 항목이 없다")
 	void links() {
 		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());

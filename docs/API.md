@@ -324,7 +324,6 @@ GET /api/v1/recommendations/nights/{date}
 | `links` | array | 참고 링크. 항목은 `title`, `url`, `imageUrl`이다. 7장 관측지의 `links`와 같다. 명소가 아니거나 링크가 없으면 빠진다 |
 | `points` | array | 이 명소 안에서 서서 보는 자리들. 항목은 `name`, `access`(어떻게 가는지와 어떤 자리인지), `latitude`, `longitude`다. 첫 항목이 차를 대는 곳이고 나머지는 거기서 차로 조금 가거나 30분 안쪽으로 걸어가는 곳이다. 좌표는 아는 자리에만 있다. 자리가 하나뿐인 명소에서는 빠진다 |
 | `videos` | array | 이 명소에서 별을 본 유튜브 영상. 항목은 `title`(영상 제목), `channel`(올린 채널), `url`(여는 주소), `thumbnailUrl`(320×180 미리보기 그림), `shortForm`(쇼츠인지)이다. 골라 둔 순서대로 최대 4개가 오고, 영상을 찾지 못한 명소와 시설에서는 빠진다 |
-| `reels` | array | 이 명소에서 별을 본 인스타그램 게시물. 항목은 `title`(어떤 영상인지 적은 한 줄), `account`(올린 계정), `url`(인스타그램에서 여는 주소), `embedUrl`(화면 안에 넣는 임베드 주소)이다. 받아 둔 주소가 있는 명소에만 있다 |
 | `level` | string | 추천 등급. 아래 표 |
 | `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
 | `notes` | string[] | 주의할 점. 없으면 빈 배열 |
@@ -698,7 +697,6 @@ GET /api/v1/spots
 | `links` | array | 참고 링크. 항목은 `title`(그 글의 제목), `url`, `imageUrl`(그 글의 대표 이미지, 없으면 빠진다)이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
 | `points` | array | 이 명소 안에서 서서 보는 자리들. 항목은 `name`, `access`(어떻게 가는지와 어떤 자리인지), `latitude`, `longitude`다. 첫 항목이 차를 대는 곳이고 나머지는 거기서 차로 조금 가거나 30분 안쪽으로 걸어가는 곳이다. 좌표는 아는 자리에만 있다. 자리가 하나뿐인 명소에서는 빠진다 |
 | `videos` | array | 이 명소에서 별을 본 유튜브 영상. 항목은 `title`(영상 제목), `channel`(올린 채널), `url`(여는 주소), `thumbnailUrl`(320×180 미리보기 그림), `shortForm`(쇼츠인지)이다. 골라 둔 순서대로 최대 4개가 오고, 영상을 찾지 못한 명소와 시설에서는 빠진다 |
-| `reels` | array | 이 명소에서 별을 본 인스타그램 게시물. 항목은 `title`(어떤 영상인지 적은 한 줄), `account`(올린 계정), `url`(인스타그램에서 여는 주소), `embedUrl`(화면 안에 넣는 임베드 주소)이다. 받아 둔 주소가 있는 명소에만 있다 |
 | `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 하늘이 얼마나 어두운지는 밤 추천의 `skyBrightness`를 본다 |
 | `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
@@ -762,10 +760,6 @@ GET /api/v1/spots?kind=OPEN_SITE
 그대로이고, 영상은 `url`을 새 창으로 열어 유튜브에서 보게 한다. `thumbnailUrl`은 유튜브의 그림 서버(`i.ytimg.com`)에
 있다. 영상이 지워지면 이 주소는 오류 대신 120×90의 빈 그림을 돌려주므로, 받은 그림의 너비가 120 이하이면 그 영상은
 그리지 않는다.
-
-`reels`는 인스타그램 게시물이다. 인스타그램은 제목과 미리보기 그림을 내주지 않으므로 카드로 그릴 그림이 없다.
-`embedUrl`을 `iframe`의 `src`로 쓰면 인스타그램이 게시물을 그려 주고 로그인 없이 재생된다. 인스타그램의 코드를 불러오는
-일이라, 처음부터 넣지 말고 사용자가 누른 뒤에 `iframe`을 만든다. `title`은 게시물의 글을 읽고 서버가 적어 둔 한 줄이다.
 
 같은 장소의 이름이 여기서는 `title`, 밤 추천과 북마크에서는 `name`이다.
 
