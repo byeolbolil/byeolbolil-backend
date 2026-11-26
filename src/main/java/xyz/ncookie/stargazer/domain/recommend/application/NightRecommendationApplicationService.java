@@ -34,7 +34,6 @@ import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
 import xyz.ncookie.stargazer.domain.recommend.model.PlacePoint;
-import xyz.ncookie.stargazer.domain.recommend.model.PlaceReel;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceVideo;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
@@ -304,11 +303,8 @@ public class NightRecommendationApplicationService {
 			.map(video -> new PlaceVideo(
 				video.getTitle(), video.getChannel(), video.getUrl(), video.getThumbnailUrl(), video.isShortForm()))
 			.toList();
-		List<PlaceReel> reels = spot.getReels().stream()
-			.map(reel -> new PlaceReel(reel.getTitle(), reel.getAccount(), reel.getUrl(), reel.getEmbedUrl()))
-			.toList();
 		return new PlaceGuide(
-			spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution(), links, points, videos, reels);
+			spot.getViewpoint(), spot.getDescription(), spot.getGuide(), spot.getCaution(), links, points, videos);
 	}
 
 	/**
