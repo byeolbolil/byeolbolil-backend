@@ -10,10 +10,14 @@ import java.util.List;
  * @param guide       가는 법과 주차
  * @param caution     계절 폐쇄, 조명, 통제 같은 주의 사항
  * @param links       가는 길과 서는 자리를 더 자세히 적은 글. 없으면 빈 목록
+ * @param points      이 명소 안에서 서서 보는 자리들. 자리가 하나뿐이면 빈 목록
  */
-public record PlaceGuide(String viewpoint, String description, String guide, String caution, List<PlaceLink> links) {
+public record PlaceGuide(
+	String viewpoint, String description, String guide, String caution, List<PlaceLink> links, List<PlacePoint> points
+) {
 
 	public PlaceGuide {
 		links = links != null ? List.copyOf(links) : List.of();
+		points = points != null ? List.copyOf(points) : List.of();
 	}
 }

@@ -27,7 +27,7 @@
 |---|---|---|---|
 | 점수 산정 로직 | [scoring.md](scoring.md) | `scripts/issues/scoring.sh` | 조사 완료, 이슈 5건 |
 | 명소 목록 | [spots.md](spots.md) | — | 조사 완료(2026-11-25). 목록을 어떻게 바꿀지 정한 뒤 이슈로 등록 |
-| 명소 추가 | [spots-additions.md](spots-additions.md) | — | 조사 완료(2026-11-26). 8곳을 넣었고 보류한 곳은 문서에 있다 |
+| 명소 추가 | [spots-additions.md](spots-additions.md) | — | 조사 완료(2026-11-26). 8곳을 넣었고, 보류로 적힌 곳 가운데 14곳은 같은 날 기준을 바꿔 넣었다(`docs/decisions.md` "보는 자리와 명소 14곳") |
 | 아키텍처 | — | — | 예정 |
 | 성능 | — | — | 예정 |
 | 배포 | — | — | 예정 |

@@ -84,6 +84,9 @@ public record NightRecommendationResponse(
 		@Schema(description = "가는 길과 서는 자리를 더 자세히 적은 글. 없으면 빠진다")
 		@JsonInclude(JsonInclude.Include.NON_EMPTY)
 		List<Link> links,
+		@Schema(description = "이 명소 안에서 서서 보는 자리들. 첫 자리가 차를 대는 곳이다. 자리가 하나뿐이면 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<Point> points,
 
 		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
@@ -129,6 +132,11 @@ public record NightRecommendationResponse(
 				guide != null ? guide.guide() : null,
 				guide != null ? guide.caution() : null,
 				guide != null ? guide.links().stream().map(link -> new Link(link.title(), link.url(), link.imageUrl())).toList() : null,
+				guide != null
+					? guide.points().stream()
+						.map(point -> new Point(point.name(), point.access(), point.latitude(), point.longitude()))
+						.toList()
+					: null,
 				night.level().name(),
 				night.pattern().name(),
 				night.notes().stream().map(Enum::name).toList(),
@@ -164,6 +172,18 @@ public record NightRecommendationResponse(
 		String url,
 		@Schema(description = "그 글의 대표 이미지. 링크의 미리보기로 쓴다. 없으면 빠진다")
 		String imageUrl
+	) {}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@Schema(description = "명소 안에서 서서 보는 자리")
+	public record Point(
+		@Schema(description = "자리의 이름", example = "별빛언덕")
+		String name,
+		@Schema(description = "어떻게 가는지와 어떤 자리인지", example = "주차장에서 걸어서 20분쯤이에요.")
+		String access,
+		@Schema(description = "좌표를 아는 자리에만 있다")
+		Double latitude,
+		Double longitude
 	) {}
 
 	@Schema(description = "그 장소에서 본 그 밤의 달")

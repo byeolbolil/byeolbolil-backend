@@ -46,6 +46,10 @@ public record ObservationSpotResponse(
 	@JsonInclude(JsonInclude.Include.NON_EMPTY)
 	List<Link> links,
 
+	@Schema(description = "이 명소 안에서 서서 보는 자리들. 첫 자리가 차를 대는 곳이다. 자리가 하나뿐이면 빠진다")
+	@JsonInclude(JsonInclude.Include.NON_EMPTY)
+	List<Point> points,
+
 	@Schema(description = "보틀 등급 (1-9, 낮을수록 좋음)", example = "3")
 	Integer bortleScale,
 
@@ -75,6 +79,9 @@ public record ObservationSpotResponse(
 			.guide(spot.getGuide())
 			.caution(spot.getCaution())
 			.links(spot.getLinks().stream().map(link -> new Link(link.getTitle(), link.getUrl(), link.getImageUrl())).toList())
+			.points(spot.getPoints().stream()
+				.map(point -> new Point(point.getName(), point.getAccess(), point.getLatitude(), point.getLongitude()))
+				.toList())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
 			.isRestroomAvailable(spot.getIsRestroomAvailable())
@@ -91,5 +98,17 @@ public record ObservationSpotResponse(
 		String url,
 		@Schema(description = "그 글의 대표 이미지. 링크의 미리보기로 쓴다. 없으면 빠진다")
 		String imageUrl
+	) {}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@Schema(description = "명소 안에서 서서 보는 자리")
+	public record Point(
+		@Schema(description = "자리의 이름", example = "별빛언덕")
+		String name,
+		@Schema(description = "어떻게 가는지와 어떤 자리인지", example = "주차장에서 걸어서 20분쯤이에요.")
+		String access,
+		@Schema(description = "좌표를 아는 자리에만 있다")
+		Double latitude,
+		Double longitude
 	) {}
 }

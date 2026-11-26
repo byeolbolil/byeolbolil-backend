@@ -90,6 +90,13 @@ public class ObservationSpot {
 	@BatchSize(size = 100)
 	private List<SpotLink> links = new ArrayList<>();
 
+	// 이 명소 안에서 서서 보는 자리들. 첫 자리가 차를 대는 곳이다. 하나뿐인 곳은 비어 있다
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "observation_spot_point", joinColumns = @JoinColumn(name = "spot_id"))
+	@OrderColumn(name = "position")
+	@BatchSize(size = 100)
+	private List<SpotPoint> points = new ArrayList<>();
+
 	/** 컬럼을 더하기 전에 들어간 행은 값이 비어 있다. 비어 있으면 열린 관측지로 본다 */
 	public SpotKind getKind() {
 		return kind != null ? kind : SpotKind.OPEN_SITE;

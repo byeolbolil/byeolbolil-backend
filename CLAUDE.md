@@ -108,7 +108,9 @@ Cross-domain communication always goes through Application-layer orchestration â
   source of truth: it upserts by explicit id on every start and marks removed spots `RETIRED` instead of deleting
   them. Coordinates point at the named `viewpoint` (a parking lot or lookout), not at the area in general; where that
   spot could not be pinned on a map the `guide` says the position is approximate. Reference links per spot live in
-  `observation_spot_link`, which `data.sql` empties and refills on every start. Spots whose road closes in winter
+  `observation_spot_link`, which `data.sql` empties and refills on every start. Named viewing points inside one spot
+  (a mountain with a parking lot and a meadow twenty minutes away on foot) live the same way in
+  `observation_spot_point`; the first point is where the car is parked. Spots whose road closes in winter
   carry this season's `closed_from`/`closed_until` in `data.sql`; they are left out of the recommendation candidates
   for nights in that period (bookmarked places are still evaluated). Update the dates every season.
 - `member/` â€” auth/account (OAuth2 + JWT), profile.
