@@ -1720,7 +1720,8 @@ OpenStreetMap에서 찾지 못했다는 이유였다. 써 본 사람은 둘 다 
 
 ### 영향
 
-- 클라이언트: 세 경로가 404가 된다. 쓰는 앱은 없다. `docs/API.md`의 "이전 API" 절을 지웠고,
+- 클라이언트: 세 경로는 없는 경로가 된다. 공개 경로 목록에서도 뺐으므로 토큰 없이 부르면 401, 토큰이 있으면 404다(없는 경로가
+  원래 그렇게 답한다). 쓰는 앱은 없다. `docs/API.md`의 "이전 API" 절을 지웠고,
   `docs/MOBILE_DEVELOPER_GUIDE.md`에는 원래 이 API들의 설명이 없다.
 - 배포: `WEATHER_API_KEY`와 `GEMINI_API_KEY`가 더는 필요 없다. 배포 워크플로와 `.env.example`에서 뺐다. GitHub secrets에
   남은 두 값은 지워도 된다.
