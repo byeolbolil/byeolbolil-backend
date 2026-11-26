@@ -3,6 +3,10 @@
 > **Version:** 1.1.0 (Revised)
 > **Last Updated:** 2025.12.31
 > **Status:** Phase 1 Development (Refactoring & Stabilization)
+>
+> 2025년 12월의 첫 설계다. 2026-11-24에 방향을 바꾸면서 여기 적힌 0~100점 분석 API와 감점식은 쓰지 않게 됐고,
+> 2026-11-27에 코드에서 지웠다. 지금의 구조는 [ROADMAP.md](ROADMAP.md)와 [decisions.md](decisions.md), 기준값은
+> [SCORING.md](SCORING.md)를 본다.
 
 ## 1. 프로젝트 개요 (Overview)
 **Stargazer**는 "오늘 밤, 별 보러 가도 될까?"라는 질문에 답을 주는 **별 관측 적합도 분석 및 명소 추천 서비스**입니다.
