@@ -20,10 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.bookmark.domain.BookmarkDomainService;
 import xyz.ncookie.stargazer.domain.bookmark.entity.Bookmark;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.domain.NightRecommendationDomainService;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
@@ -184,6 +186,14 @@ public class NightRecommendationApplicationService {
 
 		WeekOutlook outlook = outlookOf(place, lightOf(place), forecast, tonight, command.policy());
 		return WeekOutlookResponse.of(tonight, SELECTABLE_DAYS, command.policy(), List.of(outlook), ZONE);
+	}
+
+	/**
+	 * 한 좌표의 하늘 밝기. 지도에서 고른 자리가 얼마나 어두운지 보여 줄 때 쓴다. 예보를 받지 않으므로 가볍다.
+	 */
+	public SkyResponse skyAt(GetSkyCommand command) {
+		CandidatePlace place = new CandidatePlace(null, null, null, null, null, command.latitude(), command.longitude());
+		return SkyResponse.of(command.latitude(), command.longitude(), lightOf(place));
 	}
 
 	/**

@@ -303,8 +303,12 @@ public class NightAssessmentEngine {
 	/** 은하수가 보이지 않을 만큼 하늘이 밝거나, 서 있는 곳 둘레가 밝은지 */
 	static boolean isTooBright(LightCondition light) {
 		boolean skyTooBright = light.skyBrightness() != null && light.skyBrightness() >= MILKY_WAY_LOST_MIN;
-		boolean litSurroundings = light.nearbyRadiance() != null && light.nearbyRadiance() >= LIT_SURROUNDINGS_MIN;
-		return skyTooBright || litSurroundings;
+		return skyTooBright || hasLitSurroundings(light);
+	}
+
+	/** 서 있는 곳 둘레 1km가 가로등과 건물 불빛으로 밝은지. 자료가 없으면 밝지 않은 것으로 본다 */
+	public static boolean hasLitSurroundings(LightCondition light) {
+		return light.nearbyRadiance() != null && light.nearbyRadiance() >= LIT_SURROUNDINGS_MIN;
 	}
 
 	/** low 이하에서 0, high 이상에서 1이고 그 사이는 로그 눈금에서 곧게 잇는다 */
