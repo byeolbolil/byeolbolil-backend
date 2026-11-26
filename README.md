@@ -13,7 +13,7 @@
 ## 📖 프로젝트 개요
 
 단순히 날씨가 맑다고 별이 잘 보이는 것은 아닙니다. 달의 밝기(월령), 주변 광해, 대기 투명도 등이 복합적으로 작용합니다.  
-Stargazer는 **OpenWeatherMap**, **Google Gemini AI**, **VIIRS 광해 데이터**를 결합해 **0~100점 관측 적합도 점수**와 **AI 코멘트**를 제공하며, **회원·북마크·관측지·오늘의 추천** 기능을 지원합니다.
+별볼일 백엔드는 시간별 예보(**Open-Meteo**, 장애 시 **MET Norway**), 위성 야간광(**VIIRS**)으로 계산한 **하늘 밝기**, 해와 달의 위치를 묶어 **오늘 밤 어디서 언제 별이 잘 보이는지**를 장소마다 평가하고, **회원·북마크·관측지·지명 검색·구름 지도** 기능을 지원합니다.
 
 ### 🎯 대상
 - 웹/모바일 클라이언트를 위한 **REST API 서버**
@@ -25,35 +25,22 @@ Stargazer는 **OpenWeatherMap**, **Google Gemini AI**, **VIIRS 광해 데이터*
 
 | 구분 | 기능 | 설명 |
 |------|------|------|
-| **별 관측** | 실시간 분석 | 위도/경도·날짜·시간 기준 관측 적합도 점수, 감점 사유, AI 코멘트 |
-| **별 관측** | 주간 예보 | 해당 위치 향후 5일간 밤 시간대 예보 |
+| **밤 추천** | 오늘 밤, 날짜별 | 기본 명소와 내 북마크를 밤마다 평가해 맑은 시간대, 등급, 이동 시간과 함께 순서대로 |
+| **밤 추천** | 이번 주 | 한 장소(임의 좌표 또는 북마크)의 7일 밤을 한 번에 |
+| **지도** | 구름 격자 | 한국을 덮는 격자의 시간별 구름량 |
+| **지도** | 지명 검색 | 이름으로 장소 찾기, 좌표의 지역 이름 |
 | **관측지** | 주변 명소 조회 | 위도/경도·반경(10~500km) 기준 관측지 목록 (공간 인덱스) |
 | **인증** | 로그인/회원가입 | 이메일·비밀번호 기반, JWT Access Token + Refresh Token(쿠키) |
 | **인증** | 토큰 재발급·로그아웃 | RTR(Refresh Token Rotation), HttpOnly 쿠키 |
 | **회원** | 내 정보·이메일 중복 검사 | `GET /me`, `GET /exists/email` |
 | **북마크** | CRUD | 관측지(SPOT) 또는 사용자 정의(CUSTOM) 위치 저장·수정·삭제 |
-| **추천** | 오늘의 추천 북마크 | 로그인 사용자 북마크 중 오늘 밤 관측 적합도 상위 5곳 |
 
 ---
 
-## 🌟 별 관측 점수 산정 기준
+## 🌟 추천 기준
 
-전 세계 최적 환경(**몽골 고비 사막, Bortle Class 1, 구름 0%**)을 **100점** 기준으로 하고, 방해 요소를 **절대 평가**로 감점합니다.
-
-### 기본 원칙
-- **Base Score:** 100점
-- **Cut-off:** 구름 70% 이상 또는 시민박명(태양 고도 -6° 이상) 시 **0점**
-
-### 감점 요인 (요약)
-| 요인 | 적용 방식 | 최대 감점 |
-|------|------------|-----------|
-| 광해 | (Bortle Class - 1) × 6.25 | -50점 |
-| 구름 | (구름% - 10), 10% 미만 무시 | 관측 불가 |
-| 달 | 달 밝기 × 30 (지평선 위일 때) | -30점 |
-| 습도 | (습도% - 60) / 2, 60% 미만 무시 | -20점 |
-| 시정 | 10km 미만 -10점, 5km 미만 -20점 | -20점 |
-
-점수 구간 가이드: **90~100** 완벽, **70~89** 국내 최상급, **50~69** 교외 적합, **0~49** 관측 불리.
+밤마다 해가 진 뒤의 어두운 시간을 1시간 단위로 보고, 구름이 적게 이어지는 구간과 하늘 밝기, 달, 습도로 등급을 정합니다.
+기준값과 그 출처는 [docs/SCORING.md](docs/SCORING.md)에, 그렇게 정한 이유는 [docs/decisions.md](docs/decisions.md)에 있습니다.
 
 ---
 
@@ -65,8 +52,8 @@ Stargazer는 **OpenWeatherMap**, **Google Gemini AI**, **VIIRS 광해 데이터*
 | **Framework** | Spring Boot 4.x, Spring Web MVC, Spring Data JPA, Spring Security |
 | **인증** | JWT (Access/Refresh), HttpOnly Cookie, Redis(Refresh Token 저장) |
 | **DB** | MySQL 8.0 (Spatial), Redis (캐시·세션) |
-| **외부 API** | OpenWeatherMap, Google Gemini |
-| **기타** | SunCalc(천문 계산), Hibernate Spatial, Caffeine·Bucket4j(캐시·Rate Limit), SpringDoc OpenAPI |
+| **외부 API** | Open-Meteo, MET Norway, Photon, 카카오 로컬 |
+| **기타** | SunCalc(천문 계산), Hibernate Spatial, Bucket4j(Rate Limit), SpringDoc OpenAPI |
 
 ---
 
@@ -94,9 +81,9 @@ REDIS_PORT=6379
 # JWT
 JWT_KEY=your_jwt_secret_key
 
-# 외부 API
-WEATHER_API_KEY=your_openweathermap_key
-GEMINI_API_KEY=your_google_gemini_key
+# 외부 API (선택)
+# MET_NORWAY_USER_AGENT: 비우면 예보 폴백을 쓰지 않는다
+# KAKAO_REST_API_KEY: 비우면 지명 검색에 Photon만 쓴다
 
 # OAuth2 (웹 소셜 로그인용, 앱 API에는 미사용)
 # SERVER_BASE_URL, CLIENT_REDIRECT_BASE_URL
@@ -139,11 +126,13 @@ GEMINI_API_KEY=your_google_gemini_key
 ```
 src/main/java/xyz/ncookie/stargazer/
 ├── domain/                    # 도메인별 패키지
-│   ├── stargazing/             # 별 관측 분석·예보
+│   ├── recommend/              # 밤 추천
+│   ├── weather/                # 시간별 예보, 구름 격자
+│   ├── skylight/               # 하늘 밝기 격자
+│   ├── geocode/                # 지명 검색
 │   ├── spot/                   # 관측지 조회
 │   ├── member/                 # 회원·인증
-│   ├── bookmark/               # 북마크
-│   └── recommend/              # 오늘의 추천
+│   └── bookmark/               # 북마크
 ├── global/                     # 공통 설정·예외·보안
 │   ├── security/               # JWT, OAuth2, Cookie
 │   ├── exception/

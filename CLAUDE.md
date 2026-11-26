@@ -9,10 +9,11 @@ name. As of 2026-11-24 the product is being rebuilt as a beginner-first "best sp
 recommender. See `docs/decisions.md` (2026-11-24 entries), `docs/ROADMAP.md`, and the clickable mockup in
 `docs/mockup/`.
 
-Stargazer (`xyz.ncookie.stargazer`) is a Spring Boot 4 / Java 17 REST API backend that scores how good a given
-location/time is for stargazing (0–100), combining OpenWeatherMap, VIIRS light-pollution data, and astronomical
-calculations (via `commons-suncalc`), plus a Google Gemini-generated comment. It also supports member auth,
-observation spots, bookmarks, and a "today's recommendation" feature.
+Stargazer (`xyz.ncookie.stargazer`) is a Spring Boot 4 / Java 17 REST API backend that tells, for each place, whether
+and when tonight (or any of the next seven nights) is good for stargazing. It combines an hourly forecast
+(Open-Meteo, MET Norway as fallback), sky brightness computed from VIIRS night lights, and sun/moon positions (via
+`commons-suncalc`). It also supports member auth, observation spots, bookmarks, place-name search, and a cloud map.
+The original single-moment 0–100 score API (OpenWeatherMap, Bortle table, Gemini comment) was removed on 2026-11-27.
 
 ## Commands
 
@@ -40,7 +41,7 @@ docker-compose -f docker-compose.dev.yml up -d
 ```
 
 Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/USERNAME/PASSWORD`, `REDIS_HOST/PORT`,
-`JWT_KEY`, `WEATHER_API_KEY`, `GEMINI_API_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
+`JWT_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
 Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `OPEN_METEO_BASE_URL`,
 `OPEN_METEO_MODEL`, `PHOTON_BASE_URL`, `KAKAO_REST_API_KEY` (place search uses Photon alone while it is empty; the
@@ -54,9 +55,8 @@ Tests need neither `.env` nor the dev containers; `src/test/resources/applicatio
   Keep one shared context: a test with different context configuration starts a second set of containers.
 - External APIs are never called. `support/ExternalApiStubs` binds a `MockRestServiceServer` to the app's `RestTemplate`
   and serves JSON from `src/test/resources/fixtures/`; an unstubbed call fails the test.
-- `LightPollutionMigrationRunner` is mocked out in tests. Insert the few grid points a test needs with
-  `support/LightPollutionFixture`. Only the old analysis APIs read that table; the night recommendation tests use the
-  real sky brightness grid on the classpath and the `lights_in_view` values from `data.sql`.
+- Light pollution needs no setup: the night recommendation tests use the real sky brightness grid on the classpath
+  and the `lights_in_view` values from `data.sql`.
 - Redis cache writes are asynchronous (Spring Data Redis 4 default), so a test that reads Redis directly must wait for
   the key instead of asserting right after the call.
 - The engine, grade-table, and API tests are characterization tests: they pin what the code does today, not what is
@@ -86,19 +86,12 @@ Cross-domain communication always goes through Application-layer orchestration �
 
 ### Domains (`src/main/java/xyz/ncookie/stargazer/domain/`)
 
-- `stargazing/` — core scoring engine. `engine/StargazingScoringEngine` computes the 0–100 score from
-  `AstronomyCalculator` output, `LightPollutionDataProvider` (Bortle class from VIIRS CSV,
-  `src/main/resources/light_pollution_korea.csv`), and `client/openweather` weather data; `client/gemini` generates
-  the AI comment. Score model: base 100, hard cutoff to 0 if cloud cover ≥70% or sun altitude > -6° (civil
-  twilight/daytime), then deductions for light pollution, cloud, moon brightness, humidity, and visibility (see
-  README "별 관측 점수 산정 기준" for exact weights).
 - `weather/` — hourly forecast in an internal model (`WeatherForecast`, `HourlyWeather`).
   `WeatherDomainService.getHourlyForecast(lat, lon)` returns up to 168 hours from the current hour: Open-Meteo
   (`ecmwf_ifs`) first, MET Norway as fallback, cached in Redis by 0.05° cell (`ForecastCell`) and model run time
   (`ForecastCache`). Failures surface as `WeatherErrorCode.FORECAST_UNAVAILABLE`, never as dummy weather.
   `getCloudGrid()` fetches total cloud cover for a 17×18 grid over Korea (`CloudGridSpec.KOREA`, 0.4°) in one
   Open-Meteo call per model run; `GET /api/v1/clouds/nights/{date}` serves one night of it for the map's cloud layer.
-  The old `stargazing/client/openweather` path still serves the existing APIs until the roadmap's phase 3.
 - `geocode/` — place-name search and reverse lookup for the map search box and the travel origin.
   `GeocodeDomainService` asks two sources and merges them: the public Photon server (OpenStreetMap data, no key),
   which knows cities, counties and mountains, and Kakao Local (`client/kakao`, keyword and address search), which
@@ -106,6 +99,9 @@ Cross-domain communication always goes through Application-layer orchestration �
   (`GeocodeCache`); Kakao results are never cached because Kakao does not allow storing them. Outbound calls are
   capped per source (`PhotonRateLimitConfig`, `KakaoRateLimitConfig`), and one source failing does not fail the
   search. Reverse lookup uses Photon only. Serves `GET /api/v1/geocode/search` and `/reverse` (public).
+- `skylight/` — sky brightness and nearby light by coordinate. `SkyBrightnessGrid` loads
+  `src/main/resources/skyglow/skyglow_korea.bin.gz` (built by `scripts/lightpollution/`) into memory at startup; no
+  DB table. The frontend's light-pollution map layer is drawn from the same file.
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
   Spots are either `OPEN_SITE` (free night access, the only recommendation candidates) or `FACILITY`
   (observatories and science museums, served separately via `?kind=FACILITY`). `src/main/resources/data.sql` is the
@@ -129,11 +125,10 @@ Cross-domain communication always goes through Application-layer orchestration �
   one forecast per place and without travel time. Thresholds cite `docs/SCORING.md` at the point of use.
   Light pollution enters as a `LightCondition` of three values, none of them a Bortle class: sky brightness (ALR, the
   all-sky artificial brightness as a multiple of the natural sky, Duriscoe et al. 2018) and the mean radiance within
-  1 km, both looked up by coordinate from `stargazing/provider/SkyBrightnessGrid`
+  1 km, both looked up by coordinate from `skylight/provider/SkyBrightnessGrid` (through `SkyLightDomainService`)
   (`src/main/resources/skyglow/skyglow_korea.bin.gz`), and `lights_in_view`, a per-spot index of distant lights not
   hidden by terrain, stored in `data.sql`. `scripts/lightpollution/` computes all of them from VIIRS night lights and
   the Copernicus DEM; the raw data lives outside the repo. Re-run `terrain.py` when a spot's coordinates change.
-  The older `RecommendApplicationService` (top-5 bookmarks, old engine) stays until the frontend moves over.
 
 ### Global layer (`global/`)
 
@@ -147,9 +142,9 @@ Cross-domain communication always goes through Application-layer orchestration �
   `/v3/api-docs` and `/swagger-ui`) in a common `CommonResponse` envelope (`success`, `status`, `message`, `data`);
   skip wrapping by returning a `CommonResponse` directly. Success messages come from the `@ResponseMessage`
   annotation on the controller method, defaulting to a generic Korean success message if absent.
-- `cache/`, `config/` — Caffeine + Redis cache config, Bucket4j rate limiting for the OpenWeather client
-  (`OpenWeatherRateLimitConfig`), RestTemplate, Swagger/OpenAPI setup.
-- `infra/lightpollution` — light pollution data loading infrastructure.
+- `config/` — Bucket4j rate limiting for Photon and Kakao Local (`PhotonRateLimitConfig`, `KakaoRateLimitConfig`),
+  RestTemplate, Swagger/OpenAPI setup. There is no Spring cache abstraction; forecast and geocode results are cached
+  by writing to Redis directly (`ForecastCache`, `GeocodeCache`).
 
 ### API conventions
 
@@ -196,7 +191,7 @@ they appear as untracked local files.
   - Never commit secrets or the gitignored `infra/` files described above.
 - **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
   `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
-  (weather, Gemini, geocoding) with recorded responses, and never call them from tests. Make `./gradlew test` pass
+  (weather, geocoding) with recorded responses, and never call them from tests. Make `./gradlew test` pass
   before every commit that touches code. The build order and done criteria live in `docs/ROADMAP.md`.
 - **Decisions and trade-offs have to end up somewhere the repo can see.** Whenever work involves a real choice —
   a policy, a threshold, an approach with a discarded alternative — say so and point at the right home instead of
@@ -232,19 +227,18 @@ they appear as untracked local files.
   - Bare URLs on their own line do **not** render as GitHub code previews inside list items — always use
     `[`File.java#L10-L20`](url)` markdown links.
 - **Domain-science values require a citation.** Any numeric threshold, coefficient, or classification table derived
-  from astronomy/photometry domain knowledge (e.g. Bortle class boundaries, VIIRS radiance→Bortle mapping, scoring
-  deduction weights such as `(Bortle-1)*6.25` or the moon-brightness `×30` factor, twilight altitude cutoffs) must
-  not be added or changed without a traceable source:
+  from astronomy/photometry domain knowledge (e.g. sky brightness class boundaries, the skyglow model's constants,
+  scoring weights, twilight altitude cutoffs) must not be added or changed without a traceable source:
   - Find a concrete reference first (paper, official standard, dataset/tool documentation) that justifies the number
     — don't invent a plausible-looking value.
   - Add a code comment at the point of use citing that reference (author/title/year or URL), not just a description
     of what the number does.
   - If no reference can be found, say so explicitly instead of guessing — an honest "unknown" is better than a
     fabricated citation.
-  - This rule exists because the current Bortle-related coefficients (the `radiance_to_bortle` thresholds in the
-    external VIIRS conversion script, and the `(Bortle-1)*6.25` / moon `×30` weights in `StargazingScoringEngine`)
-    have no recoverable source — the original reasoning was lost during earlier ad-hoc AI-assisted iteration and
-    needs to be re-derived from a real reference before being trusted or changed further.
+  - This rule exists because the original engine's coefficients (a `radiance_to_bortle` table and the
+    `(Bortle-1)*6.25` / moon `×30` weights) had no recoverable source. They were dropped in favour of sourced values
+    and the engine was removed on 2026-11-27; `docs/SCORING.md` marks which remaining weights are policy, not
+    literature.
 - Further docs: [docs/API.md](docs/API.md) (client-facing API reference),
   [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) (layering rules, full checklist),
   [docs/SECURITY_AUTH_GUIDE.md](docs/SECURITY_AUTH_GUIDE.md) (auth flow),
