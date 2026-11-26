@@ -21,7 +21,7 @@ import xyz.ncookie.stargazer.support.IntegrationTestSupport;
  */
 class ObservationSpotApiTest extends IntegrationTestSupport {
 
-	private static final int OPEN_SITES = 32;
+	private static final int OPEN_SITES = 46;
 	private static final int FACILITIES = 17;
 
 	@Autowired
@@ -83,6 +83,20 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 			.doesNotContainKeys("viewpoint", "caution");
 		assertThat((String) byeolmaro.get("guide")).contains("셔틀버스");
 		assertThat(spotNamed(body, "송암스페이스센터")).containsKey("caution");
+	}
+
+	@Test
+	@DisplayName("자리가 여럿인 명소는 보는 자리를 순서대로 준다. 좌표는 아는 자리에만 있고, 자리가 하나뿐인 곳에는 항목이 없다")
+	void points() {
+		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());
+
+		List<Map<String, Object>> hwangmae = JsonPath.read(body, "$.data[?(@.title == '합천 황매산')].points[*]");
+
+		assertThat(hwangmae).hasSize(2);
+		assertThat(hwangmae.get(0)).containsEntry("name", "군립공원 정상 주차장").containsKeys("access", "latitude", "longitude");
+		assertThat(hwangmae.get(1)).containsEntry("name", "별빛언덕").doesNotContainKeys("latitude", "longitude");
+		assertThat((String) hwangmae.get(1).get("access")).contains("20분");
+		assertThat(spotNamed(body, "강릉 안반데기")).doesNotContainKey("points");
 	}
 
 	@Test

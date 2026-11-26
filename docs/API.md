@@ -322,6 +322,7 @@ GET /api/v1/recommendations/nights/{date}
 | `guide` | string | 가는 법과 주차. 명소가 아니면 빠진다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
 | `links` | array | 참고 링크. 항목은 `title`, `url`, `imageUrl`이다. 7장 관측지의 `links`와 같다. 명소가 아니거나 링크가 없으면 빠진다 |
+| `points` | array | 이 명소 안에서 서서 보는 자리들. 항목은 `name`, `access`(어떻게 가는지와 어떤 자리인지), `latitude`, `longitude`다. 첫 항목이 차를 대는 곳이고 나머지는 거기서 차로 조금 가거나 30분 안쪽으로 걸어가는 곳이다. 좌표는 아는 자리에만 있다. 자리가 하나뿐인 명소에서는 빠진다 |
 | `level` | string | 추천 등급. 아래 표 |
 | `pattern` | string | 그 밤의 날씨 흐름. 아래 표 |
 | `notes` | string[] | 주의할 점. 없으면 빈 배열 |
@@ -693,6 +694,7 @@ GET /api/v1/spots
 | `guide` | string | 가는 법과 주차. `FACILITY`에서는 운영 시간과 예약 방법이다 |
 | `caution` | string | 계절 폐쇄, 조명, 통제 같은 주의 사항. 없으면 빠진다 |
 | `links` | array | 참고 링크. 항목은 `title`(그 글의 제목), `url`, `imageUrl`(그 글의 대표 이미지, 없으면 빠진다)이다. 가는 길과 서는 자리를 더 자세히 적은 기사, 관광 안내, 후기이고 `FACILITY`에서는 공식 페이지다. 적어 둔 순서대로 오고, 없으면 빠진다 |
+| `points` | array | 이 명소 안에서 서서 보는 자리들. 항목은 `name`, `access`(어떻게 가는지와 어떤 자리인지), `latitude`, `longitude`다. 첫 항목이 차를 대는 곳이고 나머지는 거기서 차로 조금 가거나 30분 안쪽으로 걸어가는 곳이다. 좌표는 아는 자리에만 있다. 자리가 하나뿐인 명소에서는 빠진다 |
 | `bortleScale` | integer | 지금은 모든 명소에서 빠져 있다. 하늘이 얼마나 어두운지는 밤 추천의 `skyBrightness`를 본다 |
 | `isParkingAvailable`, `isRestroomAvailable`, `isCarAccess` | boolean | 주차, 화장실, 차량 접근. 확인하지 못한 값은 빠진다 |
 | `thumbnailImage` | string | 사진 주소. 지금은 모든 명소에서 빠져 있다 |
