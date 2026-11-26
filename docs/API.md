@@ -245,6 +245,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | GET | `/api/v1/recommendations/nights` | 선택 | 7일의 밤마다 가장 좋은 등급 |
 | GET | `/api/v1/recommendations/week` | 없음 | 한 위치의 이번 주 밤 |
 | GET | `/api/v1/recommendations/week/mine` | 선택 | 저장한 장소들의 이번 주 밤 |
+| GET | `/api/v1/recommendations/sky` | 없음 | 한 좌표의 하늘 밝기 |
 | GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
@@ -658,6 +659,36 @@ GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
 
 먼 날의 예보는 가까운 날보다 자주 바뀐다. 응답에는 신뢰도 값이 없으므로, 화면에서 뒤쪽 밤은 달라질 수 있다고
 알린다. 예보 출처는 이 화면에도 적는다.
+
+### 한 좌표의 하늘 밝기
+
+```
+GET /api/v1/recommendations/sky?lat=37.62633&lon=128.73942
+```
+
+지도에서 고른 자리가 얼마나 어두운지 보여 줄 때 쓴다. 예보를 받지 않고 서버 메모리의 격자만 읽어서 가볍다.
+`lat`, `lon`은 필수이고, 빠지거나 범위를 벗어나면 400이다.
+
+```json
+{
+  "latitude": 37.62633,
+  "longitude": 128.73942,
+  "skyBrightness": 3.11,
+  "skyClass": "RURAL",
+  "litSurroundings": false
+}
+```
+
+위는 `data`의 내용이다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `latitude`, `longitude` | number | 요청한 좌표 |
+| `skyBrightness`, `skyClass` | number, string | 밤 추천과 같다 |
+| `litSurroundings` | boolean | 둘레 1km가 가로등과 건물 불빛으로 밝은지. `true`면 밤 추천에서 맑아도 "별 보기 아쉬워요"까지만 준다 |
+
+자료가 있는 범위(한국 둘레) 밖이면 세 값이 빠지고 좌표만 온다. 오류가 아니라 200이다. 직접 보이는 불빛
+(`LIGHTS_IN_VIEW`)은 명소마다 미리 계산한 값이라 이 API에는 없다.
 
 ## 7. 관측지
 
@@ -1106,6 +1137,7 @@ POST /api/v1/auth/logout
 | 지명 검색 | [`GeocodeApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/geocode/controller/GeocodeApiTest.java) |
 | 밤 추천 | [`NightRecommendationApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/NightRecommendationApiTest.java) |
 | 이번 주 밤 | [`WeekOutlookApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/WeekOutlookApiTest.java) |
+| 한 좌표의 하늘 밝기 | [`SkyApiTest`](../src/test/java/xyz/ncookie/stargazer/domain/recommend/controller/SkyApiTest.java) |
 | 없는 경로, 틀린 메서드 | [`FrameworkErrorStatusTest`](../src/test/java/xyz/ncookie/stargazer/global/exception/FrameworkErrorStatusTest.java) |
 
 관련 문서는 다음과 같다.

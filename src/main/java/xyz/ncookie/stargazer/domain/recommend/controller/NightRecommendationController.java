@@ -17,11 +17,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.application.NightRecommendationApplicationService;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetNightRecommendationRequest;
+import xyz.ncookie.stargazer.domain.recommend.dto.request.GetSkyRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetWeekOutlookRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.global.security.principal.MemberPrincipal;
 
@@ -84,6 +87,16 @@ public class NightRecommendationController {
 	@GetMapping("/week")
 	public WeekOutlookResponse getWeek(@Valid @ModelAttribute GetWeekOutlookRequest request) {
 		return nightRecommendationApplicationService.weekAt(GetWeekOutlookCommand.forLocation(request));
+	}
+
+	@Operation(
+		summary = "한 좌표의 하늘 밝기",
+		description = "lat, lon의 하늘 밝기와 등급, 둘레 1km가 밝은지를 돌려준다. 예보를 보지 않아 가볍다. "
+			+ "자료가 있는 범위(한국 둘레) 밖이면 값이 null이다. 인증 없이 쓸 수 있다."
+	)
+	@GetMapping("/sky")
+	public SkyResponse getSky(@Valid @ModelAttribute GetSkyRequest request) {
+		return nightRecommendationApplicationService.skyAt(GetSkyCommand.from(request));
 	}
 
 	@Operation(
