@@ -47,6 +47,21 @@ def fetch(video_id):
         return json.loads(response.read().decode("utf-8"))
 
 
+def is_short(video_id):
+    """쇼츠인지 본다. 유튜브는 쇼츠에만 세로 비율 그대로의 미리보기(oar2.jpg)를 둔다.
+
+    문서로 밝힌 규칙은 아니고 2026-11-27에 쇼츠 다섯 개와 일반 영상 네 개로 확인한 것이다. oEmbed는 주소가
+    /shorts/일 때만 세로 크기를 알려 줘서, 영상 ID만으로는 가릴 수 없다.
+    """
+    request = urllib.request.Request(
+        "https://i.ytimg.com/vi/%s/oar2.jpg" % video_id, headers={"User-Agent": USER_AGENT}, method="HEAD")
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return response.status == 200
+    except urllib.error.HTTPError:
+        return False
+
+
 def quote(text):
     return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'"
 
@@ -65,8 +80,7 @@ def main():
             continue
         finally:
             time.sleep(PAUSE)
-        # 쇼츠는 세로 영상이라 oEmbed가 알려 주는 플레이어의 높이가 너비보다 크다
-        short_form = meta.get("height", 0) > meta.get("width", 0)
+        short_form = is_short(video_id)
         index = position.get(spot_id, 0)
         position[spot_id] = index + 1
         lines.append("    (%d, %d, %s, %s, %s, %s)" % (
