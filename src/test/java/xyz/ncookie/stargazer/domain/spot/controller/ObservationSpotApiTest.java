@@ -96,7 +96,7 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 		assertThat(hwangmae.get(0)).containsEntry("name", "군립공원 정상 주차장").containsKeys("access", "latitude", "longitude");
 		assertThat(hwangmae.get(1)).containsEntry("name", "별빛언덕").doesNotContainKeys("latitude", "longitude");
 		assertThat((String) hwangmae.get(1).get("access")).contains("20분");
-		assertThat(spotNamed(body, "강릉 안반데기")).doesNotContainKey("points");
+		assertThat(spotNamed(body, "제천 덕주산성")).doesNotContainKey("points");
 	}
 
 	@Test
