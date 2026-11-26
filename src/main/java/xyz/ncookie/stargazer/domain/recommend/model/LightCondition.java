@@ -10,8 +10,15 @@ package xyz.ncookie.stargazer.domain.recommend.model;
  * @param nearbyRadiance 둘레 1km 안에서 위로 나가는 빛의 평균(nW/cm²/sr). 자료가 없는 곳이면 null
  * @param lightsInView   1km보다 먼 곳의 불빛 가운데 지형에 가리지 않고 직접 보이는 양의 지수.
  *                       미리 계산해 둔 명소에만 있고 그 밖에는 null
+ * @param skyRank        하늘 밝기가 남한 땅에서 몇 번째 칸으로 어두운지(1~100, 1이 가장 어둡다). 평가에는 쓰지 않고
+ *                       화면에 보여 주기만 한다. 하늘 밝기를 모르면 null
  */
-public record LightCondition(Double skyBrightness, Double nearbyRadiance, Double lightsInView) {
+public record LightCondition(Double skyBrightness, Double nearbyRadiance, Double lightsInView, Integer skyRank) {
+
+	/** 국내 순위를 붙이지 않은 값. 평가는 순위를 보지 않으므로 엔진 테스트는 이것으로 만든다 */
+	public LightCondition(Double skyBrightness, Double nearbyRadiance, Double lightsInView) {
+		this(skyBrightness, nearbyRadiance, lightsInView, null);
+	}
 
 	/** 불빛 자료가 없는 곳 */
 	public static final LightCondition UNKNOWN = new LightCondition(null, null, null);

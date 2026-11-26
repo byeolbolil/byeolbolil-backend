@@ -332,6 +332,7 @@ GET /api/v1/recommendations/nights/{date}
 | `travel.minutes` | integer | 차로 걸리는 시간 어림. 직선거리의 1.3배를 시속 60km로 간다고 본 값이라 실제 길 안내와 다르다 |
 | `skyBrightness` | number | 하늘 전체에서 평균한 인공 밝기가 자연 밤하늘의 몇 배인지. 0에 가까울수록 어둡다. 불빛 자료가 없는 좌표(한국 둘레 밖)에서는 빠진다 |
 | `skyClass` | string | 하늘 밝기로 나눈 등급. 아래 표. `skyBrightness`가 없으면 같이 빠진다 |
+| `skyRank` | integer | 하늘 밝기가 남한 땅에서 몇 번째 칸으로 어두운지(1~100). 1이면 가장 어두운 1% 안이고, 21이면 "국내 상위 21%"다. 등급이 미국 국립공원 기준이라 한국은 거의 아래 두 칸에 몰려서, 국내에서 어느 정도인지를 따로 준다. `skyBrightness`가 없으면 같이 빠진다 |
 | `moonBrightness` | number | 보름달을 1로 본 그 밤의 달 밝기 |
 | `moon.illuminatedFraction` | number | 달에서 밝게 보이는 면의 비율. 삭 0, 보름 1. 그 밤 자정의 값이다 |
 | `moon.waxing` | boolean | 차오르는 중이면 `true`, 기우는 중이면 `false`. 북반구에서는 차오르는 달의 오른쪽이 밝다 |
@@ -386,13 +387,17 @@ GET /api/v1/recommendations/nights/{date}
 
 | `skyClass` | `skyBrightness` | 뜻 |
 |---|---|---|
-| `NATURAL` | 0.33 미만 | 자연 상태와 거의 같은 하늘 |
-| `DARK` | 0.33 이상 2 미만 | 지평선 쪽에만 불빛이 비치는 어두운 하늘 |
-| `RURAL` | 2 이상 10 미만 | 은하수는 보이지만 불빛이 하늘 여러 곳에 번진 하늘 |
-| `SUBURBAN` | 10 이상 50 미만 | 은하수가 보이지 않는 하늘 |
-| `URBAN` | 50 이상 | 눈이 어둠에 적응하지 못할 만큼 밝은 하늘 |
+| `NATURAL` | 0.33 미만 | 은하수가 무늬까지 또렷하다 |
+| `DARK` | 0.33 이상 2 미만 | 은하수가 잘 보인다. 지평선 여러 방향에 불빛 돔이 보인다 |
+| `RURAL` | 2 이상 10 미만 | 은하수가 머리 위에서는 보이지만 흐리고, 지평선 쪽은 불빛에 묻힌다 |
+| `SUBURBAN` | 10 이상 50 미만 | 은하수가 보이지 않는다. 밝은 별과 별자리는 보인다 |
+| `URBAN` | 50 이상 | 눈이 어둠에 적응하지 못할 만큼 밝다. 밝은 별만 보인다 |
 
-한국의 추천 후보지는 1.5(영양)에서 9.5 사이이고 서울 한복판이 68쯤이다.
+뜻은 각 구간에 묶인 Bortle 등급의 설명이다([SCORING.md](./SCORING.md) "광해"). enum 이름은 처음 붙인 그대로이고 장소의
+종류를 뜻하지 않는다. 화면에는 보이는 것으로 이름을 붙인다.
+
+한국의 추천 후보지는 1.5(영양)에서 9.5 사이이고 서울 한복판이 68쯤이다. 한국 본토는 거의 `DARK`와 `RURAL`에 들어서,
+국내에서 어느 정도인지는 `skyRank`로 본다.
 
 값 목록은 늘어날 수 있다. 모르는 값이 와도 앱이 죽지 않게 기본 처리를 둔다.
 
@@ -445,6 +450,7 @@ GET /api/v1/recommendations/tonight?lat=37.5563&lon=126.9236&maxTravelMinutes=18
         "travel": { "distanceKm": 129.4, "minutes": 168 },
         "skyBrightness": 3.99,
         "skyClass": "RURAL",
+        "skyRank": 34,
         "moonBrightness": 0.74,
         "moon": {
           "illuminatedFraction": 0.98,
@@ -571,7 +577,7 @@ GET /api/v1/recommendations/week/mine
 |---|---|---|
 | `type`, `id`, `spotId`, `name`, `address` | | `/week/mine`에서만 온다. `type`은 `BOOKMARK`, `id`는 북마크 ID다. `spotId`는 명소를 저장한 북마크에만 있다 |
 | `latitude`, `longitude` | number | |
-| `skyBrightness`, `skyClass` | | 밤 추천과 같다 |
+| `skyBrightness`, `skyClass`, `skyRank` | | 밤 추천과 같다 |
 | `forecastSource`, `forecastIssuedAt` | string | 밤 추천과 같다. 예보를 받지 못한 장소에서는 빠진다 |
 | `nights` | array | 날짜순의 밤. 예보가 닿지 않는 밤은 빠져서 7개보다 적을 수 있다. 예보를 받지 못한 장소는 빈 배열이다 |
 
@@ -595,8 +601,9 @@ GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
       {
         "latitude": 37.62633,
         "longitude": 128.73942,
-        "skyBrightness": 3.17,
+        "skyBrightness": 3.11,
         "skyClass": "RURAL",
+        "skyRank": 22,
         "forecastSource": "OPEN_METEO",
         "forecastIssuedAt": "2026-11-23T15:00:00+09:00",
         "nights": [
@@ -675,6 +682,7 @@ GET /api/v1/recommendations/sky?lat=37.62633&lon=128.73942
   "longitude": 128.73942,
   "skyBrightness": 3.11,
   "skyClass": "RURAL",
+  "skyRank": 22,
   "litSurroundings": false
 }
 ```
@@ -684,10 +692,10 @@ GET /api/v1/recommendations/sky?lat=37.62633&lon=128.73942
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `latitude`, `longitude` | number | 요청한 좌표 |
-| `skyBrightness`, `skyClass` | number, string | 밤 추천과 같다 |
+| `skyBrightness`, `skyClass`, `skyRank` | number, string, integer | 밤 추천과 같다 |
 | `litSurroundings` | boolean | 둘레 1km가 가로등과 건물 불빛으로 밝은지. `true`면 밤 추천에서 맑아도 "별 보기 아쉬워요"까지만 준다 |
 
-자료가 있는 범위(한국 둘레) 밖이면 세 값이 빠지고 좌표만 온다. 오류가 아니라 200이다. 직접 보이는 불빛
+자료가 있는 범위(한국 둘레) 밖이면 하늘 값이 모두 빠지고 좌표만 온다. 오류가 아니라 200이다. 직접 보이는 불빛
 (`LIGHTS_IN_VIEW`)은 명소마다 미리 계산한 값이라 이 API에는 없다.
 
 ## 7. 관측지

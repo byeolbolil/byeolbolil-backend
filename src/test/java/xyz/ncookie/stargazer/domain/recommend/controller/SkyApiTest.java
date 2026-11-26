@@ -29,6 +29,7 @@ class SkyApiTest extends IntegrationTestSupport {
 			    "longitude": 128.73942,
 			    "skyBrightness": 3.11,
 			    "skyClass": "RURAL",
+			    "skyRank": 22,
 			    "litSurroundings": false
 			  }
 			}
@@ -42,7 +43,7 @@ class SkyApiTest extends IntegrationTestSupport {
 		MvcTestResult result = sky("37.5665", "126.978");
 
 		assertThat(result).hasStatusOk().bodyJson().isLenientlyEqualTo("""
-			{ "data": { "skyBrightness": 66.94, "skyClass": "URBAN", "litSurroundings": true } }
+			{ "data": { "skyBrightness": 66.94, "skyClass": "URBAN", "skyRank": 100, "litSurroundings": true } }
 			""");
 	}
 
@@ -56,6 +57,7 @@ class SkyApiTest extends IntegrationTestSupport {
 			""");
 		assertThat(result).bodyJson().doesNotHavePath("$.data.skyBrightness");
 		assertThat(result).bodyJson().doesNotHavePath("$.data.skyClass");
+		assertThat(result).bodyJson().doesNotHavePath("$.data.skyRank");
 		assertThat(result).bodyJson().doesNotHavePath("$.data.litSurroundings");
 	}
 

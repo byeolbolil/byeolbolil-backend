@@ -9,6 +9,7 @@
 | 결과 | 어디에 들어가나 | 만드는 스크립트 |
 |---|---|---|
 | 하늘 밝기와 둘레 1km 불빛의 격자 | `src/main/resources/skyglow/skyglow_korea.bin.gz` | `crop_radiance.py`, `skyglow.py`, `export_grid.py` |
+| 남한 땅의 하늘 밝기 분포(국내 순위표) | `src/main/resources/skyglow/korea_rank.csv` | `korea_rank.py` |
 | 명소마다 지형 너머로 직접 보이는 불빛의 지수 | `src/main/resources/data.sql`의 `lights_in_view` | `terrain.py` |
 
 ## 원본 자료
@@ -35,6 +36,9 @@ python skyglow.py $DATA/work/vnl2024_korea.tif $DATA/work/alr_korea.tif
 # 3. 앱이 읽는 파일로 바꾼다
 python export_grid.py $DATA/work/alr_korea.tif ../../src/main/resources/skyglow/skyglow_korea.bin.gz
 
+# 3-1. 격자로 남한 땅의 순위표를 만든다 (1분). 격자를 다시 만들면 함께 다시 만든다
+python korea_rank.py ../../src/main/resources/skyglow/skyglow_korea.bin.gz $DATA/dem ../../src/main/resources/skyglow/korea_rank.csv
+
 # 4. 명소마다 직접 보이는 불빛을 계산한다 (지점 40곳에 3분). 지점 CSV의 열은 id,name,lat,lon
 python terrain.py $DATA/dem $DATA/work/vnl2024_korea.tif $DATA/work/points.csv $DATA/work/terrain.csv
 ```
@@ -42,7 +46,8 @@ python terrain.py $DATA/dem $DATA/work/vnl2024_korea.tif $DATA/work/points.csv $
 4번의 결과에서 `direct_light` 열을 `data.sql`의 `lights_in_view`에 옮겨 적는다. 좌표를 특정한 열린 관측지만 적는다.
 좌표가 대략의 위치인 곳은 몇십 m에 따라 값이 크게 달라져서 비워 둔다.
 
-격자를 다시 만들면 `SkyBrightnessGridTest`의 한국 격자 테스트가 값의 범위를 확인한다.
+격자를 다시 만들면 `SkyBrightnessGridTest`의 한국 격자 테스트가 값의 범위를 확인한다. 순위표를 다시 만들면
+`KoreaSkyRankTest`와 `SkyApiTest`의 순위 값도 고친다.
 
 ## 모형이 맞게 옮겨졌는지 확인하기
 

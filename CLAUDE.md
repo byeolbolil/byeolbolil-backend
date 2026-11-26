@@ -101,7 +101,9 @@ Cross-domain communication always goes through Application-layer orchestration �
   search. Reverse lookup uses Photon only. Serves `GET /api/v1/geocode/search` and `/reverse` (public).
 - `skylight/` — sky brightness and nearby light by coordinate. `SkyBrightnessGrid` loads
   `src/main/resources/skyglow/skyglow_korea.bin.gz` (built by `scripts/lightpollution/`) into memory at startup; no
-  DB table. The frontend's light-pollution map layer is drawn from the same file.
+  DB table. The frontend's light-pollution map layer is drawn from the same file. `KoreaSkyRank` reads
+  `skyglow/korea_rank.csv` (built by `korea_rank.py`) and turns a sky brightness into a 1–100 rank among South Korean
+  land, sent as `skyRank` because the five sky classes (US national-park scale) put almost all of Korea in two classes.
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
   Spots are either `OPEN_SITE` (free night access, the only recommendation candidates) or `FACILITY`
   (observatories and science museums, served separately via `?kind=FACILITY`). `src/main/resources/data.sql` is the

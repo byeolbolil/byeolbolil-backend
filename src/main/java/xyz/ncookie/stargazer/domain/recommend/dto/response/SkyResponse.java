@@ -24,6 +24,9 @@ public record SkyResponse(
 		example = "RURAL")
 	String skyClass,
 
+	@Schema(description = "하늘 밝기가 남한 땅에서 몇 번째 칸으로 어두운지(1~100). 1이면 가장 어두운 1% 안이다. 자료가 없는 곳이면 빠진다", example = "21")
+	Integer skyRank,
+
 	@Schema(description = "둘레 1km가 가로등과 건물 불빛으로 밝은지. 밝으면 밤 추천에서 맑아도 '별 보기 아쉬워요'까지만 준다. "
 		+ "범위 밖이면 빠진다", example = "false")
 	Boolean litSurroundings
@@ -31,6 +34,7 @@ public record SkyResponse(
 
 	public static SkyResponse of(double latitude, double longitude, LightCondition light) {
 		Boolean lit = (light.nearbyRadiance() != null) ? NightAssessmentEngine.hasLitSurroundings(light) : null;
-		return new SkyResponse(latitude, longitude, SkyValues.brightness(light), SkyValues.className(light), lit);
+		return new SkyResponse(latitude, longitude, SkyValues.brightness(light), SkyValues.className(light),
+			SkyValues.rank(light), lit);
 	}
 }

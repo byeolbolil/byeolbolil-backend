@@ -71,6 +71,8 @@ public record WeekOutlookResponse(
 		Double skyBrightness,
 		@Schema(description = "하늘 밝기로 나눈 등급. NATURAL, DARK, RURAL, SUBURBAN, URBAN. 자료가 없는 곳이면 빠진다")
 		String skyClass,
+		@Schema(description = "하늘 밝기가 남한 땅에서 몇 번째 칸으로 어두운지(1~100). 1이면 가장 어두운 1% 안이다. 자료가 없는 곳이면 빠진다", example = "21")
+		Integer skyRank,
 		@Schema(description = "예보 출처. OPEN_METEO 또는 MET_NORWAY. 예보를 받지 못했으면 빠진다")
 		String forecastSource,
 		@Schema(description = "예보가 만들어진 시각. 모르면 빠진다")
@@ -91,6 +93,7 @@ public record WeekOutlookResponse(
 				place.longitude(),
 				SkyValues.brightness(outlook.light()),
 				SkyValues.className(outlook.light()),
+				SkyValues.rank(outlook.light()),
 				outlook.forecastSource() != null ? outlook.forecastSource().name() : null,
 				outlook.forecastIssuedAt() != null
 					? outlook.forecastIssuedAt().atZone(zone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
