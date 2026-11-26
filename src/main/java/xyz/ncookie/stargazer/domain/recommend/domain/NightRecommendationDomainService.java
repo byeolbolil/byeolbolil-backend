@@ -103,6 +103,20 @@ public class NightRecommendationDomainService {
 	}
 
 	/**
+	 * 밤마다 별 보기 좋은 곳(GOOD 이상)이 몇 곳인지. 어느 밤에 갈 만한 곳이 많은지를 밤 고르기에 보여 주는 데 쓴다.
+	 * 평가한 장소가 하나도 없는 밤은 들어 있지 않다.
+	 */
+	public Map<LocalDate, Integer> goodCountByNight(List<List<NightAssessment>> nightsByPlace) {
+		Map<LocalDate, Integer> counts = new TreeMap<>();
+		for (List<NightAssessment> nights : nightsByPlace) {
+			for (NightAssessment night : nights) {
+				counts.merge(night.date(), night.level().isAbove(RecommendationLevel.MAYBE) ? 1 : 0, Integer::sum);
+			}
+		}
+		return counts;
+	}
+
+	/**
 	 * 한 장소의 여러 밤을 같은 예보로 평가한다. 이동 시간은 보지 않는다.
 	 *
 	 * @param startDate 첫 밤이 시작하는 날짜

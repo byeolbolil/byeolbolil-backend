@@ -500,8 +500,8 @@ Open-Meteo(`https://open-meteo.com/`), `MET_NORWAY`면 MET Norway다. 웹은 출
 GET /api/v1/recommendations/nights
 ```
 
-오늘 밤부터 7일의 밤마다, 후보 가운데 가장 좋은 등급 하나씩만 돌려준다. 밤을 고르는 버튼에 그 밤이 얼마나 좋은지
-미리 보여 주려고 만들었다. 밤을 하나씩 불러 보지 않아도 어느 밤이 좋은지 알 수 있다.
+오늘 밤부터 7일의 밤마다, 후보 가운데 가장 좋은 등급과 별 보기 좋은 곳의 수를 돌려준다. 밤을 고르는 버튼에 그 밤이
+얼마나 좋은지, 갈 만한 곳이 몇 곳인지 미리 보여 주려고 만들었다. 밤을 하나씩 불러 보지 않아도 어느 밤이 좋은지 알 수 있다.
 
 쿼리와 후보는 밤 추천과 같다. 출발지와 `maxTravelMinutes`를 보내면 한도 안의 장소만 보고, 액세스 토큰을 붙이면 내
 북마크도 본다. 그래서 같은 쿼리로 `/nights/{date}`를 부르면 `places`의 첫 장소가 여기서 받은 `level`과 같은 등급이다.
@@ -514,6 +514,7 @@ GET /api/v1/recommendations/nights
 | `nights` | array | `startDate`부터 날짜순으로 항상 7개 |
 | `nights[].date` | string | 밤이 시작하는 날짜 |
 | `nights[].level` | string | 그 밤의 후보 가운데 가장 좋은 등급. 평가한 장소가 없으면 빠진다 |
+| `nights[].goodCount` | integer | 그 밤에 `STRONG`이나 `GOOD`인 후보의 수. 같은 쿼리의 `/nights/{date}`에서 그 등급인 장소의 수와 같다. `level`이 빠지면 같이 빠진다 |
 
 `level`이 빠지는 경우는 셋이다. 예보가 그 밤까지 닿지 않을 때, 예보를 받지 못했을 때, 이동 시간 한도 안에 후보가
 하나도 없을 때다. 어느 경우에도 오류가 아니라 200이 온다. 화면에서는 그 밤의 표시를 비워 둔다.
@@ -527,13 +528,13 @@ GET /api/v1/recommendations/nights
     "startDate": "2026-11-09",
     "criteria": { "minClearHours": 3, "preferBefore": "02:00", "maxTravelMinutes": null },
     "nights": [
-      { "date": "2026-11-09", "level": "STRONG" },
-      { "date": "2026-11-10", "level": "NO" },
-      { "date": "2026-11-11", "level": "STRONG" },
-      { "date": "2026-11-12", "level": "NO" },
-      { "date": "2026-11-13", "level": "NO" },
-      { "date": "2026-11-14", "level": "STRONG" },
-      { "date": "2026-11-15", "level": "STRONG" }
+      { "date": "2026-11-09", "level": "STRONG", "goodCount": 1 },
+      { "date": "2026-11-10", "level": "NO", "goodCount": 0 },
+      { "date": "2026-11-11", "level": "STRONG", "goodCount": 1 },
+      { "date": "2026-11-12", "level": "NO", "goodCount": 0 },
+      { "date": "2026-11-13", "level": "NO", "goodCount": 0 },
+      { "date": "2026-11-14", "level": "STRONG", "goodCount": 1 },
+      { "date": "2026-11-15", "level": "STRONG", "goodCount": 1 }
     ]
   }
 }

@@ -203,6 +203,26 @@ class NightRecommendationDomainServiceTest {
 	}
 
 	@Test
+	@DisplayName("밤마다 GOOD 이상인 장소를 센다. MAYBE는 세지 않고, 아무도 좋지 않은 밤은 0이다")
+	void goodCountByNight() {
+		List<NightAssessment> first = List.of(
+			night(DATE, RecommendationLevel.STRONG),
+			night(DATE.plusDays(1), RecommendationLevel.MAYBE),
+			night(DATE.plusDays(2), RecommendationLevel.NO));
+		List<NightAssessment> second = List.of(night(DATE, RecommendationLevel.GOOD));
+		List<NightAssessment> third = List.of(
+			night(DATE, RecommendationLevel.MAYBE),
+			night(DATE.plusDays(1), RecommendationLevel.GOOD),
+			night(DATE.plusDays(2), RecommendationLevel.MAYBE));
+
+		assertThat(service.goodCountByNight(List.of(first, second, third))).containsExactly(
+			Map.entry(DATE, 2),
+			Map.entry(DATE.plusDays(1), 1),
+			Map.entry(DATE.plusDays(2), 0));
+		assertThat(service.goodCountByNight(List.of())).isEmpty();
+	}
+
+	@Test
 	@DisplayName("이동 추정은 출발지의 위도와 경도를 모두 알 때만 있다")
 	void travelToNeedsOrigin() {
 		CandidatePlace place = place("가", 38.0, 127.0);
