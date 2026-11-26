@@ -63,9 +63,12 @@ public abstract class IntegrationTestSupport {
 	@Autowired
 	private Bucket photonRateLimitBucket;
 
+	@Autowired
+	private Bucket kakaoRateLimitBucket;
+
 	/**
 	 * 컨텍스트를 공유하므로 테스트 사이에 남는 상태를 매번 비운다.
-	 * 캐시(Caffeine, Redis), Redis의 나머지 키, OpenWeather와 Photon 호출 제한 토큰, 외부 API 대체 응답, 고정해 둔 시각이 대상이다.
+	 * 캐시(Caffeine, Redis), Redis의 나머지 키, OpenWeather, Photon, 카카오 호출 제한 토큰, 외부 API 대체 응답, 고정해 둔 시각이 대상이다.
 	 */
 	@BeforeEach
 	void resetSharedState() {
@@ -76,6 +79,7 @@ public abstract class IntegrationTestSupport {
 		});
 		openWeatherRateLimitBucket.reset();
 		photonRateLimitBucket.reset();
+		kakaoRateLimitBucket.reset();
 		externalApi.reset();
 		clock.reset();
 	}

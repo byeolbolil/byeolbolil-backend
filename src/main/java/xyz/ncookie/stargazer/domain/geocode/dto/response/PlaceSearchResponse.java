@@ -16,10 +16,14 @@ public record PlaceSearchResponse(
 	double latitude,
 
 	@Schema(description = "경도", example = "127.5034314")
-	double longitude
+	double longitude,
+
+	@Schema(description = "결과의 출처. OSM은 OpenStreetMap, KAKAO는 카카오 로컬. 화면에 출처를 적는 데 쓴다", example = "OSM")
+	String source
 ) {
 
 	public static PlaceSearchResponse from(GeocodePlace place) {
-		return new PlaceSearchResponse(place.name(), place.address(), place.latitude(), place.longitude());
+		return new PlaceSearchResponse(
+			place.name(), place.address(), place.latitude(), place.longitude(), place.source().name());
 	}
 }
