@@ -87,6 +87,9 @@ public record NightRecommendationResponse(
 		@Schema(description = "이 명소 안에서 서서 보는 자리들. 첫 자리가 차를 대는 곳이다. 자리가 하나뿐이면 빠진다")
 		@JsonInclude(JsonInclude.Include.NON_EMPTY)
 		List<Point> points,
+		@Schema(description = "이 명소에서 별을 본 유튜브 영상. 찾지 못한 곳에서는 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<Video> videos,
 
 		@Schema(description = "추천 등급. STRONG 별 보기 아주 좋아요, GOOD 별 보기 좋아요, MAYBE 별 보기 아쉬워요, NO 별 보기 어려워요")
 		String level,
@@ -137,6 +140,12 @@ public record NightRecommendationResponse(
 						.map(point -> new Point(point.name(), point.access(), point.latitude(), point.longitude()))
 						.toList()
 					: null,
+				guide != null
+					? guide.videos().stream()
+						.map(video -> new Video(
+							video.title(), video.channel(), video.url(), video.thumbnailUrl(), video.shortForm()))
+						.toList()
+					: null,
 				night.level().name(),
 				night.pattern().name(),
 				night.notes().stream().map(Enum::name).toList(),
@@ -184,6 +193,20 @@ public record NightRecommendationResponse(
 		@Schema(description = "좌표를 아는 자리에만 있다")
 		Double latitude,
 		Double longitude
+	) {}
+
+	@Schema(description = "명소에서 별을 본 유튜브 영상")
+	public record Video(
+		@Schema(description = "영상 제목")
+		String title,
+		@Schema(description = "올린 채널의 이름")
+		String channel,
+		@Schema(description = "영상을 여는 주소")
+		String url,
+		@Schema(description = "미리보기 그림(320×180)의 주소")
+		String thumbnailUrl,
+		@Schema(description = "쇼츠(세로로 찍은 짧은 영상)인지")
+		boolean shortForm
 	) {}
 
 	@Schema(description = "그 장소에서 본 그 밤의 달")

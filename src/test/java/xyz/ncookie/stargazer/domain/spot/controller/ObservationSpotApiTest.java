@@ -100,6 +100,27 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	@DisplayName("영상을 골라 둔 명소는 유튜브 영상을 순서대로 준다. 여는 주소와 미리보기 그림이 붙고, 영상이 없는 곳에는 항목이 없다")
+	void videos() {
+		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());
+
+		List<Map<String, Object>> hwangmae = JsonPath.read(body, "$.data[?(@.title == '합천 황매산')].videos[*]");
+
+		assertThat(hwangmae).hasSize(4);
+		assertThat(hwangmae.get(0))
+			.containsEntry("channel", "줌살롱")
+			.containsEntry("url", "https://www.youtube.com/watch?v=5HL47ghtf3g")
+			.containsEntry("thumbnailUrl", "https://i.ytimg.com/vi/5HL47ghtf3g/mqdefault.jpg")
+			.containsEntry("shortForm", false);
+		assertThat((String) hwangmae.get(0).get("title")).startsWith("황매산 은하수 추천 포인트 9곳");
+		// 작은따옴표가 든 제목도 그대로 온다
+		List<String> hwaak = JsonPath.read(body, "$.data[?(@.title == '가평 화악터널 쌈지공원')].videos[*].title");
+		assertThat(hwaak).contains("화악터널 쌈지공원, '가평 별빛정원'으로 새단장");
+		assertThat(spotNamed(body, "원주 거돈사지")).doesNotContainKey("videos");
+		assertThat(spotNamed(body, "대전 시민천문대")).doesNotContainKey("videos");
+	}
+
+	@Test
 	@DisplayName("참고 링크는 적어 둔 순서대로 오고 미리보기 이미지가 붙는다. 링크가 없는 곳에는 항목이 없다")
 	void links() {
 		String body = bodyOf(mvc.get().uri("/api/v1/spots").exchange());

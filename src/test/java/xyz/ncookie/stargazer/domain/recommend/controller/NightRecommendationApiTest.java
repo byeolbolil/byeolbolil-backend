@@ -263,7 +263,7 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("명소에는 관측 지점, 소개, 가는 법, 주의 사항, 참고 링크가 실리고 직접 찍은 내 장소에는 없다")
+		@DisplayName("명소에는 관측 지점, 소개, 가는 법, 주의 사항, 참고 링크, 영상이 실리고 직접 찍은 내 장소에는 없다")
 		void placeGuide() {
 			String body = bodyOf(tonight(true));
 
@@ -278,7 +278,17 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			List<String> linkImages = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].links[*].imageUrl");
 			assertThat(linkImages).hasSize(2).allSatisfy(image -> assertThat(image).startsWith("https://"));
 
-			assertThat(placeNamed(body, "호명호수")).doesNotContainKeys("viewpoint", "description", "guide", "caution", "links");
+			List<Map<String, Object>> videos = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].videos[*]");
+			assertThat(videos).hasSize(3);
+			assertThat(videos.get(1))
+				.containsEntry("title", "4K) 안반데기 3월 은하수 타임랩스")
+				.containsEntry("channel", "Han")
+				.containsEntry("url", "https://www.youtube.com/watch?v=xEfv8BDCpgw")
+				.containsEntry("thumbnailUrl", "https://i.ytimg.com/vi/xEfv8BDCpgw/mqdefault.jpg")
+				.containsEntry("shortForm", false);
+
+			assertThat(placeNamed(body, "호명호수"))
+				.doesNotContainKeys("viewpoint", "description", "guide", "caution", "links", "videos");
 		}
 
 		@Test

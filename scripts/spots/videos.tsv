@@ -1,0 +1,36 @@
+# 명소마다 보여 줄 유튜브 영상. 탭으로 나눈 세 칸: 명소 ID, 영상 주소, 고른 이유.
+# 적은 순서대로 보여 준다. 고친 뒤에는 videos.py로 data.sql의 행을 다시 만든다.
+1	https://www.youtube.com/watch?v=w2pu1mB7_HI	멍에전망대에서 차박하며 별을 보는 방문기
+1	https://www.youtube.com/watch?v=xEfv8BDCpgw	3월 은하수 타임랩스
+1	https://www.youtube.com/watch?v=Q-nGBu_qfZM	별 보러 간 차박 방문기
+2	https://www.youtube.com/watch?v=y41pUPz28M8	육백마지기에서 찍은 별과 은하수
+2	https://www.youtube.com/watch?v=ipJCuH66T1k	차박하며 별 사진을 찍는 방문기
+2	https://www.youtube.com/watch?v=BUKZBirf-W4	청옥산에서 별과 은하수 사진을 찍는 캠핑 방문기
+4	https://www.youtube.com/watch?v=Hx-dodov_uY	천문대에서 스마트폰으로 별 사진 찍기
+4	https://www.youtube.com/watch?v=kONrCgWC_IA	천문대 방문기
+8	https://www.youtube.com/watch?v=7vlSua_vIu8	미시령 옛길의 울산바위 촬영 자리 소개
+9	https://www.youtube.com/watch?v=7SGR2xo_OwE	쌈지공원 차박 방문기
+9	https://www.youtube.com/watch?v=vQjANmxHM6E	별빛정원으로 새로 꾸민 뒤의 모습(뉴스)
+10	https://www.youtube.com/watch?v=iPoM6NxapB0	은하수 촬영지의 위치와 여건 소개
+10	https://www.youtube.com/watch?v=_-ydHK6HLl0	은하수 타임랩스
+12	https://www.youtube.com/watch?v=mtxdAY6Iuqk	당포성 별빛축제 소개
+14	https://www.youtube.com/watch?v=ysMmE18MSRQ	은하수 촬영기
+14	https://www.youtube.com/watch?v=bRdoX9KrCjs	겨울 밤 타임랩스
+18	https://www.youtube.com/watch?v=Scv3jKVb2yI	천문대와 생태공원 방문 영상
+18	https://www.youtube.com/watch?v=7rlURiMJePw	밤하늘보호공원 소개(뉴스)
+18	https://www.youtube.com/watch?v=opGmiVAQqhc	생태공원과 밤하늘 소개
+19	https://www.youtube.com/watch?v=5HL47ghtf3g	황매산 안의 은하수 자리 9곳 안내 1부
+19	https://www.youtube.com/watch?v=EWW7xhUOuxs	황매산 안의 은하수 자리 9곳 안내 2부
+19	https://www.youtube.com/watch?v=NHFw1VACGj0	은하수를 보러 간 방문기
+19	https://www.youtube.com/watch?v=lDrZNBXZbyM	황매산의 밤하늘과 은하수
+22	https://www.youtube.com/watch?v=MojTw9nRv3E	한우산 차박과 별이 가득한 밤하늘
+28	https://www.youtube.com/watch?v=RsVOAXZ2HxE	별 구경 명소로 소개하는 1100고지
+28	https://www.youtube.com/watch?v=m-SX4rIZEvM	1100고지의 야경과 은하수
+64	https://www.youtube.com/watch?v=ZcIdsOPsN0Q	용눈이오름 근처의 일몰, 은하수, 별 궤적
+65	https://www.youtube.com/watch?v=cQh_qc-nudQ	오도산에서 본 은하수와 운해
+68	https://www.youtube.com/watch?v=PDMFWKe4FPw	정령치 은하수 타임랩스
+68	https://www.youtube.com/watch?v=0IxiJbW2_uE	정령치에서 담은 은하수
+68	https://www.youtube.com/watch?v=hFD_Oz19rG0	정령치 은하수를 담은 짧은 영상
+70	https://www.youtube.com/watch?v=rN0kxnpYJg8	차로 가는 길과 은하수 촬영 과정
+76	https://www.youtube.com/watch?v=Dgqcbf3sElo	밤하늘 명소로 정비한 공원의 모습(뉴스)
+78	https://www.youtube.com/watch?v=LG3UkncdcMA	승호대에서 찍은 달과 은하수

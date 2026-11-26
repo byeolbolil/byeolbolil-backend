@@ -97,6 +97,13 @@ public class ObservationSpot {
 	@BatchSize(size = 100)
 	private List<SpotPoint> points = new ArrayList<>();
 
+	// 이 명소에서 별을 본 유튜브 영상. 찾지 못한 곳은 비어 있다
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "observation_spot_video", joinColumns = @JoinColumn(name = "spot_id"))
+	@OrderColumn(name = "position")
+	@BatchSize(size = 100)
+	private List<SpotVideo> videos = new ArrayList<>();
+
 	/** 컬럼을 더하기 전에 들어간 행은 값이 비어 있다. 비어 있으면 열린 관측지로 본다 */
 	public SpotKind getKind() {
 		return kind != null ? kind : SpotKind.OPEN_SITE;

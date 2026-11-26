@@ -50,6 +50,10 @@ public record ObservationSpotResponse(
 	@JsonInclude(JsonInclude.Include.NON_EMPTY)
 	List<Point> points,
 
+	@Schema(description = "이 명소에서 별을 본 유튜브 영상. 찾지 못한 곳에서는 빠진다")
+	@JsonInclude(JsonInclude.Include.NON_EMPTY)
+	List<Video> videos,
+
 	@Schema(description = "보틀 등급 (1-9, 낮을수록 좋음)", example = "3")
 	Integer bortleScale,
 
@@ -82,6 +86,10 @@ public record ObservationSpotResponse(
 			.points(spot.getPoints().stream()
 				.map(point -> new Point(point.getName(), point.getAccess(), point.getLatitude(), point.getLongitude()))
 				.toList())
+			.videos(spot.getVideos().stream()
+				.map(video -> new Video(
+					video.getTitle(), video.getChannel(), video.getUrl(), video.getThumbnailUrl(), video.isShortForm()))
+				.toList())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
 			.isRestroomAvailable(spot.getIsRestroomAvailable())
@@ -110,5 +118,19 @@ public record ObservationSpotResponse(
 		@Schema(description = "좌표를 아는 자리에만 있다")
 		Double latitude,
 		Double longitude
+	) {}
+
+	@Schema(description = "명소에서 별을 본 유튜브 영상")
+	public record Video(
+		@Schema(description = "영상 제목", example = "4K) 안반데기 3월 은하수 타임랩스")
+		String title,
+		@Schema(description = "올린 채널의 이름")
+		String channel,
+		@Schema(description = "영상을 여는 주소", example = "https://www.youtube.com/watch?v=xEfv8BDCpgw")
+		String url,
+		@Schema(description = "미리보기 그림(320×180)의 주소", example = "https://i.ytimg.com/vi/xEfv8BDCpgw/mqdefault.jpg")
+		String thumbnailUrl,
+		@Schema(description = "쇼츠(세로로 찍은 짧은 영상)인지")
+		boolean shortForm
 	) {}
 }

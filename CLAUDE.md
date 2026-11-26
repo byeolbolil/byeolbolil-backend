@@ -110,7 +110,9 @@ Cross-domain communication always goes through Application-layer orchestration â
   spot could not be pinned on a map the `guide` says the position is approximate. Reference links per spot live in
   `observation_spot_link`, which `data.sql` empties and refills on every start. Named viewing points inside one spot
   (a mountain with a parking lot and a meadow twenty minutes away on foot) live the same way in
-  `observation_spot_point`; the first point is where the car is parked. Spots whose road closes in winter
+  `observation_spot_point`; the first point is where the car is parked. YouTube videos shot at a spot live in
+  `observation_spot_video`: `scripts/spots/videos.tsv` is the curated list and `scripts/spots/videos.py` turns it
+  into the `data.sql` rows by asking YouTube's oEmbed endpoint for each title and channel. Spots whose road closes in winter
   carry this season's `closed_from`/`closed_until` in `data.sql`; they are left out of the recommendation candidates
   for nights in that period (bookmarked places are still evaluated). Update the dates every season.
 - `member/` â€” auth/account (OAuth2 + JWT), profile.
