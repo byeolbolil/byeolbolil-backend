@@ -279,8 +279,8 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 			assertThat(linkImages).hasSize(2).allSatisfy(image -> assertThat(image).startsWith("https://"));
 
 			List<Map<String, Object>> videos = JsonPath.read(body, "$.data.places[?(@.name == '강릉 안반데기')].videos[*]");
-			assertThat(videos).hasSize(3);
-			assertThat(videos.get(1))
+			assertThat(videos).hasSize(4);
+			assertThat(videos.get(3))
 				.containsEntry("title", "4K) 안반데기 3월 은하수 타임랩스")
 				.containsEntry("channel", "Han")
 				.containsEntry("url", "https://www.youtube.com/watch?v=xEfv8BDCpgw")

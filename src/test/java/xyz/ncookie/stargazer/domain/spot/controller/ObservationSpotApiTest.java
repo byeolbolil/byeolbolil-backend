@@ -116,7 +116,12 @@ class ObservationSpotApiTest extends IntegrationTestSupport {
 		// 작은따옴표가 든 제목도 그대로 온다
 		List<String> hwaak = JsonPath.read(body, "$.data[?(@.title == '가평 화악터널 쌈지공원')].videos[*].title");
 		assertThat(hwaak).contains("화악터널 쌈지공원, '가평 별빛정원'으로 새단장");
-		assertThat(spotNamed(body, "원주 거돈사지")).doesNotContainKey("videos");
+		// 쇼츠는 쇼츠 주소로 열고 표시를 켠다
+		List<Map<String, Object>> anbandegi = JsonPath.read(body, "$.data[?(@.title == '강릉 안반데기')].videos[*]");
+		assertThat(anbandegi.get(0))
+			.containsEntry("url", "https://www.youtube.com/shorts/S8tjRoOsgKo")
+			.containsEntry("shortForm", true);
+		assertThat(spotNamed(body, "영광 내산서원")).doesNotContainKey("videos");
 		assertThat(spotNamed(body, "대전 시민천문대")).doesNotContainKey("videos");
 	}
 
