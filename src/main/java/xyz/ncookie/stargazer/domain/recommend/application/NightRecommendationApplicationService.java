@@ -240,7 +240,8 @@ public class NightRecommendationApplicationService {
 	 */
 	private LightCondition lightOf(CandidatePlace place) {
 		return skyLightDomainService.findSkyLight(place.latitude(), place.longitude())
-			.map(sky -> new LightCondition(sky.skyBrightness(), sky.nearbyRadiance(), place.lightsInView()))
+			.map(sky -> new LightCondition(sky.skyBrightness(), sky.nearbyRadiance(), place.lightsInView(),
+				skyLightDomainService.koreaRankOf(sky.skyBrightness())))
 			.orElseGet(() -> new LightCondition(null, null, place.lightsInView()));
 	}
 

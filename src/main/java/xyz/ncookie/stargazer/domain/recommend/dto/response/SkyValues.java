@@ -19,6 +19,10 @@ final class SkyValues {
 		return Math.round(light.skyBrightness() * 100) / 100.0;
 	}
 
+	static Integer rank(LightCondition light) {
+		return light.skyRank();
+	}
+
 	static String className(LightCondition light) {
 		SkyClass skyClass = light.skyClass();
 		return (skyClass != null) ? skyClass.name() : null;
