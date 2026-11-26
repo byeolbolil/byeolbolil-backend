@@ -300,7 +300,7 @@ GET /api/v1/recommendations/nights/{date}
 | `criteria.minClearHours` | integer | 적용한 기준 |
 | `criteria.preferBefore` | string | 적용한 기준 (`HH:mm`) |
 | `criteria.maxTravelMinutes` | integer 또는 null | 보내지 않았으면 `null` |
-| `candidateCount` | integer | 후보 장소 수 |
+| `candidateCount` | integer | 후보 장소 수. 그 밤에 길이 막혀 있는 명소(겨울에 통제되는 고갯길 등)는 후보에서 빠진다. 직접 저장한 장소는 통제 기간에도 후보다 |
 | `evaluatedCount` | integer | 예보를 받아 평가한 수. `candidateCount`보다 작으면 일부 장소의 예보를 받지 못한 것이다 |
 | `excludedByTravelCount` | integer | 이동 시간 한도로 뺀 수 |
 | `places` | array | 추천 순서대로. 첫 번째가 가장 좋은 곳이다 |

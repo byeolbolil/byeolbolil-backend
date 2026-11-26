@@ -429,6 +429,73 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 	}
 
 	@Nested
+	@DisplayName("겨울 통제: 길이 막힌 명소는 그 기간의 밤에 추천하지 않는다")
+	class WinterClosure {
+
+		private static final LocalDate DECEMBER_NIGHT = LocalDate.of(2026, 12, 10);
+
+		@BeforeEach
+		void given() {
+			clock.setTo(Instant.parse("2026-12-10T08:30:00Z")); // 한국 시간 오후 5시 30분
+			stubWeather(DECEMBER_NIGHT, true);
+		}
+
+		@Test
+		@DisplayName("통제 기간이면 후보에서 빠지고 후보 수에서도 빠진다")
+		void closedSpotsAreNotCandidates() {
+			String body = bodyOf(tonight(false));
+
+			List<String> names = JsonPath.read(body, "$.data.places[*].name");
+			long open = observationRepository.findAll().stream()
+				.filter(ObservationSpot::isRecommendable)
+				.filter(spot -> spot.getClosedFrom() == null || DECEMBER_NIGHT.isBefore(spot.getClosedFrom())
+					|| DECEMBER_NIGHT.isAfter(spot.getClosedUntil()))
+				.count();
+
+			assertThat(names)
+				.doesNotContain("평창 육백마지기", "남원 정령치휴게소", "무주 적상산 전망대")
+				.contains("강릉 안반데기", "영광 내산서원");
+			assertThat((Integer) JsonPath.read(body, "$.data.candidateCount")).isEqualTo((int) open);
+			assertThat(names).hasSize((int) open);
+		}
+
+		@Test
+		@DisplayName("명소에는 올겨울의 통제 기간이 실려 있다")
+		void closedPeriodsOfSpots() {
+			ObservationSpot yukbaek = spotNamed("평창 육백마지기");
+			ObservationSpot anbandegi = spotNamed("강릉 안반데기");
+
+			assertThat(yukbaek.getClosedFrom()).isEqualTo(LocalDate.of(2026, 11, 30));
+			assertThat(yukbaek.getClosedUntil()).isEqualTo(LocalDate.of(2027, 4, 1));
+			assertThat(anbandegi.getClosedFrom()).isNull();
+			assertThat(anbandegi.getClosedUntil()).isNull();
+		}
+
+		private ObservationSpot spotNamed(String title) {
+			return observationRepository.findAll().stream()
+				.filter(spot -> title.equals(spot.getTitle()))
+				.findFirst()
+				.orElseThrow();
+		}
+	}
+
+	@Nested
+	@DisplayName("통제가 시작되기 전의 밤")
+	class BeforeClosure {
+
+		@Test
+		@DisplayName("통제 전날 밤까지는 후보로 나온다")
+		void stillCandidateTheNightBefore() {
+			clock.setTo(Instant.parse("2026-11-29T08:30:00Z")); // 육백마지기는 11월 30일부터 닫는다
+			stubWeather(LocalDate.of(2026, 11, 29), true);
+
+			List<String> names = JsonPath.read(bodyOf(tonight(false)), "$.data.places[*].name");
+
+			assertThat(names).contains("평창 육백마지기").doesNotContain("남원 정령치휴게소");
+		}
+	}
+
+	@Nested
 	@DisplayName("날짜와 요청 검증")
 	class DatesAndValidation {
 

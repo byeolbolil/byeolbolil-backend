@@ -21,7 +21,7 @@ import xyz.ncookie.stargazer.support.IntegrationTestSupport;
  */
 class ObservationSpotApiTest extends IntegrationTestSupport {
 
-	private static final int OPEN_SITES = 24;
+	private static final int OPEN_SITES = 32;
 	private static final int FACILITIES = 17;
 
 	@Autowired
