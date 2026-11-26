@@ -443,3 +443,11 @@ VALUES
     (88, 1, 'ML2geE8wafc', '남해군 남면 홍현리 다랭이마을  2025년07월06일 은하수TV', '은하수TV', FALSE),
     (89, 0, 'OtNx8DpsBtg', '시네마틱 영상/함양 오도재 지안재 백패킹/별타임랩스', '사진가정민호', FALSE),
     (89, 1, 'o5pZxDOKCOc', '함양 오도재에서 지리산을 횡단하는 은하수 타임랩스 보정본 쇼츠 영상 Milkyway on the Jiri Mountain Hamyang Korea', '한국의 은하수 TV Milkyway of Korea TV', TRUE);
+
+-- 명소에서 별을 본 인스타그램 게시물. 인스타그램은 제목과 그림을 내주지 않아서 화면은 임베드 주소로 게시물을 그대로 보여 준다.
+-- 주소는 써 본 사람이 골라 준 것이고, title은 게시물의 글을 읽고 우리가 적은 한 줄, account는 게시물에 보이는 계정 이름이다.
+-- post_id는 게시물 주소의 /reel/ 뒤에 오는 값이다.
+DELETE FROM observation_spot_reel;
+INSERT INTO observation_spot_reel (spot_id, position, post_id, title, account)
+VALUES
+    (19, 0, 'DNnVdixS3LY', '황매산에서 본 은하수', 'yeomi.travel');

@@ -104,6 +104,13 @@ public class ObservationSpot {
 	@BatchSize(size = 100)
 	private List<SpotVideo> videos = new ArrayList<>();
 
+	// 이 명소에서 별을 본 인스타그램 게시물. 받아 둔 주소가 있는 곳에만 있다
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "observation_spot_reel", joinColumns = @JoinColumn(name = "spot_id"))
+	@OrderColumn(name = "position")
+	@BatchSize(size = 100)
+	private List<SpotReel> reels = new ArrayList<>();
+
 	/** 컬럼을 더하기 전에 들어간 행은 값이 비어 있다. 비어 있으면 열린 관측지로 본다 */
 	public SpotKind getKind() {
 		return kind != null ? kind : SpotKind.OPEN_SITE;
