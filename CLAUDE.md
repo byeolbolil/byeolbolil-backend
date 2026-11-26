@@ -188,7 +188,7 @@ they appear as untracked local files.
   - Never commit secrets or the gitignored `infra/` files described above.
 - **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
   `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
-  (weather, Gemini, routing) with recorded responses, and never call them from tests. Make `./gradlew test` pass
+  (weather, Gemini, geocoding) with recorded responses, and never call them from tests. Make `./gradlew test` pass
   before every commit that touches code. The build order and done criteria live in `docs/ROADMAP.md`.
 - **Decisions and trade-offs have to end up somewhere the repo can see.** Whenever work involves a real choice —
   a policy, a threshold, an approach with a discarded alternative — say so and point at the right home instead of
