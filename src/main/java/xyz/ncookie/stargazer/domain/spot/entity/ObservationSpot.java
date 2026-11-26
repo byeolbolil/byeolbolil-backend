@@ -1,5 +1,6 @@
 package xyz.ncookie.stargazer.domain.spot.entity;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +77,11 @@ public class ObservationSpot {
 	// 1km보다 먼 곳의 불빛 가운데 지형에 가리지 않고 이 자리에서 직접 보이는 양의 지수.
 	// scripts/lightpollution/terrain.py가 좌표와 고도 자료로 계산한 값을 data.sql에 적는다. 좌표를 고치면 다시 계산한다
 	private Double lightsInView;
+
+	// 길이 막히거나 주차장을 닫아 갈 수 없는 기간의 첫날과 마지막 날. 겨울마다 날짜가 달라서 그해의 날짜를 data.sql에 적는다.
+	// 이 기간의 밤에는 추천 후보에서 뺀다. 통제가 없는 곳은 비어 있다
+	private LocalDate closedFrom;
+	private LocalDate closedUntil;
 
 	// 참고 링크. 명소 목록을 통째로 읽는 일이 대부분이라 명소마다 따로 조회하지 않도록 묶어서 가져온다
 	@ElementCollection(fetch = FetchType.EAGER)

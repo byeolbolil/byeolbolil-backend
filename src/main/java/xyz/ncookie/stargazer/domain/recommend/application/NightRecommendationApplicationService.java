@@ -28,6 +28,7 @@ import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
+import xyz.ncookie.stargazer.domain.recommend.model.ClosedPeriod;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
@@ -94,7 +95,10 @@ public class NightRecommendationApplicationService {
 			throw new RecommendException(RecommendErrorCode.DATE_OUT_OF_RANGE);
 		}
 
-		List<CandidatePlace> candidates = candidates(command.memberId());
+		// 그 밤에 길이 막혀 있는 명소는 후보에서 뺀다
+		List<CandidatePlace> candidates = candidates(command.memberId()).stream()
+			.filter(place -> !place.isClosedOn(date))
+			.toList();
 
 		// 외부 호출인 예보를 병렬로 받는다.
 		List<CompletableFuture<Optional<PlaceRecommendation>>> futures = new ArrayList<>();
@@ -147,8 +151,12 @@ public class NightRecommendationApplicationService {
 		List<CompletableFuture<List<NightAssessment>>> futures = new ArrayList<>();
 		for (CandidatePlace place : withinReach) {
 			LightCondition light = lightOf(place);
+			// 길이 막혀 있는 밤은 그 장소의 평가에서 뺀다. 밤 추천에서 그 장소가 빠지는 것과 맞춘다
 			futures.add(CompletableFuture.supplyAsync(
-				() -> outlookOrEmpty(place, light, tonight, command.policy()).nights(), recommendTaskExecutor));
+				() -> outlookOrEmpty(place, light, tonight, command.policy()).nights().stream()
+					.filter(night -> !place.isClosedOn(night.date()))
+					.toList(),
+				recommendTaskExecutor));
 		}
 		List<List<NightAssessment>> nightsByPlace = futures.stream().map(CompletableFuture::join).toList();
 
@@ -252,7 +260,7 @@ public class NightRecommendationApplicationService {
 			}
 			candidates.add(new CandidatePlace(
 				PlaceType.SPOT, spot.getId(), spot.getId(), spot.getTitle(), spot.getAddress(),
-				spot.getLatitude(), spot.getLongitude(), guideOf(spot), spot.getLightsInView()));
+				spot.getLatitude(), spot.getLongitude(), guideOf(spot), spot.getLightsInView(), closedPeriodOf(spot)));
 		}
 		return candidates;
 	}
@@ -269,9 +277,17 @@ public class NightRecommendationApplicationService {
 				PlaceType.BOOKMARK, bookmark.getId(), spotId, bookmark.getName(), bookmark.getAddress(),
 				bookmark.getLatitude(), bookmark.getLongitude(),
 				bookmark.getSpot() != null ? guideOf(bookmark.getSpot()) : null,
-				bookmark.getSpot() != null ? bookmark.getSpot().getLightsInView() : null));
+				bookmark.getSpot() != null ? bookmark.getSpot().getLightsInView() : null,
+				null));
 		}
 		return places;
+	}
+
+	private static ClosedPeriod closedPeriodOf(ObservationSpot spot) {
+		if (spot.getClosedFrom() == null || spot.getClosedUntil() == null) {
+			return null;
+		}
+		return new ClosedPeriod(spot.getClosedFrom(), spot.getClosedUntil());
 	}
 
 	private static PlaceGuide guideOf(ObservationSpot spot) {
