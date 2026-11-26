@@ -287,8 +287,12 @@ class NightRecommendationApiTest extends IntegrationTestSupport {
 				.containsEntry("thumbnailUrl", "https://i.ytimg.com/vi/xEfv8BDCpgw/mqdefault.jpg")
 				.containsEntry("shortForm", false);
 
+			List<String> reels = JsonPath.read(body, "$.data.places[?(@.name == '합천 황매산')].reels[*].embedUrl");
+			assertThat(reels).containsExactly("https://www.instagram.com/reel/DNnVdixS3LY/embed/");
+			assertThat(spot).doesNotContainKey("reels");
+
 			assertThat(placeNamed(body, "호명호수"))
-				.doesNotContainKeys("viewpoint", "description", "guide", "caution", "links", "videos");
+				.doesNotContainKeys("viewpoint", "description", "guide", "caution", "links", "videos", "reels");
 		}
 
 		@Test

@@ -54,6 +54,10 @@ public record ObservationSpotResponse(
 	@JsonInclude(JsonInclude.Include.NON_EMPTY)
 	List<Video> videos,
 
+	@Schema(description = "이 명소에서 별을 본 인스타그램 게시물. 받아 둔 주소가 있는 곳에만 있다")
+	@JsonInclude(JsonInclude.Include.NON_EMPTY)
+	List<Reel> reels,
+
 	@Schema(description = "보틀 등급 (1-9, 낮을수록 좋음)", example = "3")
 	Integer bortleScale,
 
@@ -89,6 +93,9 @@ public record ObservationSpotResponse(
 			.videos(spot.getVideos().stream()
 				.map(video -> new Video(
 					video.getTitle(), video.getChannel(), video.getUrl(), video.getThumbnailUrl(), video.isShortForm()))
+				.toList())
+			.reels(spot.getReels().stream()
+				.map(reel -> new Reel(reel.getTitle(), reel.getAccount(), reel.getUrl(), reel.getEmbedUrl()))
 				.toList())
 			.bortleScale(spot.getLightPollutionLevel())
 			.isParkingAvailable(spot.getIsParkingAvailable())
@@ -132,5 +139,18 @@ public record ObservationSpotResponse(
 		String thumbnailUrl,
 		@Schema(description = "쇼츠(세로로 찍은 짧은 영상)인지")
 		boolean shortForm
+	) {}
+
+	@Schema(description = "명소에서 별을 본 인스타그램 게시물")
+	public record Reel(
+		@Schema(description = "어떤 영상인지 적은 한 줄", example = "황매산에서 본 은하수")
+		String title,
+		@Schema(description = "올린 계정의 이름", example = "yeomi.travel")
+		String account,
+		@Schema(description = "인스타그램에서 여는 주소", example = "https://www.instagram.com/reel/DNnVdixS3LY/")
+		String url,
+		@Schema(description = "화면 안에 넣어 보여 주는 임베드 주소. iframe의 src로 쓴다",
+			example = "https://www.instagram.com/reel/DNnVdixS3LY/embed/")
+		String embedUrl
 	) {}
 }
