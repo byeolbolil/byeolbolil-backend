@@ -24,27 +24,32 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import xyz.ncookie.stargazer.domain.geocode.cache.GeocodeCache;
 import xyz.ncookie.stargazer.domain.geocode.client.GeocodeProviderException;
+import xyz.ncookie.stargazer.domain.geocode.client.kakao.KakaoLocalClient;
 import xyz.ncookie.stargazer.domain.geocode.client.photon.PhotonClient;
 import xyz.ncookie.stargazer.domain.geocode.exception.GeocodeErrorCode;
 import xyz.ncookie.stargazer.domain.geocode.exception.GeocodeException;
 import xyz.ncookie.stargazer.domain.geocode.model.GeocodePlace;
 import xyz.ncookie.stargazer.domain.geocode.model.GeocodePlace.Kind;
+import xyz.ncookie.stargazer.domain.geocode.model.GeocodePlace.Source;
 
 class GeocodeDomainServiceTest {
 
 	private static final Duration ONE_DAY = Duration.ofHours(24);
 
 	private PhotonClient photonClient;
+	private KakaoLocalClient kakaoClient;
 	private GeocodeCache cache;
 	private GeocodeDomainService service;
 
 	@BeforeEach
 	void setUp() {
 		photonClient = mock(PhotonClient.class);
+		// 키가 없는 상태가 기본이다. 카카오를 쓰는 테스트만 isConfigured를 켠다
+		kakaoClient = mock(KakaoLocalClient.class);
 		cache = mock(GeocodeCache.class);
 		given(cache.findSearch(anyString())).willReturn(Optional.empty());
 		given(cache.findReverse(anyString())).willReturn(Optional.empty());
-		service = new GeocodeDomainService(photonClient, cache, bucketOf(100));
+		service = new GeocodeDomainService(photonClient, kakaoClient, cache, bucketOf(100), bucketOf(100));
 	}
 
 	@Nested
@@ -111,6 +116,48 @@ class GeocodeDomainServiceTest {
 			assertThat(GeocodeDomainService.arrange(many)).hasSize(8)
 				.extracting(GeocodePlace::name).startsWith("양평리0").endsWith("양평리7");
 		}
+
+		@Test
+		@DisplayName("카카오의 결과가 있으면 지역 셋, 주소 둘, 카카오의 목적지, 남은 지역, 카카오의 나머지, 역과 도로 순이다")
+		void mixesSources() {
+			List<GeocodePlace> osm = List.of(
+				place("대전역", Kind.OTHER, 36.3323, 127.4342),
+				place("대전광역시", Kind.PLACE, 36.3504, 127.3845),
+				place("대전천", Kind.PLACE, 36.33, 127.43),
+				place("대전동", Kind.PLACE, 35.1, 128.9),
+				place("대전리", Kind.PLACE, 37.9, 127.1));
+			List<GeocodePlace> addresses = List.of(
+				kakao("대전", Kind.PLACE, 36.3505, 127.3848),
+				kakao("대전 서구", Kind.PLACE, 36.3553, 127.3838),
+				kakao("대전 동구", Kind.PLACE, 36.3120, 127.4548));
+			List<GeocodePlace> pois = List.of(
+				kakao("대전게스트하우스", Kind.OTHER, 36.33, 127.42),
+				kakao("한밭수목원", Kind.PLACE, 36.3699, 127.3880));
+
+			assertThat(GeocodeDomainService.arrange(osm, addresses, pois)).extracting(GeocodePlace::name)
+				.containsExactly("대전광역시", "대전천", "대전동", "대전", "대전 서구", "한밭수목원", "대전리", "대전게스트하우스");
+		}
+
+		@Test
+		@DisplayName("두 소스가 같은 곳을 찾으면 앞에 온 것 하나만 남긴다")
+		void dropsDuplicatesAcrossSources() {
+			List<GeocodePlace> arranged = GeocodeDomainService.arrange(
+				List.of(place("화악산", Kind.PLACE, 37.9946674, 127.5034314)),
+				List.of(),
+				List.of(kakao("화악산", Kind.PLACE, 37.9947832, 127.5033279), kakao("화악산계곡", Kind.PLACE, 37.9701, 127.5242)));
+
+			assertThat(arranged).extracting(GeocodePlace::name).containsExactly("화악산", "화악산계곡");
+			assertThat(arranged.get(0).source()).isEqualTo(Source.OSM);
+		}
+
+		@Test
+		@DisplayName("OpenStreetMap에 없는 곳은 카카오의 결과만으로 답한다")
+		void kakaoOnly() {
+			List<GeocodePlace> arranged = GeocodeDomainService.arrange(
+				List.of(), List.of(), List.of(kakao("정천면망향의광장", Kind.PLACE, 35.90085, 127.4836018)));
+
+			assertThat(arranged).extracting(GeocodePlace::name).containsExactly("정천면망향의광장");
+		}
 	}
 
 	@Nested
@@ -160,7 +207,7 @@ class GeocodeDomainServiceTest {
 		@Test
 		@DisplayName("나가는 호출이 상한에 닿으면 Photon을 부르지 않고 GEOCODE_BUSY다")
 		void outboundLimit() {
-			service = new GeocodeDomainService(photonClient, cache, bucketOf(1));
+			service = new GeocodeDomainService(photonClient, kakaoClient, cache, bucketOf(1), bucketOf(100));
 			given(photonClient.search(anyString())).willReturn(List.of());
 			service.search("화악산");
 
@@ -173,12 +220,77 @@ class GeocodeDomainServiceTest {
 		@Test
 		@DisplayName("기억해 둔 검색어는 상한에 닿은 뒤에도 답한다")
 		void cacheHitIgnoresLimit() {
-			service = new GeocodeDomainService(photonClient, cache, bucketOf(1));
+			service = new GeocodeDomainService(photonClient, kakaoClient, cache, bucketOf(1), bucketOf(100));
 			given(photonClient.search(anyString())).willReturn(List.of());
 			service.search("화악산");
 			given(cache.findSearch("명지산")).willReturn(Optional.of(List.of()));
 
 			assertThat(service.search("명지산")).isEmpty();
+		}
+
+		@Test
+		@DisplayName("카카오 키가 있으면 두 곳에 묻고, 기억해 두는 것은 OpenStreetMap의 결과뿐이다")
+		void asksBothAndCachesOnlyOpenStreetMap() {
+			List<GeocodePlace> osm = List.of(place("화악산", Kind.PLACE, 37.9947, 127.5034));
+			GeocodePlace valley = kakao("화악산계곡", Kind.PLACE, 37.9701, 127.5242);
+			GeocodePlace lot = kakao("경기 가평군 북면 화악리 산 228-5", Kind.PLACE, 37.9948, 127.5033);
+			given(kakaoClient.isConfigured()).willReturn(true);
+			given(photonClient.search("화악산")).willReturn(osm);
+			given(kakaoClient.searchPlaces("화악산")).willReturn(List.of(valley));
+			given(kakaoClient.searchAddresses("화악산")).willReturn(List.of(lot));
+
+			assertThat(service.search("화악산")).extracting(GeocodePlace::name)
+				.containsExactly("화악산", "경기 가평군 북면 화악리 산 228-5", "화악산계곡");
+			verify(cache).putSearch("화악산", osm, ONE_DAY);
+		}
+
+		@Test
+		@DisplayName("Photon이 답하지 않아도 카카오가 답하면 그 결과를 돌려준다")
+		void kakaoCoversForPhoton() {
+			GeocodePlace viewpoint = kakao("정천면망향의광장", Kind.PLACE, 35.90085, 127.4836018);
+			given(kakaoClient.isConfigured()).willReturn(true);
+			given(photonClient.search(anyString())).willThrow(new GeocodeProviderException("시간 초과"));
+			given(kakaoClient.searchPlaces(anyString())).willReturn(List.of(viewpoint));
+			given(kakaoClient.searchAddresses(anyString())).willReturn(List.of());
+
+			assertThat(service.search("망향의광장")).containsExactly(viewpoint);
+		}
+
+		@Test
+		@DisplayName("카카오가 답하지 않으면 OpenStreetMap의 결과만 돌려준다")
+		void photonCoversForKakao() {
+			List<GeocodePlace> osm = List.of(place("화악산", Kind.PLACE, 37.9947, 127.5034));
+			given(kakaoClient.isConfigured()).willReturn(true);
+			given(photonClient.search("화악산")).willReturn(osm);
+			given(kakaoClient.searchAddresses(anyString())).willThrow(new GeocodeProviderException("401"));
+
+			assertThat(service.search("화악산")).isEqualTo(osm);
+		}
+
+		@Test
+		@DisplayName("둘 다 답하지 않으면 GEOCODE_UNAVAILABLE이다")
+		void bothFail() {
+			given(kakaoClient.isConfigured()).willReturn(true);
+			given(photonClient.search(anyString())).willThrow(new GeocodeProviderException("시간 초과"));
+			given(kakaoClient.searchAddresses(anyString())).willThrow(new GeocodeProviderException("시간 초과"));
+
+			assertThatThrownBy(() -> service.search("화악산"))
+				.isInstanceOfSatisfying(GeocodeException.class,
+					e -> assertThat(e.getErrorCode()).isEqualTo(GeocodeErrorCode.GEOCODE_UNAVAILABLE));
+		}
+
+		@Test
+		@DisplayName("카카오로 나가는 호출이 상한에 닿으면 카카오를 건너뛰고 OpenStreetMap의 결과만 돌려준다")
+		void kakaoLimit() {
+			service = new GeocodeDomainService(photonClient, kakaoClient, cache, bucketOf(100), bucketOf(1));
+			given(kakaoClient.isConfigured()).willReturn(true);
+			given(photonClient.search(anyString())).willReturn(List.of());
+			given(kakaoClient.searchPlaces(anyString())).willReturn(List.of());
+			given(kakaoClient.searchAddresses(anyString())).willReturn(List.of());
+			service.search("화악산");
+
+			assertThat(service.search("명지산")).isEmpty();
+			verify(kakaoClient, never()).searchPlaces("명지산");
 		}
 	}
 
@@ -254,6 +366,10 @@ class GeocodeDomainServiceTest {
 
 	private static GeocodePlace place(String name, Kind kind, double latitude, double longitude) {
 		return new GeocodePlace(name, List.of("경기도"), kind, latitude, longitude);
+	}
+
+	private static GeocodePlace kakao(String name, Kind kind, double latitude, double longitude) {
+		return new GeocodePlace(name, List.of(), kind, latitude, longitude, Source.KAKAO);
 	}
 
 	/** 다시 채워지지 않는 토큰 통. 테스트 안에서 시간이 흘러도 결과가 달라지지 않는다 */

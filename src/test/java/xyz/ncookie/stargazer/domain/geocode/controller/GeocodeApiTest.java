@@ -10,7 +10,8 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 
 /**
- * 지명 검색 API의 응답을 고정한다. Photon의 응답은 2026-11-25에 받아 둔 것이다(fixtures/photon).
+ * 지명 검색 API의 응답을 고정한다. Photon의 응답은 2026-11-25에(fixtures/photon), 카카오 로컬의 응답은 2026-11-27에
+ * (fixtures/kakao) 받아 둔 것이다.
  */
 class GeocodeApiTest extends IntegrationTestSupport {
 
@@ -19,9 +20,10 @@ class GeocodeApiTest extends IntegrationTestSupport {
 	class Search {
 
 		@Test
-		@DisplayName("로그인 없이 이름, 주소, 좌표를 준다. 산이 도로보다 앞에 온다")
+		@DisplayName("로그인 없이 이름, 주소, 좌표, 출처를 준다. 산이 도로보다 앞에 온다")
 		void search() {
 			externalApi.photonSearchReturns("search-hwaaksan-20261125.json");
+			externalApi.kakaoFindsNothing();
 
 			assertThat(search("화악산")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{
@@ -29,15 +31,15 @@ class GeocodeApiTest extends IntegrationTestSupport {
 				  "status": 200,
 				  "message": "요청이 성공적으로 처리되었습니다.",
 				  "data": [
-				    { "name": "화악산", "address": "경기도 가평군 북면", "latitude": 37.9946674, "longitude": 127.5034314 },
-				    { "name": "화악산", "address": "경상북도 청도군 청도읍", "latitude": 35.5932802, "longitude": 128.6915855 },
-				    { "name": "화악산 응봉", "address": "강원특별자치도 춘천시", "latitude": 38.0000278, "longitude": 127.5405556 },
-				    { "name": "화악산 북봉", "address": "경기도 가평군 북면", "latitude": 37.9977519, "longitude": 127.5041268 },
-				    { "name": "화악산 중봉", "address": "경기도 가평군 북면", "latitude": 37.9896066, "longitude": 127.4984159 },
-				    { "name": "화악산 상봉", "address": "경기도 가평군 북면", "latitude": 37.99478, "longitude": 127.50333 },
+				    { "name": "화악산", "address": "경기도 가평군 북면", "latitude": 37.9946674, "longitude": 127.5034314, "source": "OSM" },
+				    { "name": "화악산", "address": "경상북도 청도군 청도읍", "latitude": 35.5932802, "longitude": 128.6915855, "source": "OSM" },
+				    { "name": "화악산 응봉", "address": "강원특별자치도 춘천시", "latitude": 38.0000278, "longitude": 127.5405556, "source": "OSM" },
+				    { "name": "화악산 북봉", "address": "경기도 가평군 북면", "latitude": 37.9977519, "longitude": 127.5041268, "source": "OSM" },
+				    { "name": "화악산 중봉", "address": "경기도 가평군 북면", "latitude": 37.9896066, "longitude": 127.4984159, "source": "OSM" },
+				    { "name": "화악산 상봉", "address": "경기도 가평군 북면", "latitude": 37.99478, "longitude": 127.50333, "source": "OSM" },
 				    { "name": "화악산농장자연휴양림", "address": "강원특별자치도 화천군 사내면 광덕리",
-				      "latitude": 38.0655299, "longitude": 127.4850585 },
-				    { "name": "화악산 등산로", "address": "경상북도 청도군 청도읍", "latitude": 35.5992601, "longitude": 128.692627 }
+				      "latitude": 38.0655299, "longitude": 127.4850585, "source": "OSM" },
+				    { "name": "화악산 등산로", "address": "경상북도 청도군 청도읍", "latitude": 35.5992601, "longitude": 128.692627, "source": "OSM" }
 				  ]
 				}
 				""");
@@ -47,6 +49,7 @@ class GeocodeApiTest extends IntegrationTestSupport {
 		@DisplayName("이름이 같은 역보다 군과 읍이 앞에 온다")
 		void areasBeforeStations() {
 			externalApi.photonSearchReturns("search-yangpyeong-20261125.json");
+			externalApi.kakaoFindsNothing();
 
 			assertThat(search("양평")).hasStatusOk().bodyJson()
 				.extractingPath("$.data[*].name").asArray()
@@ -57,6 +60,7 @@ class GeocodeApiTest extends IntegrationTestSupport {
 		@DisplayName("찾은 곳이 없으면 빈 배열이다")
 		void noResult() {
 			externalApi.photonSearchReturns("search-no-result-20261125.json");
+			externalApi.kakaoFindsNothing();
 
 			assertThat(search("육백마지기")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{
@@ -69,12 +73,69 @@ class GeocodeApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("같은 검색어를 다시 보내면 Photon을 부르지 않는다. 앞뒤 공백은 같은 검색어다")
+		@DisplayName("OpenStreetMap에 없는 전망대를 카카오 로컬에서 찾는다")
+		void kakaoPlace() {
+			externalApi.photonSearchReturns("search-no-result-20261125.json");
+			externalApi.kakaoKeywordReturns("keyword-manghyang-20261127.json");
+			externalApi.kakaoAddressReturns("address-no-result-20261127.json");
+
+			assertThat(search("정천면망향의광장전망대")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": true,
+				  "status": 200,
+				  "message": "요청이 성공적으로 처리되었습니다.",
+				  "data": [
+				    { "name": "정천면망향의광장", "address": "전북특별자치도 진안군 정천면 모정리",
+				      "latitude": 35.90085, "longitude": 127.4836018, "source": "KAKAO" }
+				  ]
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("지번 주소는 카카오의 주소 검색으로 찾고, 이름은 정리된 전체 주소다")
+		void jibunAddress() {
+			externalApi.photonSearchReturns("search-no-result-20261125.json");
+			externalApi.kakaoKeywordReturns("keyword-no-result-20261127.json");
+			externalApi.kakaoAddressReturns("address-jibun-20261127.json");
+
+			assertThat(search("전북 진안군 정천면 970-40")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": true,
+				  "status": 200,
+				  "message": "요청이 성공적으로 처리되었습니다.",
+				  "data": [
+				    { "name": "전북특별자치도 진안군 정천면 모정리 970-40", "address": "",
+				      "latitude": 35.9009409, "longitude": 127.4834921, "source": "KAKAO" }
+				  ]
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("두 소스를 섞는다. 같은 산은 하나만 남고, OpenStreetMap의 산 셋 뒤에 카카오의 목적지가 온다")
+		void mixed() {
+			externalApi.photonSearchReturns("search-hwaaksan-20261125.json");
+			externalApi.kakaoKeywordReturns("keyword-hwaaksan-20261127.json");
+			externalApi.kakaoAddressReturns("address-no-result-20261127.json");
+
+			var body = assertThat(search("화악산")).hasStatusOk().bodyJson();
+			body.extractingPath("$.data[*].name").asArray()
+				.containsExactly("화악산", "화악산", "화악산 응봉", "화악산 출입로", "화악산등산코스", "화악산계곡",
+					"화악산 애기봉", "화악산 언니통봉");
+			body.extractingPath("$.data[*].source").asArray()
+				.containsExactly("OSM", "OSM", "OSM", "KAKAO", "KAKAO", "KAKAO", "KAKAO", "KAKAO");
+		}
+
+		@Test
+		@DisplayName("같은 검색어를 다시 보내면 Photon을 부르지 않는다. 카카오의 결과는 기억하지 않아 다시 부른다")
 		void cached() {
 			externalApi.photonSearchReturns("search-hwaaksan-20261125.json");
+			externalApi.kakaoFindsNothing();
 			search("화악산");
-			// 이 뒤로는 어떤 외부 호출도 테스트를 실패시킨다
+			// 이 뒤로 Photon을 부르면 테스트가 실패한다
 			externalApi.reset();
+			externalApi.kakaoFindsNothing();
 
 			assertThat(search(" 화악산 ")).hasStatusOk().bodyJson()
 				.extractingPath("$.data[0].name").isEqualTo("화악산");
@@ -102,9 +163,31 @@ class GeocodeApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
-		@DisplayName("Photon이 답하지 않으면 503이다")
+		@DisplayName("Photon만 답하지 않으면 카카오의 결과로 답한다")
+		void photonDown() {
+			externalApi.photonSearchFails();
+			externalApi.kakaoKeywordReturns("keyword-manghyang-20261127.json");
+			externalApi.kakaoAddressReturns("address-no-result-20261127.json");
+
+			assertThat(search("정천면망향의광장전망대")).hasStatusOk().bodyJson()
+				.extractingPath("$.data[*].name").asArray().containsExactly("정천면망향의광장");
+		}
+
+		@Test
+		@DisplayName("카카오만 답하지 않으면 OpenStreetMap의 결과로 답한다")
+		void kakaoDown() {
+			externalApi.photonSearchReturns("search-hwaaksan-20261125.json");
+			externalApi.kakaoFails();
+
+			assertThat(search("화악산")).hasStatusOk().bodyJson()
+				.extractingPath("$.data[0].source").isEqualTo("OSM");
+		}
+
+		@Test
+		@DisplayName("Photon과 카카오가 모두 답하지 않으면 503이다")
 		void providerDown() {
 			externalApi.photonSearchFails();
+			externalApi.kakaoFails();
 
 			assertThat(search("화악산")).hasStatus(503).bodyJson().isStrictlyEqualTo("""
 				{

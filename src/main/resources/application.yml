@@ -95,6 +95,10 @@ weather:
 geocode:
     photon:
         base-url: ${PHOTON_BASE_URL:https://photon.komoot.io}
+    # 키가 비어 있으면 카카오 로컬을 쓰지 않고 Photon만으로 찾는다
+    kakao:
+        base-url: ${KAKAO_LOCAL_BASE_URL:https://dapi.kakao.com}
+        rest-api-key: ${KAKAO_REST_API_KEY:}
 
 gemini:
     api:

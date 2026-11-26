@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import xyz.ncookie.stargazer.domain.weather.model.ForecastCell;
 
 /**
- * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway, Photon)를 기록해 둔 응답으로 대체한다.
+ * 외부 API(OpenWeather, Gemini, Open-Meteo, MET Norway, Photon, 카카오 로컬)를 기록해 둔 응답으로 대체한다.
  *
  * 애플리케이션이 쓰는 RestTemplate 빈의 요청 팩토리를 바꿔 끼우므로, 이 빈으로 나가는 요청은
  * 소켓을 열지 않는다. 대체해 두지 않은 주소를 호출하면 AssertionError가 나서 테스트가 실패한다.
@@ -38,6 +38,8 @@ public class ExternalApiStubs {
 	private static final String MET_NORWAY = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
 	private static final String PHOTON_SEARCH = "https://photon.komoot.io/api/";
 	private static final String PHOTON_REVERSE = "https://photon.komoot.io/reverse";
+	private static final String KAKAO_KEYWORD = "https://dapi.kakao.com/v2/local/search/keyword.json";
+	private static final String KAKAO_ADDRESS = "https://dapi.kakao.com/v2/local/search/address.json";
 
 	private final MockRestServiceServer server;
 
@@ -148,6 +150,25 @@ public class ExternalApiStubs {
 
 	public void photonReverseReturns(String fixture) {
 		stub(HttpMethod.GET, PHOTON_REVERSE, json("photon/" + fixture));
+	}
+
+	public void kakaoKeywordReturns(String fixture) {
+		stub(HttpMethod.GET, KAKAO_KEYWORD, json("kakao/" + fixture));
+	}
+
+	public void kakaoAddressReturns(String fixture) {
+		stub(HttpMethod.GET, KAKAO_ADDRESS, json("kakao/" + fixture));
+	}
+
+	/** 카카오가 답은 하지만 찾은 곳이 없다 */
+	public void kakaoFindsNothing() {
+		kakaoKeywordReturns("keyword-no-result-20261127.json");
+		kakaoAddressReturns("address-no-result-20261127.json");
+	}
+
+	public void kakaoFails() {
+		stub(HttpMethod.GET, KAKAO_KEYWORD, withServerError());
+		stub(HttpMethod.GET, KAKAO_ADDRESS, withServerError());
 	}
 
 	private void stub(HttpMethod httpMethod, String urlPrefix, ResponseCreator response) {

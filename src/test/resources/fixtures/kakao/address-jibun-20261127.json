@@ -1,0 +1,30 @@
+{
+  "documents": [
+    {
+      "address": {
+        "address_name": "전북특별자치도 진안군 정천면 모정리 970-40",
+        "b_code": "5272039023",
+        "h_code": "5272039000",
+        "main_address_no": "970",
+        "mountain_yn": "N",
+        "region_1depth_name": "전북특별자치도",
+        "region_2depth_name": "진안군",
+        "region_3depth_h_name": "정천면",
+        "region_3depth_name": "정천면 모정리",
+        "sub_address_no": "40",
+        "x": "127.483492133389",
+        "y": "35.900940942569"
+      },
+      "address_name": "전북특별자치도 진안군 정천면 모정리 970-40",
+      "address_type": "REGION_ADDR",
+      "road_address": null,
+      "x": "127.483492133389",
+      "y": "35.900940942569"
+    }
+  ],
+  "meta": {
+    "is_end": true,
+    "pageable_count": 1,
+    "total_count": 1
+  }
+}

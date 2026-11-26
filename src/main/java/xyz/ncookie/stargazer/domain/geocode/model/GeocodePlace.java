@@ -6,13 +6,15 @@ import java.util.List;
  * 지명 검색 결과 하나. 데이터 소스와 무관한 내부 모델이다.
  *
  * @param regions 큰 행정구역부터 작은 순서(도, 군, 시·읍·면, 동·리). 모르는 단계는 빠진다
+ * @param source  어디서 온 결과인지. 화면에 출처를 적는 데 쓴다
  */
 public record GeocodePlace(
 	String name,
 	List<String> regions,
 	Kind kind,
 	double latitude,
-	double longitude
+	double longitude,
+	Source source
 ) {
 
 	/**
@@ -23,6 +25,22 @@ public record GeocodePlace(
 		PLACE,
 		/** 역, 정류장, 나들목, 도로, 학교를 비롯한 나머지 */
 		OTHER
+	}
+
+	public enum Source {
+		/** OpenStreetMap (Photon) */
+		OSM,
+		/** 카카오 로컬 */
+		KAKAO
+	}
+
+	public GeocodePlace {
+		// 출처를 적기 전에 캐시에 들어간 결과는 모두 OpenStreetMap에서 온 것이다
+		source = source != null ? source : Source.OSM;
+	}
+
+	public GeocodePlace(String name, List<String> regions, Kind kind, double latitude, double longitude) {
+		this(name, regions, kind, latitude, longitude, Source.OSM);
 	}
 
 	/**

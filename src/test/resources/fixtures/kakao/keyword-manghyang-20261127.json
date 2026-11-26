@@ -1,0 +1,28 @@
+{
+  "documents": [
+    {
+      "address_name": "전북특별자치도 진안군 정천면 모정리 970-53",
+      "category_group_code": "AT4",
+      "category_group_name": "관광명소",
+      "category_name": "여행 > 관광,명소 > 전망대",
+      "distance": "",
+      "id": "26297589",
+      "phone": "",
+      "place_name": "정천면망향의광장",
+      "place_url": "http://place.map.kakao.com/26297589",
+      "road_address_name": "전북특별자치도 진안군 정천면 용정길 8",
+      "x": "127.483601796199",
+      "y": "35.90085001669"
+    }
+  ],
+  "meta": {
+    "is_end": true,
+    "pageable_count": 1,
+    "same_name": {
+      "keyword": "정천면망향의광장전망대",
+      "region": [],
+      "selected_region": ""
+    },
+    "total_count": 1
+  }
+}

@@ -52,6 +52,19 @@ MET Norway 응답의 헤더는 파일에 없다. 받을 때의 값은 `Expires: 
 | `photon/reverse-seoul-20261125.json` | 같은 요청에 `lat=37.57&lon=126.89`. 응답에 도가 없다 |
 | `photon/reverse-sea-20261125.json` | 같은 요청에 `lat=36.5&lon=130.5`. 동해 한가운데라 결과가 없다 |
 
+`kakao/`의 JSON은 2026-11-27에 카카오 로컬 API에서 실제로 받은 응답이다. 키는 `Authorization: KakaoAK ...` 헤더로
+보내므로 파일에 남지 않는다. 주소 앞의 `https://dapi.kakao.com`은 줄였다.
+
+| 파일 | 요청 |
+|---|---|
+| `kakao/keyword-hwaaksan-20261127.json` | `GET /v2/local/search/keyword.json?query=화악산&size=15`. 산과 등산로 사이에 펜션이 섞여 온다 |
+| `kakao/keyword-manghyang-20261127.json` | 같은 요청에 `query=정천면망향의광장전망대`. OpenStreetMap에 없는 전망대다 |
+| `kakao/keyword-daejeon-20261127.json` | 같은 요청에 `query=대전`. 시가 아니라 시 안의 관광지가 온다 |
+| `kakao/keyword-no-result-20261127.json` | 같은 요청에 `query=전북 진안군 정천면 970-40`. 지번은 키워드 검색으로 찾지 못한다 |
+| `kakao/address-jibun-20261127.json` | `GET /v2/local/search/address.json?query=전북 진안군 정천면 970-40&size=5` |
+| `kakao/address-daejeon-20261127.json` | 같은 요청에 `query=대전`. 시 이름은 지역 하나로 답한다 |
+| `kakao/address-no-result-20261127.json` | 같은 요청에 `query=화악산`. 주소가 아닌 이름은 찾지 못한다 |
+
 ## 손으로 쓴 파일을 실제 응답으로 바꾸려면
 
 API 키를 넣어 한 번 호출한 결과를 같은 경로에 저장하면 된다. 키가 응답에 들어가지는 않지만 요청 주소에는 들어가므로

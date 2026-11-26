@@ -43,7 +43,8 @@ Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/US
 `JWT_KEY`, `WEATHER_API_KEY`, `GEMINI_API_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
 Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `OPEN_METEO_BASE_URL`,
-`OPEN_METEO_MODEL`, `PHOTON_BASE_URL`.
+`OPEN_METEO_MODEL`, `PHOTON_BASE_URL`, `KAKAO_REST_API_KEY` (place search uses Photon alone while it is empty; the
+key also has a caller-IP allowlist in the Kakao console, so a new server IP must be added there).
 
 ### Tests
 
@@ -99,9 +100,12 @@ Cross-domain communication always goes through Application-layer orchestration �
   Open-Meteo call per model run; `GET /api/v1/clouds/nights/{date}` serves one night of it for the map's cloud layer.
   The old `stargazing/client/openweather` path still serves the existing APIs until the roadmap's phase 3.
 - `geocode/` — place-name search and reverse lookup for the map search box and the travel origin.
-  `GeocodeDomainService` calls the public Photon server (OpenStreetMap data, no key), reorders results so areas and
-  destinations come before stations and roads, caches in Redis for 24 hours (`GeocodeCache`), and caps outbound
-  calls (`PhotonRateLimitConfig`). Serves `GET /api/v1/geocode/search` and `/reverse` (public).
+  `GeocodeDomainService` asks two sources and merges them: the public Photon server (OpenStreetMap data, no key),
+  which knows cities, counties and mountains, and Kakao Local (`client/kakao`, keyword and address search), which
+  knows viewpoints, parking lots and lot-number addresses. Photon results are cached in Redis for 24 hours
+  (`GeocodeCache`); Kakao results are never cached because Kakao does not allow storing them. Outbound calls are
+  capped per source (`PhotonRateLimitConfig`, `KakaoRateLimitConfig`), and one source failing does not fail the
+  search. Reverse lookup uses Photon only. Serves `GET /api/v1/geocode/search` and `/reverse` (public).
 - `spot/` — observation spot lookup by lat/lng + radius, backed by MySQL spatial indexing (Hibernate Spatial).
   Spots are either `OPEN_SITE` (free night access, the only recommendation candidates) or `FACILITY`
   (observatories and science museums, served separately via `?kind=FACILITY`). `src/main/resources/data.sql` is the

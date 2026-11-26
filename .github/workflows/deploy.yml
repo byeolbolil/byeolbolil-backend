@@ -81,6 +81,7 @@ jobs:
                   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
                   KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
                   KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+                  KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
                   NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
                   NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
               run: |
@@ -110,6 +111,7 @@ jobs:
                   put GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
                   put KAKAO_CLIENT_ID "$KAKAO_CLIENT_ID"
                   put KAKAO_CLIENT_SECRET "$KAKAO_CLIENT_SECRET"
+                  put KAKAO_REST_API_KEY "$KAKAO_REST_API_KEY"
                   put NAVER_CLIENT_ID "$NAVER_CLIENT_ID"
                   put NAVER_CLIENT_SECRET "$NAVER_CLIENT_SECRET"
 
