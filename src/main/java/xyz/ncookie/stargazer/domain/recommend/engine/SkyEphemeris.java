@@ -1,7 +1,11 @@
 package xyz.ncookie.stargazer.domain.recommend.engine;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import org.shredzone.commons.suncalc.MoonIllumination;
@@ -9,6 +13,8 @@ import org.shredzone.commons.suncalc.MoonPosition;
 import org.shredzone.commons.suncalc.MoonTimes;
 import org.shredzone.commons.suncalc.SunPosition;
 import org.springframework.stereotype.Component;
+
+import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 
 /**
  * 한 시각의 해와 달의 위치. commons-suncalc 계산을 감싼다.
@@ -59,5 +65,20 @@ public class SkyEphemeris {
 
 	private static MoonTimes moonTimes(double latitude, double longitude, Instant from) {
 		return MoonTimes.compute().at(latitude, longitude).on(from).oneDay().execute();
+	}
+
+	/**
+	 * 그 밤의 달. 모양은 자정의 값으로 정한다. 하룻밤 사이에 눈에 띄게 달라지지 않기 때문이다.
+	 * 뜨고 지는 시각은 밤 시간 칸과 같은 범위(그날 정오부터 다음 날 정오)에서 찾는다.
+	 */
+	public NightMoon nightMoon(double latitude, double longitude, LocalDate date, ZoneId zone) {
+		Instant noon = ZonedDateTime.of(date, LocalTime.NOON, zone).toInstant();
+		Instant midnight = noon.plus(12, ChronoUnit.HOURS);
+		return new NightMoon(
+			moonIlluminatedFraction(midnight),
+			isMoonWaxing(midnight),
+			moonrise(latitude, longitude, noon).orElse(null),
+			moonset(latitude, longitude, noon).orElse(null)
+		);
 	}
 }
