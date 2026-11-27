@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 
 OEMBED = "https://www.youtube.com/oembed?format=json&url="
-USER_AGENT = "byeolbolil/1.0 https://www.byeolbolil.xyz"
+USER_AGENT = "byeolbolil/1.0 https://www.byeolbolil.com"
 VIDEO_ID = re.compile(r"(?:[?&]v=|/shorts/|youtu\.be/)([A-Za-z0-9_-]{11})")
 
 # 요청 사이에 쉬는 시간(초). 수십 건을 한꺼번에 보내지 않는다

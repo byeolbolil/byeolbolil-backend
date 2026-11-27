@@ -150,9 +150,9 @@ API로 따라가며 통과하고, `www.byeolbolil.xyz`에 나가 있다. 지도,
 
 - 백엔드: `dev`에 push하면 `.github/workflows/deploy.yml`이 테스트를 돌리고, 통과하면 OCI VM에 반영한다.
   문서만 바뀐 push는 배포하지 않는다.
-  VM 한 대에 Caddy, 앱, MySQL, Redis가 compose로 떠 있다(`infra/oci/deploy/`). 주소는 `https://api.byeolbolil.xyz`다.
+  VM 한 대에 Caddy, 앱, MySQL, Redis가 compose로 떠 있다(`infra/oci/deploy/`). 주소는 `https://api.byeolbolil.com`다.
   정한 내용과 버린 대안은 `docs/decisions.md`의 2026-11-24 배포 항목에 있다.
-- 프론트엔드: 저장소가 따로 있고 Vercel이 `www.byeolbolil.xyz`로 내보낸다. 새 화면이 떠 있다.
+- 프론트엔드: 저장소가 따로 있고 Vercel이 `www.byeolbolil.com`으로 내보낸다. 새 화면이 떠 있다.
   Vercel은 `master`를 운영으로, `dev`를 비롯한 나머지 브랜치를 미리보기로 빌드한다. 운영에 내보내려면 `dev`를
   `master`로 빨리 감기 push한다. 저장소를 조직으로 옮겨 다시 연결한 뒤로 이렇게 동작한다.
 

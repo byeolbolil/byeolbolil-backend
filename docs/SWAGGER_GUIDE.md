@@ -7,8 +7,8 @@ API 스펙은 SpringDoc이 컨트롤러와 DTO의 어노테이션에서 자동�
 
 | | 로컬 | 운영 |
 |---|---|---|
-| Swagger UI | `http://localhost:8080/swagger-ui/index.html` | `https://api.byeolbolil.xyz/swagger-ui/index.html` |
-| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | `https://api.byeolbolil.xyz/v3/api-docs` |
+| Swagger UI | `http://localhost:8080/swagger-ui/index.html` | `https://api.byeolbolil.com/swagger-ui/index.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | `https://api.byeolbolil.com/v3/api-docs` |
 
 운영 서버는 `dev` 브랜치에 push될 때마다 다시 배포되므로 운영 주소의 스펙이 곧 `dev`의 스펙이다.
 
@@ -19,7 +19,7 @@ Authorize에 넣는다.
 
 ```bash
 # 운영 서버에서
-curl -o openapi.json https://api.byeolbolil.xyz/v3/api-docs
+curl -o openapi.json https://api.byeolbolil.com/v3/api-docs
 
 # 로컬 서버를 띄워 둔 상태에서
 ./gradlew generateOpenApi

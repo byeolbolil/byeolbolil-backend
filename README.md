@@ -105,12 +105,12 @@ JWT_KEY=your_jwt_secret_key
 ## 📡 API 및 문서
 
 - **Base URL (로컬):** `http://localhost:8080`
-- **Base URL (운영):** `https://api.byeolbolil.xyz` (배포 환경에 따라 변경 가능)
+- **Base URL (운영):** `https://api.byeolbolil.com` (배포 환경에 따라 변경 가능)
 - **API Prefix:** `/api/v1`
 
 | 문서 | 설명 |
 |------|------|
-| [Swagger UI](https://api.byeolbolil.xyz/swagger-ui/index.html) | API 명세 및 Try-it-out |
+| [Swagger UI](https://api.byeolbolil.com/swagger-ui/index.html) | API 명세 및 Try-it-out |
 | [OpenAPI JSON](http://localhost:8080/v3/api-docs) | 스펙 다운로드·클라이언트 코드 생성용 |
 | [docs/API.md](docs/API.md) | API 기준 문서 (공통 응답, 인증, 오류, 엔드포인트별 필드) |
 | [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) | 4계층 아키텍처·코딩 가이드 |

@@ -13,10 +13,10 @@ iOS와 Android 앱을 별볼일 API에 붙일 때 네이티브 앱에서만 신�
 
 | | |
 |---|---|
-| 운영 | `https://api.byeolbolil.xyz` |
+| 운영 | `https://api.byeolbolil.com` |
 | 로컬 | `http://localhost:8080` (Android 에뮬레이터에서는 `http://10.0.2.2:8080`) |
-| OpenAPI JSON | `https://api.byeolbolil.xyz/v3/api-docs` |
-| Swagger UI | `https://api.byeolbolil.xyz/swagger-ui/index.html` |
+| OpenAPI JSON | `https://api.byeolbolil.com/v3/api-docs` |
+| Swagger UI | `https://api.byeolbolil.com/swagger-ui/index.html` |
 
 스테이징 서버는 없다. 운영 서버가 `dev` 브랜치를 따라가고, 배포하는 동안 1분쯤 응답이 끊긴다.
 운영 DB는 2026-11-24에 새로 만들어져 그 전의 계정은 없다.
