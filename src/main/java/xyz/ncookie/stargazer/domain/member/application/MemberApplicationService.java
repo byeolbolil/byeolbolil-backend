@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import xyz.ncookie.stargazer.domain.member.application.dto.ModifyMemberCommand;
 import xyz.ncookie.stargazer.domain.member.domain.MemberDomainService;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberInfoResponse;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberValidationResponse;
@@ -21,6 +22,14 @@ public class MemberApplicationService {
 	public MemberInfoResponse getMyInfo(Long memberId) {
 
 		Member member = memberDomainService.findById(memberId);
+		return MemberInfoResponse.from(member);
+	}
+
+	@Transactional
+	public MemberInfoResponse modifyMyInfo(Long memberId, ModifyMemberCommand command) {
+
+		Member member = memberDomainService.findById(memberId);
+		memberDomainService.changeNickname(member, command.nickname());
 		return MemberInfoResponse.from(member);
 	}
 

@@ -256,6 +256,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | PATCH | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 이름과 메모 수정 |
 | DELETE | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 삭제 |
 | GET | `/api/v1/members/me` | 필요 | 내 정보 |
+| PATCH | `/api/v1/members/me` | 필요 | 닉네임 수정 |
 | GET | `/api/v1/members/exists/email` | 없음 | 이메일 중복 검사 |
 | POST | `/api/v1/auth/register` | 없음 | 회원가입 |
 | POST | `/api/v1/auth/login` | 없음 | 로그인 |
@@ -1093,7 +1094,32 @@ GET /api/v1/members/me
 { "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다.", "data": { "memberId": 1, "nickname": "별지기" } }
 ```
 
-이메일은 응답에 없다. 닉네임 변경, 비밀번호 변경, 탈퇴 API는 아직 없다.
+이메일은 응답에 없다. 비밀번호 변경, 탈퇴 API는 아직 없다.
+
+### 닉네임 수정
+
+```
+PATCH /api/v1/members/me
+```
+
+액세스 토큰이 필요하다. 응답은 내 정보와 같은 모양이다.
+
+```json
+{ "nickname": "밤하늘 산책" }
+```
+
+- 앞뒤 공백을 떼고 2~16자다. 한글, 영문, 숫자, 밑줄과 낱말 사이의 공백 하나만 받는다. 저장되는 값은 앞뒤 공백을 뗀 것이다.
+- 자모로 풀어 온 한글(NFD)은 음절로 모아서 센다.
+- 다른 회원과 같은 닉네임도 받는다.
+- 규칙에 어긋나거나 `nickname`이 빠지면 400이고 `data` 없이 메시지만 온다. 닉네임은 바뀌지 않는다.
+
+```json
+{ "success": false, "status": 400, "message": "닉네임은 2~16자의 한글, 영문, 숫자, 밑줄로 쓰고 낱말 사이에는 공백을 하나만 둘 수 있습니다." }
+```
+
+규칙은 바꿀 때만 본다. 소셜 로그인으로 가입할 때 제공자가 준 이름은 규칙에 어긋나도(이모지 등) 그대로 닉네임이 되고,
+`GET /api/v1/members/me`도 그 값을 준다. 한 번 바꾼 닉네임은 다시 로그인해도 제공자의 이름으로 돌아가지 않는다.
+액세스 토큰에는 닉네임이 없으므로 바꾼 뒤 토큰을 다시 받을 필요가 없다.
 
 ### 이메일 중복 검사
 

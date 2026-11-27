@@ -34,9 +34,19 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 		String registrationId = userRequest.getClientRegistration().getRegistrationId();
 		AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
 
-		OAuth2UserInfo userInfo = OAuth2UserInfoFactory.of(provider, oAuth2User.getAttributes());
+		Member member = findOrRegister(provider, OAuth2UserInfoFactory.of(provider, oAuth2User.getAttributes()));
 
-		Member member = memberRepository
+		// SecurityContext에 저장할 객체 반환
+		return new MemberPrincipal(member.getId(), member.getRole(), oAuth2User.getAttributes());
+	}
+
+	/**
+	 * 제공자가 준 닉네임은 처음 가입할 때만 쓴다. 이미 가입한 회원은 그대로 돌려주므로
+	 * 회원이 바꾼 닉네임이 다시 로그인할 때 제공자의 이름으로 돌아가지 않는다.
+	 */
+	Member findOrRegister(AuthProvider provider, OAuth2UserInfo userInfo) {
+
+		return memberRepository
 			.findByAuthProviderAndProviderId(provider, userInfo.getProviderId())
 			.orElseGet(() ->
 				memberRepository.save(
@@ -47,8 +57,5 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 						userInfo.getProviderId()
 					)
 				));
-
-		// SecurityContext에 저장할 객체 반환
-		return new MemberPrincipal(member.getId(), member.getRole(), oAuth2User.getAttributes());
 	}
 }
