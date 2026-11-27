@@ -191,7 +191,8 @@ they appear as untracked local files.
   - After committing, tell the user in a few Korean lines what each commit changed.
   - GitHub issues are Claude's too (since 2026-11-24): comment, edit bodies and checklists, close, and create
     issues without asking, following the issue conventions below.
-  - `git push`, `gh pr create`, and anything else that publishes code to GitHub still need the user's go-ahead.
+  - `git push` needs no go-ahead since 2026-11-27: push `dev` when a unit of work is merged (a backend push to `dev`
+    deploys, see Infrastructure). `gh pr create` and other ways of publishing code still need the user's go-ahead.
   - Never commit secrets or the gitignored `infra/` files described above.
 - **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
   `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
