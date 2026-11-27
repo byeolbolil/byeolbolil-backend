@@ -2338,3 +2338,39 @@ OpenStreetMap에서 찾지 못했다는 이유였다. 써 본 사람은 둘 다 
 - 클라이언트: 회원가입과 닉네임 수정에 409가 생긴다. 회원가입의 409는 이메일과 닉네임 두 가지라서 닉네임 중복 검사
   (`GET /api/v1/members/exists/nickname`)를 먼저 부른다. 소셜 콜백의 `welcome=1`을 받으면 첫 닉네임 화면을 띄운다.
 - 서버: 테이블은 그대로다.
+
+## 2026-11-28 도메인을 byeolbolil.com으로 옮긴다
+
+### 정한 것
+
+- 서비스 주소를 `byeolbolil.xyz`에서 `byeolbolil.com`으로 옮긴다. 화면은 `www.byeolbolil.com`, API는
+  `api.byeolbolil.com`이다. `byeolbolil.com`으로 오면 Vercel이 `www`로 308 넘긴다.
+- 도메인은 Cloudflare Registrar에서 샀고 DNS도 Cloudflare에 있다. `api`는 OCI VM을, 나머지는 Vercel을 가리킨다.
+  레코드는 모두 프록시를 끈다(DNS only). Caddy와 Vercel이 각자 인증서를 받기 때문이다.
+- DNS는 이 도메인의 DNS 편집과 zone 읽기만 되는 API 토큰으로 바꾼다. 가비아 시절에는 운영자만 레코드를 바꿀 수 있었다.
+- `contact@byeolbolil.com`은 Cloudflare Email Routing으로 운영자 메일함에 넘긴다. 보내는 메일은 Resend가
+  `send.byeolbolil.com`으로 보낸다. 받는 MX는 루트에, 보내는 레코드는 하위 도메인에 두어 겹치지 않는다.
+- `.xyz`는 등록이 끝날 때까지 두고 새 주소로 넘긴다. 서버는 그동안 두 API 주소를 다 받고(`SITE_ADDRESS`에 둘 다),
+  CORS도 두 도메인을 다 받는다. `.xyz`를 정리할 때 함께 뺀다.
+
+### 이유
+
+- `.xyz`는 싼 등록비 때문에 스팸과 피싱에 많이 쓰여서 메일 필터와 보안 제품이 의심하는 경우가 있다. 링크를 나눠
+  퍼지는 입문자용 서비스라 첫인상이 중요하다.
+- 사용자와 밖에 퍼진 링크가 거의 없는 지금이 옮기는 비용이 가장 적다.
+- Cloudflare는 `.com`을 원가에 팔고, DNS를 API로 바꿀 수 있다.
+
+### 버린 대안
+
+- `byeolbolil.kr`: 국내 서비스 느낌은 좋지만 `.com`이 더 익숙하고 입력하기 쉽다. Cloudflare가 팔지 않는다.
+- 가비아에서 사기: 가능했지만 DNS를 API로 다룰 수 없다.
+- 로마자 표기법대로 `byeolbollil`: 저장소, 조직, 옛 도메인이 모두 `byeolbolil`이다.
+
+### 영향
+
+- 클라이언트: API 주소가 `https://api.byeolbolil.com`으로 바뀐다. 리프레시 토큰 쿠키는 API 호스트에 묶여 있어서
+  옮긴 뒤 한 번 다시 로그인해야 한다. 프론트와 API는 같은 등록 도메인 안에 있어야 쿠키가 브라우저에서 제3자 쿠키로
+  막히지 않으므로 함께 옮긴다.
+- 운영: GitHub의 `SITE_ADDRESS`, `SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`, `MET_NORWAY_USER_AGENT`를 바꿨다.
+  Google, Kakao, Naver 콘솔에 새 리디렉션 주소를, 카카오에 지도용 사이트 도메인을 더했다. 옛 값은 `.xyz`를 정리할 때 뺀다.
+- 개인정보처리방침이 필요해져서 프론트에 `/privacy`를 둔다. 회원 탈퇴가 없어서 그전까지는 메일로 요청받는다(#34).

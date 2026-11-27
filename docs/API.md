@@ -9,10 +9,10 @@
 
 | | |
 |---|---|
-| 운영 주소 | `https://api.byeolbolil.xyz` |
+| 운영 주소 | `https://api.byeolbolil.com` |
 | 로컬 주소 | `http://localhost:8080` |
-| OpenAPI JSON | [`https://api.byeolbolil.xyz/v3/api-docs`](https://api.byeolbolil.xyz/v3/api-docs) |
-| Swagger UI | [`https://api.byeolbolil.xyz/swagger-ui/index.html`](https://api.byeolbolil.xyz/swagger-ui/index.html) |
+| OpenAPI JSON | [`https://api.byeolbolil.com/v3/api-docs`](https://api.byeolbolil.com/v3/api-docs) |
+| Swagger UI | [`https://api.byeolbolil.com/swagger-ui/index.html`](https://api.byeolbolil.com/swagger-ui/index.html) |
 
 운영 서버는 `dev` 브랜치에 push될 때마다 다시 배포되므로 위 OpenAPI JSON은 늘 지금 돌고 있는 코드의 스펙이다.
 배포하는 동안 1분쯤 응답이 끊긴다.
@@ -44,8 +44,8 @@
 - 좌표의 쿼리 이름은 `lat`, `lon`이다. 응답과 북마크 본문에서는 `latitude`, `longitude`다.
 - 로그인이 필요한 API에는 `Authorization: Bearer {accessToken}` 헤더를 붙인다.
 - 호출 횟수 제한은 없다. 다만 서버가 메모리 1GB짜리 한 대라서, 화면 하나에 필요한 만큼만 부른다.
-- 웹 브라우저에서 직접 부를 수 있는 출처는 `https://www.byeolbolil.xyz`, `https://api.byeolbolil.xyz`,
-  `http://localhost:3000`, `http://localhost:8080`뿐이다. 네이티브 앱은 CORS와 상관없다.
+- 웹 브라우저에서 직접 부를 수 있는 출처는 `https://www.byeolbolil.com`, `https://api.byeolbolil.com`,
+  `http://localhost:3000`, `http://localhost:8080`이다. 옛 도메인 `byeolbolil.xyz`의 두 주소도 아직 받는다. 네이티브 앱은 CORS와 상관없다.
 
 ## 2. 공통 응답 형식
 
@@ -228,15 +228,15 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 
 카카오, 구글, 네이버 로그인은 브라우저 리다이렉트로만 동작한다.
 
-1. 브라우저를 `https://api.byeolbolil.xyz/oauth2/authorization/{kakao|google|naver}`로 보낸다.
-2. 로그인에 성공하면 서버가 `refresh_token` 쿠키를 심고 `https://www.byeolbolil.xyz/oauth/callback`으로 돌려보낸다.
+1. 브라우저를 `https://api.byeolbolil.com/oauth2/authorization/{kakao|google|naver}`로 보낸다.
+2. 로그인에 성공하면 서버가 `refresh_token` 쿠키를 심고 `https://www.byeolbolil.com/oauth/callback`으로 돌려보낸다.
    방금 가입한 사람이면 `?welcome=1`이 붙는다.
 3. 그 페이지에서 `POST /api/v1/auth/reissue`를 불러 액세스 토큰을 받는다.
 
 소셜 가입은 제공자가 준 이름을 닉네임으로 쓰지 않는다. `별지기4821`처럼 "별지기"와 숫자 네 자리로 된, 아무도 쓰지 않는
 기본 닉네임으로 가입한다. `welcome=1`을 받으면 첫 화면에서 닉네임을 정하게 한다(`PATCH /api/v1/members/me`).
 
-로그인에 실패하면 `https://www.byeolbolil.xyz/login?error=oauth`로 돌려보낸다.
+로그인에 실패하면 `https://www.byeolbolil.com/login?error=oauth`로 돌려보낸다.
 
 돌아가는 주소가 웹 프론트로 고정돼 있어 네이티브 앱에서는 쓸 수 없다. 앱에서 소셜 로그인을 하려면 서버에 앱용
 흐름을 추가해야 한다. 소셜 로그인으로만 가입한 회원은 비밀번호가 없어 이메일 로그인이 되지 않는다.
