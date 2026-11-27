@@ -16,7 +16,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import xyz.ncookie.stargazer.domain.recommend.engine.MoonCalendar;
 import xyz.ncookie.stargazer.domain.recommend.engine.NightAssessmentEngine;
+import xyz.ncookie.stargazer.domain.recommend.engine.SkyEphemeris;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
@@ -40,7 +42,8 @@ class NightRecommendationDomainServiceTest {
 	private static final LightCondition LIGHT = new LightCondition(3.2, 0.9, 0.18);
 
 	private final NightAssessmentEngine engine = mock(NightAssessmentEngine.class);
-	private final NightRecommendationDomainService service = new NightRecommendationDomainService(engine);
+	private final NightRecommendationDomainService service =
+		new NightRecommendationDomainService(engine, new MoonCalendar(new SkyEphemeris()));
 
 	@Test
 	@DisplayName("출발지를 모르면 이동 추정이 없다")

@@ -246,6 +246,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | GET | `/api/v1/recommendations/week` | 없음 | 한 위치의 이번 주 밤 |
 | GET | `/api/v1/recommendations/week/mine` | 선택 | 저장한 장소들의 이번 주 밤 |
 | GET | `/api/v1/recommendations/sky` | 없음 | 한 좌표의 하늘 밝기 |
+| GET | `/api/v1/recommendations/moon` | 없음 | 한 좌표의 6주 달력 |
 | GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
@@ -698,6 +699,52 @@ GET /api/v1/recommendations/sky?lat=37.62633&lon=128.73942
 
 자료가 있는 범위(한국 둘레) 밖이면 하늘 값이 모두 빠지고 좌표만 온다. 오류가 아니라 200이다. 직접 보이는 불빛
 (`LIGHTS_IN_VIEW`)은 명소마다 미리 계산한 값이라 이 API에는 없다.
+
+### 한 좌표의 달력
+
+```
+GET /api/v1/recommendations/moon?lat=37.5665&lon=126.978
+```
+
+오늘 밤부터 6주(42밤) 동안 밤마다 달 모양, 뜨고 지는 시각, 달 없이 어두운 시간을 준다. 예보를 보지 않고 해와 달의
+위치만 계산하므로 예보가 닿지 않는 날의 계획에 쓴다. 날씨와 하늘 밝기는 들어 있지 않다. `lat`, `lon`은 필수이고, 빠지거나
+범위를 벗어나면 400이다. 오늘 밤은 밤 추천과 같이 새벽 4시 전이면 전날이다.
+
+```json
+{
+  "latitude": 37.5665,
+  "longitude": 126.978,
+  "startDate": "2026-11-09",
+  "nights": [
+    {
+      "date": "2026-11-09",
+      "moon": {
+        "illuminatedFraction": 0.0,
+        "waxing": true,
+        "rise": "2026-11-10T08:01:00+09:00",
+        "set": "2026-11-09T16:59:00+09:00"
+      },
+      "dark": { "start": "2026-11-09T18:25:00+09:00", "end": "2026-11-10T06:07:00+09:00" },
+      "moonless": [{ "start": "2026-11-09T18:25:00+09:00", "end": "2026-11-10T06:07:00+09:00" }],
+      "moonlessMinutes": 702
+    }
+  ]
+}
+```
+
+위는 `data`의 내용이고, 실제로는 밤이 42개 온다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `startDate` | string | 첫 밤의 날짜 |
+| `nights[].date` | string | 밤이 시작하는 날짜 |
+| `nights[].moon` | object | 밤 추천의 `moon`과 같다 |
+| `nights[].dark` | object | 하늘이 어두운 구간(태양 고도 -12° 이하). 밤 추천에서 `dark`가 `true`인 칸과 같은 기준이다. 그만큼 어두워지지 않는 곳과 날이면 빠진다 |
+| `nights[].moonless` | array | `dark` 가운데 달이 지평선 아래에 있는 구간. 시간순이다. 달이 밤새 떠 있으면 빈 배열이고, 달이 밤중에 잠깐 떴다 지면 둘이다 |
+| `nights[].moonlessMinutes` | integer | `moonless` 구간 길이의 합(분). 응답에 적힌 시각으로 셈한 값이다 |
+
+`moonless`의 끝이 달이 뜨고 지는 때이면 `moon.rise`, `moon.set`과 같은 시각이 온다. 가는 초승달도 떠 있으면 있는
+것으로 센다. 달이 얼마나 밝은지는 `moon.illuminatedFraction`으로 따로 보여 준다.
 
 ## 7. 관측지
 

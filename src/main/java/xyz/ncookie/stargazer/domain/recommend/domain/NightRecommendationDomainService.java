@@ -11,10 +11,12 @@ import java.util.TreeMap;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import xyz.ncookie.stargazer.domain.recommend.engine.MoonCalendar;
 import xyz.ncookie.stargazer.domain.recommend.engine.NightAssessmentEngine;
 import xyz.ncookie.stargazer.domain.recommend.engine.TravelEstimator;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
+import xyz.ncookie.stargazer.domain.recommend.model.MoonNight;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
@@ -35,6 +37,12 @@ public class NightRecommendationDomainService {
 	static final int TRAVEL_LIMIT_SLACK_DIVISOR = 6;
 
 	private final NightAssessmentEngine nightAssessmentEngine;
+	private final MoonCalendar moonCalendar;
+
+	/** from부터 days 밤 동안의 달. 날씨를 보지 않는다 */
+	public List<MoonNight> moonNights(double latitude, double longitude, LocalDate from, int days, ZoneId zone) {
+		return moonCalendar.nights(latitude, longitude, from, days, zone);
+	}
 
 	/**
 	 * @param originLatitude  출발지 위도. 모르면 null
