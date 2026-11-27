@@ -2,6 +2,8 @@ package xyz.ncookie.stargazer.domain.member.controller;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +18,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.member.application.MemberApplicationService;
+import xyz.ncookie.stargazer.domain.member.application.dto.ModifyMemberCommand;
+import xyz.ncookie.stargazer.domain.member.dto.request.ModifyMemberRequest;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberInfoResponse;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberValidationResponse;
 import xyz.ncookie.stargazer.global.security.principal.MemberPrincipal;
@@ -51,6 +55,37 @@ public class MemberController {
 	) {
 
 		return memberApplicationService.getMyInfo(principal.getMemberId());
+	}
+
+	@Operation(
+		summary = "내 정보 수정",
+		description = "닉네임을 바꿉니다. 앞뒤 공백을 떼고 2~16자, 한글·영문·숫자·밑줄과 낱말 사이의 공백 하나만 쓸 수 있습니다. "
+			+ "다른 회원과 같은 닉네임도 됩니다. 응답은 내 정보 조회와 같습니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(
+			responseCode = "200",
+			description = "수정 성공",
+			content = @Content(schema = @Schema(implementation = MemberInfoResponse.class))
+		),
+		@ApiResponse(
+			responseCode = "400",
+			description = "닉네임이 규칙에 어긋남"
+		),
+		@ApiResponse(
+			responseCode = "401",
+			description = "인증 실패 (토큰이 유효하지 않거나 만료됨)"
+		)
+	})
+	@SecurityRequirement(name = "bearer-jwt")
+	@PatchMapping("/me")
+	public MemberInfoResponse modifyMyInfo(
+		@Parameter(description = "인증된 사용자 정보 (JWT에서 자동 추출)", required = true, hidden = true)
+		@AuthenticationPrincipal MemberPrincipal principal,
+		@RequestBody ModifyMemberRequest request
+	) {
+
+		return memberApplicationService.modifyMyInfo(principal.getMemberId(), ModifyMemberCommand.from(request));
 	}
 
 	@Operation(

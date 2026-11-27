@@ -58,6 +58,10 @@ public class Member {
 			.build();
 	}
 
+	public void changeNickname(String nickname) {
+		this.nickname = nickname;
+	}
+
 	public static Member local(String email, String password, String nickname) {
 		return Member.builder()
 			.email(email)
