@@ -1,6 +1,8 @@
 package xyz.ncookie.stargazer.domain.member.domain;
 
+import java.security.SecureRandom;
 import java.text.Normalizer;
+import java.util.random.RandomGenerator;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
+import xyz.ncookie.stargazer.domain.member.entity.Role;
 import xyz.ncookie.stargazer.domain.member.exception.MemberErrorCode;
 import xyz.ncookie.stargazer.domain.member.exception.MemberException;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
@@ -20,11 +23,16 @@ public class MemberDomainService {
 	static final int NICKNAME_MIN_LENGTH = 2;
 	static final int NICKNAME_MAX_LENGTH = 16;
 
-	// 한글 음절과 자모, 영문, 숫자, 밑줄로 된 낱말을 공백 하나로 잇는다.
-	// "Gildong Hong"처럼 제공자가 준 이름이 그대로 들어오도록 공백을 받는다(docs/decisions.md 2026-11-27).
+	// 한글 음절과 자모, 영문, 숫자, 밑줄로 된 낱말을 공백 하나로 잇는다(docs/decisions.md 2026-11-27 "닉네임 수정")
 	private static final Pattern NICKNAME = Pattern.compile("[가-힣ㄱ-ㅣA-Za-z0-9_]+( [가-힣ㄱ-ㅣA-Za-z0-9_]+)*");
 
+	// 소셜 가입과 관리자 초기화 때 주는 기본 닉네임. 네 자리로 몇 번 뽑아 보고, 모두 겹치면 자리를 늘린다
+	static final String DEFAULT_NICKNAME_PREFIX = "별지기";
+	private static final int[] DEFAULT_NICKNAME_DIGITS = {4, 4, 4, 4, 4, 6, 6, 6, 8, 8};
+
 	private final MemberRepository memberRepository;
+
+	private final RandomGenerator random = new SecureRandom();
 
 	public Member findById(Long memberId) {
 
@@ -37,11 +45,59 @@ public class MemberDomainService {
 	}
 
 	/**
-	 * 규칙은 바꿀 때만 본다. 가입할 때 제공자가 준 닉네임은 규칙에 어긋나도 그대로 둔다.
-	 * 다른 회원과 같은 닉네임도 받는다.
+	 * 회원이 정하는 닉네임을 검사하고 저장할 값을 돌려준다. 규칙에 어긋나면 400, 다른 회원이 쓰고 있으면 409다.
+	 * 가입할 때는 {@code memberId}가 null이고, 바꿀 때는 자기 닉네임과는 겹쳐도 된다(대소문자만 바꾸는 경우).
+	 */
+	public String validateNewNickname(String nickname, Long memberId) {
+
+		String normalized = normalizeNickname(nickname);
+		if (isTaken(normalized, memberId)) {
+			throw new MemberException(MemberErrorCode.NICKNAME_DUPLICATED);
+		}
+		return normalized;
+	}
+
+	/** 규칙에 어긋나면 400을 던지고, 맞으면 다른 회원이 쓰고 있지 않은지 돌려준다 */
+	public boolean isNicknameAvailable(String nickname, Long memberId) {
+		return !isTaken(normalizeNickname(nickname), memberId);
+	}
+
+	/**
+	 * 규칙은 바꿀 때만 본다. 가입할 때 받은 닉네임은 규칙에 어긋나도 그대로 둔다.
 	 */
 	public void changeNickname(Member member, String nickname) {
-		member.changeNickname(normalizeNickname(nickname));
+		member.changeNickname(validateNewNickname(nickname, member.getId()));
+	}
+
+	/** 부적절한 닉네임을 기본 닉네임으로 되돌린다 */
+	public void resetNickname(Member member) {
+		member.changeNickname(generateDefaultNickname());
+	}
+
+	/** 아직 아무도 쓰지 않는 "별지기1234" 꼴의 닉네임 */
+	public String generateDefaultNickname() {
+
+		for (int digits : DEFAULT_NICKNAME_DIGITS) {
+			int bound = (int)Math.pow(10, digits);
+			String candidate = DEFAULT_NICKNAME_PREFIX + String.format("%0" + digits + "d", random.nextInt(bound));
+			if (!memberRepository.existsByNickname(candidate)) {
+				return candidate;
+			}
+		}
+		throw new IllegalStateException("기본 닉네임을 정하지 못했습니다");
+	}
+
+	public void validateAdmin(Member member) {
+
+		if (member.getRole() != Role.ADMIN) {
+			throw new MemberException(MemberErrorCode.ADMIN_ONLY);
+		}
+	}
+
+	private boolean isTaken(String nickname, Long memberId) {
+		return memberId == null
+			? memberRepository.existsByNickname(nickname)
+			: memberRepository.existsByNicknameAndIdNot(nickname, memberId);
 	}
 
 	/**

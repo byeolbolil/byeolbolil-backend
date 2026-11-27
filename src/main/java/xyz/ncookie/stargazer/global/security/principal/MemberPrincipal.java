@@ -25,11 +25,11 @@ public class MemberPrincipal implements UserDetails, OAuth2User {
 	private final Long memberId;
 	private final Role role;
 	private final Map<String, Object> attributes;
+	/** 소셜 로그인으로 방금 가입했는지. 프론트가 첫 닉네임 화면을 띄우는 데 쓴다 */
+	private final boolean newMember;
 
 	public MemberPrincipal(Long memberId, Role role) {
-		this.memberId = memberId;
-		this.role = role;
-		this.attributes = Collections.emptyMap();
+		this(memberId, role, Collections.emptyMap(), false);
 	}
 
 	// OAuth2

@@ -48,6 +48,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		ResponseCookie rtCookie = cookieUtil.createRefreshTokenCookie(refreshToken);
 		response.addHeader(HttpHeaders.SET_COOKIE, rtCookie.toString());
 
-		response.sendRedirect(webClientBaseUrl + "/oauth/callback");
+		// 방금 가입한 사람이면 프론트가 첫 닉네임 화면을 띄우도록 알린다
+		String callback = webClientBaseUrl + "/oauth/callback" + (principal.isNewMember() ? "?welcome=1" : "");
+		response.sendRedirect(callback);
 	}
 }

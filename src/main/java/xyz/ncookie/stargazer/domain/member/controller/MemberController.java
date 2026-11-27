@@ -89,6 +89,33 @@ public class MemberController {
 	}
 
 	@Operation(
+		summary = "닉네임 중복 검사",
+		description = "가입하거나 닉네임을 바꾸기 전에 쓸 수 있는 닉네임인지 확인합니다. 인증 없이 사용 가능합니다. "
+			+ "로그인한 채로 부르면 자기 닉네임은 쓸 수 있다고 답합니다. 대소문자는 가리지 않습니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(
+			responseCode = "200",
+			description = "검증 완료 (validated: true면 쓸 수 있음)",
+			content = @Content(schema = @Schema(implementation = MemberValidationResponse.class))
+		),
+		@ApiResponse(
+			responseCode = "400",
+			description = "닉네임이 규칙에 어긋남"
+		)
+	})
+	@GetMapping("/exists/nickname")
+	public MemberValidationResponse checkNickname(
+		@Parameter(hidden = true)
+		@AuthenticationPrincipal MemberPrincipal principal,
+		@Parameter(description = "검사할 닉네임", example = "별지기", required = true)
+		@RequestParam(value = "nickname") String nickname
+	) {
+
+		return memberApplicationService.checkNickname(nickname, principal == null ? null : principal.getMemberId());
+	}
+
+	@Operation(
 		summary = "이메일 중복 검증",
 		description = "회원가입 시 이메일 중복 여부를 확인합니다. 인증 없이 사용 가능합니다."
 	)

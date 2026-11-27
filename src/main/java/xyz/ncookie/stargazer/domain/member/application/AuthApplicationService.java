@@ -72,12 +72,13 @@ public class AuthApplicationService {
 			throw new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED, findMember.getAuthProvider().getDesc());
 		}
 
+		String nickname = memberDomainService.validateNewNickname(request.nickname(), null);
 		String encodedPassword = authDomainService.encodePassword(request.password());
 		Member createdMember = memberRepository.save(
 			Member.local(
 				request.email(),
 				encodedPassword,
-				request.nickname()
+				nickname
 			)
 		);
 
