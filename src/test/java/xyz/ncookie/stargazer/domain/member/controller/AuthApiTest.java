@@ -90,6 +90,32 @@ class AuthApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
+		@DisplayName("다른 회원이 쓰는 닉네임이면 대소문자가 달라도 409다")
+		void duplicateNickname() {
+			register(EMAIL, PASSWORD, "Stargazer");
+
+			assertThat(register("other@example.com", PASSWORD, "stargazer")).hasStatus(409).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 409,
+				  "message": "이미 쓰는 닉네임입니다."
+				}
+				""");
+		}
+
+		@Test
+		@DisplayName("닉네임 수정과 같은 규칙을 본다. 어긋나면 400이고, 앞뒤 공백은 떼고 저장한다")
+		void nicknameRule() {
+			assertThat(register(EMAIL, PASSWORD, "별지기⭐")).hasStatus(400).bodyJson()
+				.extractingPath("$.message")
+				.isEqualTo("닉네임은 2~16자의 한글, 영문, 숫자, 밑줄로 쓰고 낱말 사이에는 공백을 하나만 둘 수 있습니다.");
+
+			assertThat(register(EMAIL, PASSWORD, "  밤하늘 산책 ")).hasStatusOk();
+			assertThat(memberRepository.findByEmail(EMAIL)).get()
+				.extracting(Member::getNickname).isEqualTo("밤하늘 산책");
+		}
+
+		@Test
 		@DisplayName("비밀번호 규칙에 맞지 않으면 400이고 data에 필드별 사유가 담긴다")
 		void weakPassword() {
 			assertThat(register(EMAIL, "short", NICKNAME)).hasStatus(400).bodyJson().isStrictlyEqualTo("""

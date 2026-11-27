@@ -33,6 +33,24 @@ public class MemberApplicationService {
 		return MemberInfoResponse.from(member);
 	}
 
+	/** 로그인한 채로 물으면 자기 닉네임은 쓸 수 있다고 답한다 */
+	@Transactional(readOnly = true)
+	public MemberValidationResponse checkNickname(String nickname, Long memberId) {
+
+		return new MemberValidationResponse(memberDomainService.isNicknameAvailable(nickname, memberId));
+	}
+
+	/** 부적절한 닉네임을 관리자가 기본 닉네임으로 되돌린다 */
+	@Transactional
+	public MemberInfoResponse resetNickname(Long adminId, Long targetId) {
+
+		memberDomainService.validateAdmin(memberDomainService.findById(adminId));
+		Member target = memberDomainService.findById(targetId);
+		memberDomainService.resetNickname(target);
+		log.info("관리자 {}가 회원 {}의 닉네임을 기본 닉네임으로 되돌렸다", adminId, targetId);
+		return MemberInfoResponse.from(target);
+	}
+
 	@Transactional(readOnly = true)
 	public MemberValidationResponse validateEmailDuplicated(String email) {
 
