@@ -1,5 +1,6 @@
 package xyz.ncookie.stargazer.domain.member.application;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,13 +75,14 @@ public class AuthApplicationService {
 
 		String nickname = memberDomainService.validateNewNickname(request.nickname(), null);
 		String encodedPassword = authDomainService.encodePassword(request.password());
-		Member createdMember = memberRepository.save(
-			Member.local(
-				request.email(),
-				encodedPassword,
-				nickname
-			)
-		);
+		Member createdMember;
+		try {
+			createdMember = memberRepository.saveAndFlush(Member.local(request.email(), encodedPassword, nickname));
+		} catch (DataIntegrityViolationException e) {
+			// 검사를 지난 뒤 같은 순간에 다른 가입이 같은 이메일이나 닉네임을 가져간 경우
+			RuntimeException conflict = memberDomainService.nicknameConflictOr(e);
+			throw conflict instanceof MemberException ? conflict : new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED);
+		}
 
 		return issueTokens(createdMember.getId());
 	}

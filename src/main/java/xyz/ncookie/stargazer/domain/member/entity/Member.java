@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,8 +17,12 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "member")
+// 닉네임은 겹치지 않는다. 앱이 저장 전에 검사하고, 같은 순간의 두 저장은 이 제약이 막는다.
+// 비교는 컬럼의 콜레이션(utf8mb4_unicode_ci)을 따라 대소문자를 가리지 않는다(docs/decisions.md 2026-11-28)
+@Table(name = "member", uniqueConstraints = @UniqueConstraint(name = Member.NICKNAME_UNIQUE, columnNames = "nickname"))
 public class Member {
+
+	public static final String NICKNAME_UNIQUE = "uk_member_nickname";
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

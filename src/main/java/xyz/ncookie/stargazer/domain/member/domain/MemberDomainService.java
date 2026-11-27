@@ -5,6 +5,8 @@ import java.text.Normalizer;
 import java.util.random.RandomGenerator;
 import java.util.regex.Pattern;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -67,6 +69,27 @@ public class MemberDomainService {
 	 */
 	public void changeNickname(Member member, String nickname) {
 		member.changeNickname(validateNewNickname(nickname, member.getId()));
+		try {
+			memberRepository.flush();
+		} catch (DataIntegrityViolationException e) {
+			throw nicknameConflictOr(e);
+		}
+	}
+
+	/**
+	 * 검사를 지나고도 같은 순간에 다른 요청이 같은 닉네임을 저장해 DB 유일 제약에 걸렸으면 409로 바꾼다.
+	 * 다른 제약(이메일 등)이면 그대로 돌려준다.
+	 */
+	public RuntimeException nicknameConflictOr(DataIntegrityViolationException e) {
+
+		for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+			if (cause instanceof ConstraintViolationException violation
+				&& violation.getConstraintName() != null
+				&& violation.getConstraintName().toLowerCase().contains(Member.NICKNAME_UNIQUE)) {
+				return new MemberException(MemberErrorCode.NICKNAME_DUPLICATED);
+			}
+		}
+		return e;
 	}
 
 	/** 부적절한 닉네임을 기본 닉네임으로 되돌린다 */
