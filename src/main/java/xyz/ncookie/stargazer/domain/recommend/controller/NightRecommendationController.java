@@ -16,12 +16,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.recommend.application.NightRecommendationApplicationService;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetMoonCalendarCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
+import xyz.ncookie.stargazer.domain.recommend.dto.request.GetMoonCalendarRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetNightRecommendationRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetSkyRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetWeekOutlookRequest;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.MoonCalendarResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
@@ -97,6 +100,16 @@ public class NightRecommendationController {
 	@GetMapping("/sky")
 	public SkyResponse getSky(@Valid @ModelAttribute GetSkyRequest request) {
 		return nightRecommendationApplicationService.skyAt(GetSkyCommand.from(request));
+	}
+
+	@Operation(
+		summary = "한 좌표의 달력",
+		description = "lat, lon에서 본 오늘 밤부터 6주의 달 모양, 뜨고 지는 시각, 달 없이 어두운 시간을 돌려준다. "
+			+ "예보를 보지 않아 날씨가 닿지 않는 날도 있다. 인증 없이 쓸 수 있다."
+	)
+	@GetMapping("/moon")
+	public MoonCalendarResponse getMoon(@Valid @ModelAttribute GetMoonCalendarRequest request) {
+		return nightRecommendationApplicationService.moonCalendarAt(GetMoonCalendarCommand.from(request));
 	}
 
 	@Operation(

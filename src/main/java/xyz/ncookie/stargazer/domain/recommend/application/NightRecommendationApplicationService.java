@@ -19,10 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.bookmark.domain.BookmarkDomainService;
 import xyz.ncookie.stargazer.domain.bookmark.entity.Bookmark;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetMoonCalendarCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.domain.NightRecommendationDomainService;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.MoonCalendarResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
@@ -32,6 +34,7 @@ import xyz.ncookie.stargazer.domain.recommend.exception.RecommendException;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.ClosedPeriod;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
+import xyz.ncookie.stargazer.domain.recommend.model.MoonNight;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
@@ -64,6 +67,9 @@ public class NightRecommendationApplicationService {
 
 	// 오늘 밤을 포함해 7일. 예보를 168시간 받으므로 그 안에서만 날짜를 고를 수 있다.
 	private static final int SELECTABLE_DAYS = 7;
+
+	// 정책: 달력은 오늘 밤부터 6주. 삭망월(약 29.5일)보다 길어서 어느 날 열어도 다음 그믐과 그 앞뒤 밤이 들어간다.
+	private static final int MOON_CALENDAR_DAYS = 42;
 
 	private final NightRecommendationDomainService nightRecommendationDomainService;
 	private final WeatherDomainService weatherDomainService;
@@ -195,6 +201,15 @@ public class NightRecommendationApplicationService {
 	public SkyResponse skyAt(GetSkyCommand command) {
 		CandidatePlace place = new CandidatePlace(null, null, null, null, null, command.latitude(), command.longitude());
 		return SkyResponse.of(command.latitude(), command.longitude(), lightOf(place));
+	}
+
+	/**
+	 * 한 좌표에서 본 앞으로 6주의 달. 예보를 보지 않으므로 날씨가 닿지 않는 날까지 계획할 수 있다.
+	 */
+	public MoonCalendarResponse moonCalendarAt(GetMoonCalendarCommand command) {
+		List<MoonNight> nights = nightRecommendationDomainService.moonNights(
+			command.latitude(), command.longitude(), tonight(), MOON_CALENDAR_DAYS, ZONE);
+		return MoonCalendarResponse.of(command.latitude(), command.longitude(), nights, ZONE);
 	}
 
 	/**

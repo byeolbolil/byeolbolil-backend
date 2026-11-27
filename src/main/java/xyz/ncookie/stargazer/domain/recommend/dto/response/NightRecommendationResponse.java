@@ -294,7 +294,7 @@ public record NightRecommendationResponse(
 		}
 	}
 
-	private static String format(Instant instant, ZoneId zone) {
+	static String format(Instant instant, ZoneId zone) {
 		return TIME_FORMAT.format(instant.atZone(zone).toOffsetDateTime());
 	}
 

@@ -21,7 +21,6 @@ import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
-import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 import xyz.ncookie.stargazer.domain.recommend.model.NightNote;
 import xyz.ncookie.stargazer.domain.recommend.model.NightPattern;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
@@ -197,22 +196,7 @@ public class NightAssessmentEngine {
 
 		return Optional.of(new NightAssessment(
 			date, hours, windows, best, level, pattern(hours, windows), notes, quality,
-			moonOf(latitude, longitude, date, zone)));
-	}
-
-	/**
-	 * 그 밤의 달. 모양은 자정의 값으로 정한다. 하룻밤 사이에 눈에 띄게 달라지지 않기 때문이다.
-	 * 뜨고 지는 시각은 밤 시간 칸과 같은 범위(그날 정오부터 다음 날 정오)에서 찾는다.
-	 */
-	private NightMoon moonOf(double latitude, double longitude, LocalDate date, ZoneId zone) {
-		Instant noon = ZonedDateTime.of(date, LocalTime.NOON, zone).toInstant();
-		Instant midnight = noon.plus(12, ChronoUnit.HOURS);
-		return new NightMoon(
-			skyEphemeris.moonIlluminatedFraction(midnight),
-			skyEphemeris.isMoonWaxing(midnight),
-			skyEphemeris.moonrise(latitude, longitude, noon).orElse(null),
-			skyEphemeris.moonset(latitude, longitude, noon).orElse(null)
-		);
+			skyEphemeris.nightMoon(latitude, longitude, date, zone)));
 	}
 
 	/**

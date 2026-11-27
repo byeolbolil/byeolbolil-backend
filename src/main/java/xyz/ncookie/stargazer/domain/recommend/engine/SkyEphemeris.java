@@ -1,14 +1,23 @@
 package xyz.ncookie.stargazer.domain.recommend.engine;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import org.shredzone.commons.suncalc.MoonIllumination;
 import org.shredzone.commons.suncalc.MoonPosition;
 import org.shredzone.commons.suncalc.MoonTimes;
 import org.shredzone.commons.suncalc.SunPosition;
+import org.shredzone.commons.suncalc.SunTimes;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
+
+import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
 
 /**
  * 한 시각의 해와 달의 위치. commons-suncalc 계산을 감싼다.
@@ -59,5 +68,63 @@ public class SkyEphemeris {
 
 	private static MoonTimes moonTimes(double latitude, double longitude, Instant from) {
 		return MoonTimes.compute().at(latitude, longitude).on(from).oneDay().execute();
+	}
+
+	/**
+	 * 그 밤의 달. 모양은 자정의 값으로 정한다. 하룻밤 사이에 눈에 띄게 달라지지 않기 때문이다.
+	 * 뜨고 지는 시각은 밤 시간 칸과 같은 범위(그날 정오부터 다음 날 정오)에서 찾는다.
+	 */
+	public NightMoon nightMoon(double latitude, double longitude, LocalDate date, ZoneId zone) {
+		Instant noon = ZonedDateTime.of(date, LocalTime.NOON, zone).toInstant();
+		Instant midnight = noon.plus(12, ChronoUnit.HOURS);
+		return new NightMoon(
+			moonIlluminatedFraction(midnight),
+			isMoonWaxing(midnight),
+			moonrise(latitude, longitude, noon).orElse(null),
+			moonset(latitude, longitude, noon).orElse(null)
+		);
+	}
+
+	/**
+	 * from부터 span 동안 태양 중심의 기하학적 고도가 altitude를 위아래로 지나는 시각.
+	 * 박명의 경계에는 대기 굴절을 넣지 않는다(USNO, https://aa.usno.navy.mil/faq/RST_defs).
+	 */
+	public Crossings sunCrossings(double latitude, double longitude, Instant from, Duration span, double altitude) {
+		SunTimes times = SunTimes.compute().twilight(altitude).at(latitude, longitude).on(from).limit(span).execute();
+		return new Crossings(instantOf(times.getRise()), instantOf(times.getSet()), times.isAlwaysUp(), times.isAlwaysDown());
+	}
+
+	/**
+	 * from부터 span 동안 달이 뜨고 지는 시각. 뜨고 지는 기준은 moonrise, moonset과 같다.
+	 */
+	public Crossings moonCrossings(double latitude, double longitude, Instant from, Duration span) {
+		MoonTimes times = MoonTimes.compute().at(latitude, longitude).on(from).limit(span).execute();
+		return new Crossings(instantOf(times.getRise()), instantOf(times.getSet()), times.isAlwaysUp(), times.isAlwaysDown());
+	}
+
+	private static Instant instantOf(ZonedDateTime time) {
+		return (time != null) ? time.toInstant() : null;
+	}
+
+	/**
+	 * 한 구간 안에서 처음 떠오르고 처음 지는 시각.
+	 *
+	 * @param rise       처음 기준선 위로 올라오는 시각. 구간 안에 없으면 null
+	 * @param set        처음 기준선 아래로 내려가는 시각. 구간 안에 없으면 null
+	 * @param alwaysUp   구간 내내 기준선 위에 있는지
+	 * @param alwaysDown 구간 내내 기준선 아래에 있는지
+	 */
+	public record Crossings(@Nullable Instant rise, @Nullable Instant set, boolean alwaysUp, boolean alwaysDown) {
+
+		/** 구간이 시작할 때 기준선 아래에 있었는지. 먼저 일어나는 일이 떠오르는 것이면 그 전까지는 아래에 있었다 */
+		public boolean downAtStart() {
+			if (alwaysDown) {
+				return true;
+			}
+			if (alwaysUp || rise == null) {
+				return false;
+			}
+			return set == null || rise.isBefore(set);
+		}
 	}
 }

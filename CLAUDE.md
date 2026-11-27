@@ -125,7 +125,8 @@ Cross-domain communication always goes through Application-layer orchestration â
   `/nights/{date}` (public; bookmarks only when logged in). The same service answers "when is this place good":
   `/week?lat&lon` evaluates seven nights for any coordinate and `/week/mine` does it for every bookmark, each from
   one forecast per place and without travel time. `/sky?lat&lon` returns only the sky brightness of a point (no
-  forecast) for the map's tap-anywhere card. Thresholds cite `docs/SCORING.md` at the point of use.
+  forecast) for the map's tap-anywhere card. `/moon?lat&lon` returns six weeks of moon phase, rise/set and moonless dark
+  hours for a point (no forecast, `engine/MoonCalendar`) for the header's moon calendar sheet. Thresholds cite `docs/SCORING.md` at the point of use.
   Light pollution enters as a `LightCondition` of three values, none of them a Bortle class: sky brightness (ALR, the
   all-sky artificial brightness as a multiple of the natural sky, Duriscoe et al. 2018) and the mean radiance within
   1 km, both looked up by coordinate from `skylight/provider/SkyBrightnessGrid` (through `SkyLightDomainService`)
