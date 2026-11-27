@@ -3,6 +3,7 @@ package xyz.ncookie.stargazer.domain.member.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.Cookie;
 import xyz.ncookie.stargazer.domain.bookmark.repository.BookmarkRepository;
 import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
+import xyz.ncookie.stargazer.domain.member.repository.EmailCodeRedisRepository;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 
@@ -32,6 +34,7 @@ class AuthApiTest extends IntegrationTestSupport {
 	private static final String EMAIL = "stargazer@example.com";
 	private static final String PASSWORD = "starry-night1!";
 	private static final String NICKNAME = "별지기";
+	private static final String EMAIL_CODE = "482913";
 
 	@Autowired
 	private MemberRepository memberRepository;
@@ -39,10 +42,87 @@ class AuthApiTest extends IntegrationTestSupport {
 	@Autowired
 	private BookmarkRepository bookmarkRepository;
 
+	@Autowired
+	private EmailCodeRedisRepository emailCodeRedisRepository;
+
 	@BeforeEach
 	void setUp() {
 		bookmarkRepository.deleteAllInBatch();
 		memberRepository.deleteAllInBatch();
+	}
+
+	@Nested
+	@DisplayName("POST /api/v1/auth/email-code")
+	class EmailCode {
+
+		@Test
+		@DisplayName("여섯 자리 코드를 만들어 Resend로 보낸다. 받은 코드로 가입하면 된다")
+		void sendsCode() {
+			externalApi.resendAccepts();
+
+			assertThat(sendCode(EMAIL)).hasStatusOk().bodyJson().isStrictlyEqualTo("""
+				{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다." }
+				""");
+			externalApi.verifyAllCalled();
+			String code = emailCodeRedisRepository.findCode(EMAIL);
+			assertThat(code).matches("\\d{6}");
+
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, code)).hasStatusOk();
+		}
+
+		@Test
+		@DisplayName("대소문자가 달라도 같은 이메일로 본다")
+		void normalizesEmail() {
+			externalApi.resendAccepts();
+			sendCode("Stargazer@Example.com");
+
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, emailCodeRedisRepository.findCode(EMAIL))).hasStatusOk();
+		}
+
+		@Test
+		@DisplayName("1분 안에 다시 받으면 429다")
+		void tooSoon() {
+			externalApi.resendAccepts();
+			sendCode(EMAIL);
+
+			assertThat(sendCode(EMAIL)).hasStatus(429).bodyJson()
+				.extractingPath("$.message").isEqualTo("인증 코드는 1분에 한 번 받을 수 있습니다.");
+		}
+
+		@Test
+		@DisplayName("이미 가입된 이메일이면 보내지 않고 409다")
+		void alreadyRegistered() {
+			register(EMAIL, PASSWORD, NICKNAME);
+
+			assertThat(sendCode(EMAIL)).hasStatus(409).bodyJson()
+				.extractingPath("$.message").isEqualTo("이미 사용 중인 이메일입니다.");
+		}
+
+		@Test
+		@DisplayName("메일을 보내지 못하면 503이고, 코드를 지워 바로 다시 받을 수 있다")
+		void mailFails() {
+			externalApi.resendFails();
+
+			assertThat(sendCode(EMAIL)).hasStatus(503).bodyJson()
+				.extractingPath("$.message").isEqualTo("인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+			assertThat(emailCodeRedisRepository.findCode(EMAIL)).isNull();
+
+			externalApi.reset();
+			externalApi.resendAccepts();
+			assertThat(sendCode(EMAIL)).hasStatusOk();
+		}
+
+		@Test
+		@DisplayName("이메일 형식이 아니면 400이다")
+		void invalidEmail() {
+			assertThat(sendCode("not-an-email")).hasStatus(400);
+		}
+
+		private MvcTestResult sendCode(String email) {
+			return postJson("/api/v1/auth/email-code", """
+				{ "email": "%s" }
+				""".formatted(email));
+		}
 	}
 
 	@Nested
@@ -101,6 +181,44 @@ class AuthApiTest extends IntegrationTestSupport {
 				  "message": "이미 쓰는 닉네임입니다."
 				}
 				""");
+		}
+
+		@Test
+		@DisplayName("인증 코드를 받지 않았거나 시간이 지났으면 400이다")
+		void withoutCode() {
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, EMAIL_CODE)).hasStatus(400).bodyJson().isStrictlyEqualTo("""
+				{
+				  "success": false,
+				  "status": 400,
+				  "message": "인증 코드를 다시 받아 주세요."
+				}
+				""");
+			assertThat(memberRepository.count()).isZero();
+		}
+
+		@Test
+		@DisplayName("코드가 틀리면 400이고, 다섯 번 틀리면 코드가 지워져 맞는 코드도 통하지 않는다")
+		void wrongCode() {
+			emailCodeRedisRepository.saveCode(EMAIL, EMAIL_CODE, Duration.ofMinutes(10));
+
+			for (int i = 1; i < 5; i++) {
+				assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, "000000")).hasStatus(400).bodyJson()
+					.extractingPath("$.message").isEqualTo("인증 코드가 맞지 않습니다.");
+			}
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, "000000")).hasStatus(400).bodyJson()
+				.extractingPath("$.message").isEqualTo("인증 코드를 다시 받아 주세요.");
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, EMAIL_CODE)).hasStatus(400);
+		}
+
+		@Test
+		@DisplayName("코드는 한 번만 쓴다. 닉네임이 겹쳐 실패하면 코드는 남아 고쳐서 다시 보낼 수 있다")
+		void codeUsedOnce() {
+			memberRepository.save(Member.local("other@example.com", "pw", "은하수"));
+			emailCodeRedisRepository.saveCode(EMAIL, EMAIL_CODE, Duration.ofMinutes(10));
+
+			assertThat(registerWithCode(EMAIL, PASSWORD, "은하수", EMAIL_CODE)).hasStatus(409);
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, EMAIL_CODE)).hasStatusOk();
+			assertThat(emailCodeRedisRepository.findCode(EMAIL)).isNull();
 		}
 
 		@Test
@@ -321,10 +439,16 @@ class AuthApiTest extends IntegrationTestSupport {
 
 	// ---- 준비 ----
 
+	/** 인증 메일을 받은 것으로 치고 그 코드로 가입한다. 코드를 받는 흐름은 EmailCode에서 따로 본다 */
 	private MvcTestResult register(String email, String password, String nickname) {
+		emailCodeRedisRepository.saveCode(email.strip().toLowerCase(), EMAIL_CODE, Duration.ofMinutes(10));
+		return registerWithCode(email, password, nickname, EMAIL_CODE);
+	}
+
+	private MvcTestResult registerWithCode(String email, String password, String nickname, String code) {
 		return postJson("/api/v1/auth/register", """
-			{ "email": "%s", "password": "%s", "nickname": "%s" }
-			""".formatted(email, password, nickname));
+			{ "email": "%s", "password": "%s", "nickname": "%s", "emailCode": "%s" }
+			""".formatted(email, password, nickname, code));
 	}
 
 	private MvcTestResult login(String email, String password) {
