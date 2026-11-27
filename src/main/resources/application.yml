@@ -100,7 +100,7 @@ client:
 
 # 가입 인증 메일. 키가 비어 있으면 보내지 않고 로그에만 남긴다(로컬 개발용)
 mail:
-    from: ${MAIL_FROM:별볼일 <noreply@byeolbolil.xyz>}
+    from: ${MAIL_FROM:별볼일 <noreply@byeolbolil.com>}
     resend:
         base-url: ${RESEND_BASE_URL:https://api.resend.com}
         api-key: ${RESEND_API_KEY:}

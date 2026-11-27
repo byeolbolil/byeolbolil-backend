@@ -2356,7 +2356,7 @@ OpenStreetMap에서 찾지 못했다는 이유였다. 써 본 사람은 둘 다 
   하루 90통까지 보낸다. 모두 정책값이고 근거 자료는 없다. 하루 90통은 Resend 무료 요금제의 하루 100통 아래로 잡은 것이다.
 - 코드는 다른 검사(이메일 중복, 닉네임)를 모두 지난 뒤에 확인하고 그때 지운다. 닉네임이 겹쳐 실패한 사람이 코드를 다시
   받지 않아도 되게 한다.
-- 메일은 Resend HTTP API로 `noreply@byeolbolil.xyz`에서 보낸다. 키(`RESEND_API_KEY`)는 GitHub secret에 두고 배포가
+- 메일은 Resend HTTP API로 `noreply@byeolbolil.com`에서 보낸다. 키(`RESEND_API_KEY`)는 GitHub secret에 두고 배포가
   서버의 `.env`에 넣는다. 키가 비어 있으면 보내지 않고 코드를 로그에만 남긴다. 로컬에서 가입을 시험하기 위한 것이다.
 - 이미 가입한 이메일로 코드를 요청하면 보내지 않고 409다. 가입 여부는 이미 `/members/exists/email`이 알려 주고 있어서
   숨겨도 얻는 것이 없다.
