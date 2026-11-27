@@ -103,8 +103,11 @@ public class SecurityConfig {
 		config.setAllowedOrigins(List.of(
 			"http://localhost:3000",
 			"http://localhost:8080",      // 로컬 Swagger
+			"https://www.byeolbolil.com",
+			"https://api.byeolbolil.com", // 프로덕션 Swagger
+			// 옛 도메인. .xyz를 새 주소로 넘기기 전에 열려 있던 화면을 위해 남긴다(docs/decisions.md 2026-11-28)
 			"https://www.byeolbolil.xyz",
-			"https://api.byeolbolil.xyz"  // 프로덕션 Swagger
+			"https://api.byeolbolil.xyz"
 		));
 
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

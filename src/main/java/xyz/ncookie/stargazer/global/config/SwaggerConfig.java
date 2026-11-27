@@ -28,7 +28,7 @@ public class SwaggerConfig {
 				.url("https://github.com/byeolbolil/byeolbolil-backend/blob/dev/docs/API.md"))
 			.servers(List.of(
 				new Server().url("http://localhost:8080").description("로컬 개발 서버"),
-				new Server().url("https://api.byeolbolil.xyz").description("프로덕션 서버")
+				new Server().url("https://api.byeolbolil.com").description("프로덕션 서버")
 			))
 			.components(new Components()
 				.addSecuritySchemes("bearer-jwt", new SecurityScheme()
