@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.member.application.AuthApplicationService;
 import xyz.ncookie.stargazer.domain.member.dto.request.LoginRequest;
 import xyz.ncookie.stargazer.domain.member.dto.request.RegisterRequest;
+import xyz.ncookie.stargazer.domain.member.dto.request.SendEmailCodeRequest;
 import xyz.ncookie.stargazer.domain.member.dto.response.AuthTokenResponse;
 import xyz.ncookie.stargazer.domain.member.dto.TokenDto;
 import xyz.ncookie.stargazer.global.security.jwt.RefreshToken;
@@ -64,6 +65,24 @@ public class AuthController {
 	}
 
 	@Operation(
+		summary = "가입 인증 코드 받기",
+		description = "가입할 이메일로 여섯 자리 인증 코드를 보냅니다. 코드는 10분 동안 쓸 수 있고, 같은 이메일로는 1분에 한 번, 하루 다섯 번까지 받습니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "메일을 보냄"),
+		@ApiResponse(responseCode = "400", description = "이메일 형식 오류"),
+		@ApiResponse(responseCode = "409", description = "이미 가입된 이메일"),
+		@ApiResponse(responseCode = "429", description = "너무 자주 또는 너무 많이 요청함"),
+		@ApiResponse(responseCode = "503", description = "메일을 보내지 못함")
+	})
+	@PostMapping("/email-code")
+	public void sendEmailCode(
+		@RequestBody @Valid SendEmailCodeRequest request
+	) {
+		authApplicationService.sendEmailCode(request.email());
+	}
+
+	@Operation(
 		summary = "회원가입",
 		description = "새로운 회원을 등록합니다. 성공 시 자동으로 로그인되어 JWT 액세스 토큰과 리프레시 토큰(쿠키)을 반환합니다."
 	)
@@ -79,7 +98,7 @@ public class AuthController {
 		),
 		@ApiResponse(
 			responseCode = "409",
-			description = "이미 가입된 이메일"
+			description = "이미 가입된 이메일 또는 다른 회원이 쓰는 닉네임"
 		)
 	})
 	@PostMapping("/register")

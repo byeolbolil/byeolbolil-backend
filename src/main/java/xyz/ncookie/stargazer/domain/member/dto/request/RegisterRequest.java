@@ -23,6 +23,9 @@ public record RegisterRequest(
 	@NotBlank String password,
 	
 	@Schema(description = "닉네임", example = "별보러가자", requiredMode = Schema.RequiredMode.REQUIRED)
-	@NotBlank String nickname
+	@NotBlank String nickname,
+
+	@Schema(description = "이메일로 받은 여섯 자리 인증 코드 (POST /api/v1/auth/email-code)", example = "482913", requiredMode = Schema.RequiredMode.REQUIRED)
+	@NotBlank String emailCode
 ) {
 }

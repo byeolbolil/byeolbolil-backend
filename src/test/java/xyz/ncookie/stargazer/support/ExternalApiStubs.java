@@ -37,6 +37,7 @@ public class ExternalApiStubs {
 	private static final String PHOTON_REVERSE = "https://photon.komoot.io/reverse";
 	private static final String KAKAO_KEYWORD = "https://dapi.kakao.com/v2/local/search/keyword.json";
 	private static final String KAKAO_ADDRESS = "https://dapi.kakao.com/v2/local/search/address.json";
+	private static final String RESEND_EMAILS = "https://api.resend.com/emails";
 
 	private final MockRestServiceServer server;
 
@@ -142,6 +143,14 @@ public class ExternalApiStubs {
 	public void kakaoFails() {
 		stub(HttpMethod.GET, KAKAO_KEYWORD, withServerError());
 		stub(HttpMethod.GET, KAKAO_ADDRESS, withServerError());
+	}
+
+	public void resendAccepts() {
+		stub(HttpMethod.POST, RESEND_EMAILS, withSuccess("{\"id\":\"test-email-id\"}", MediaType.APPLICATION_JSON));
+	}
+
+	public void resendFails() {
+		stub(HttpMethod.POST, RESEND_EMAILS, withServerError());
 	}
 
 	private void stub(HttpMethod httpMethod, String urlPrefix, ResponseCreator response) {

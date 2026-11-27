@@ -8,7 +8,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import xyz.ncookie.stargazer.domain.member.domain.AuthDomainService;
+import xyz.ncookie.stargazer.domain.member.domain.EmailVerificationDomainService;
 import xyz.ncookie.stargazer.domain.member.domain.MemberDomainService;
+import xyz.ncookie.stargazer.domain.member.exception.EmailCodeErrorCode;
+import xyz.ncookie.stargazer.global.mail.ResendMailClient;
 import xyz.ncookie.stargazer.domain.member.dto.TokenDto;
 import xyz.ncookie.stargazer.domain.member.dto.request.LoginRequest;
 import xyz.ncookie.stargazer.domain.member.dto.request.RegisterRequest;
@@ -31,6 +34,8 @@ public class AuthApplicationService {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final AuthDomainService authDomainService;
 	private final MemberDomainService memberDomainService;
+	private final EmailVerificationDomainService emailVerificationDomainService;
+	private final ResendMailClient resendMailClient;
 
 	@Transactional(readOnly = true)
 	public TokenDto reissueAccessToken(String refreshToken) {
@@ -65,6 +70,25 @@ public class AuthApplicationService {
 		log.debug("로그아웃 성공!");
 	}
 
+	/** 가입할 이메일로 인증 코드를 보낸다. 이미 가입된 이메일이면 보내지 않고 409다 */
+	public void sendEmailCode(String email) {
+
+		if (memberDomainService.isEmailDuplicated(email.strip())) {
+			throw new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED);
+		}
+
+		String code = emailVerificationDomainService.issue(email);
+		try {
+			resendMailClient.send(email.strip(), "[별볼일] 가입 인증 코드 " + code,
+				"별볼일 가입 인증 코드는 " + code + " 입니다.\n\n10분 안에 가입 창에 입력해 주세요. "
+					+ "가입하려던 적이 없다면 이 메일은 지워도 됩니다.");
+		} catch (ResendMailClient.MailSendException e) {
+			log.warn("가입 인증 메일 발송 실패", e);
+			emailVerificationDomainService.cancel(email);
+			throw new MemberException(EmailCodeErrorCode.MAIL_UNAVAILABLE);
+		}
+	}
+
 	@Transactional
 	public TokenDto register(@Valid RegisterRequest request) {
 
@@ -74,6 +98,8 @@ public class AuthApplicationService {
 		}
 
 		String nickname = memberDomainService.validateNewNickname(request.nickname(), null);
+		// 다른 검사를 모두 지난 뒤에 코드를 쓴다. 닉네임이 겹쳐서 실패했는데 코드만 써 버리면 다시 받아야 한다
+		emailVerificationDomainService.verify(request.email(), request.emailCode());
 		String encodedPassword = authDomainService.encodePassword(request.password());
 		Member createdMember;
 		try {
