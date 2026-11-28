@@ -35,6 +35,15 @@ public class AuthDomainService {
 		return member;
 	}
 
+	/** 탈퇴처럼 이미 로그인한 회원에게 비밀번호를 다시 묻는 경우. 틀리면 400이다 */
+	public void verifyPassword(Member member, String rawPassword) {
+
+		if (member.getPassword() == null || rawPassword == null
+			|| !passwordEncoder.matches(rawPassword, member.getPassword())) {
+			throw new MemberException(MemberErrorCode.PASSWORD_MISMATCH);
+		}
+	}
+
 	public String encodePassword(String rawPassword) {
 		return passwordEncoder.encode(rawPassword);
 	}

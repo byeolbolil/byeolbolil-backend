@@ -38,6 +38,18 @@ class OAuth2LoginSuccessHandlerTest extends IntegrationTestSupport {
 		assertThat(succeed(false).getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth/callback");
 	}
 
+	@Test
+	@DisplayName("탈퇴였으면 토큰을 내주지 않고 쿠키를 비운 뒤 첫 화면에 withdrawn=1을 붙여 보낸다")
+	void withdrawn() throws Exception {
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		handler.onAuthenticationSuccess(new MockHttpServletRequest(), response,
+			new TestingAuthenticationToken(MemberPrincipal.withdrawn(1L, Map.of()), null));
+
+		assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/?withdrawn=1");
+		assertThat(response.getHeader("Set-Cookie")).startsWith("refresh_token=;").contains("Max-Age=0");
+	}
+
 	private MockHttpServletResponse succeed(boolean newMember) throws Exception {
 		MemberPrincipal principal = new MemberPrincipal(1L, Role.USER, Map.of(), newMember);
 		MockHttpServletResponse response = new MockHttpServletResponse();

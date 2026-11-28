@@ -74,6 +74,10 @@ JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 
 ([API.md 4.5](./API.md#45-소셜-로그인)). 앱은 이메일 로그인만 쓸 수 있다. 앱에서 소셜 로그인이 필요해지면
 백엔드에 앱용 흐름을 추가해야 하니 먼저 이야기한다.
 
+소셜 회원의 탈퇴도 같은 이유로 웹에서만 된다. 탈퇴는 제공자 로그인을 한 번 더 거치고 웹 프론트로 돌아오기
+때문이다([API.md 11장 탈퇴](./API.md#탈퇴)). 내 정보 응답의 `authProvider`가 `LOCAL`이 아니면 앱에서는 탈퇴 버튼 대신
+웹에서 탈퇴하라는 안내를 둔다.
+
 ## 6. 화면과 API
 
 웹의 새 화면이 쓰는 방식이다. 목표 화면은 [mockup](./mockup/)에 있다.
@@ -88,6 +92,7 @@ JWT의 가운데 부분을 Base64URL로 풀면 `exp`(초 단위 Unix 시각)가 
 | 지도의 검색창, 출발 위치 정하기 | `GET /api/v1/geocode/search`. 입력이 0.3초쯤 멈췄을 때 부른다 |
 | 현재 위치와 고른 위치의 이름 | `GET /api/v1/geocode/reverse` |
 | 내 장소 | `GET`, `POST`, `PATCH`, `DELETE /api/v1/bookmarks` |
+| 탈퇴 | 이메일 회원은 `DELETE /api/v1/members/me`. 소셜 회원은 웹에서만 된다(5장) |
 | 설정의 추천 기준 | 값을 앱에 저장해 두고 추천을 부를 때 `minClearHours`, `preferBefore`, `maxTravelMinutes`로 보낸다 |
 
 - 위치 권한이 없어도 추천은 동작한다. 좌표를 빼고 부르면 이동 시간 없이 날씨와 어두움만으로 순서를 매긴다.

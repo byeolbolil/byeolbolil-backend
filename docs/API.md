@@ -269,6 +269,8 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | DELETE | `/api/v1/bookmarks/{bookmarkId}` | 필요 | 북마크 삭제 |
 | GET | `/api/v1/members/me` | 필요 | 내 정보 |
 | PATCH | `/api/v1/members/me` | 필요 | 닉네임 수정 |
+| DELETE | `/api/v1/members/me` | 필요 | 탈퇴 (이메일 회원) |
+| POST | `/api/v1/members/me/withdrawal-ticket` | 필요 | 탈퇴 주소 받기 (소셜 회원) |
 | GET | `/api/v1/members/exists/email` | 없음 | 이메일 중복 검사 |
 | GET | `/api/v1/members/exists/nickname` | 선택 | 닉네임 중복 검사 |
 | POST | `/api/v1/admin/members/{memberId}/nickname/reset` | 관리자 | 닉네임 초기화 |
@@ -1106,10 +1108,11 @@ GET /api/v1/members/me
 액세스 토큰이 필요하다.
 
 ```json
-{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다.", "data": { "memberId": 1, "nickname": "별지기" } }
+{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다.", "data": { "memberId": 1, "nickname": "별지기", "authProvider": "KAKAO" } }
 ```
 
-이메일은 응답에 없다. 비밀번호 변경, 탈퇴 API는 아직 없다.
+`authProvider`는 가입 방식이다. `LOCAL`(이메일), `KAKAO`, `NAVER`, `GOOGLE` 가운데 하나이고, 탈퇴 방법을 고를 때 쓴다.
+이메일은 응답에 없다. 비밀번호 변경 API는 아직 없다.
 
 ### 닉네임 수정
 
@@ -1139,6 +1142,54 @@ PATCH /api/v1/members/me
 액세스 토큰에는 닉네임이 없으므로 바꾼 뒤 토큰을 다시 받을 필요가 없다.
 
 선정적이거나 광고인 닉네임은 운영자가 알리지 않고 기본 닉네임으로 되돌릴 수 있다. 앱은 닉네임을 정하는 화면에 이를 알린다.
+
+### 탈퇴
+
+회원과 저장한 장소를 지운다. 되돌릴 수 없다. 가입 방식에 따라 부르는 API가 다르다.
+
+이메일 회원은 비밀번호를 다시 넣어 바로 탈퇴한다.
+
+```
+DELETE /api/v1/members/me
+```
+
+```json
+{ "password": "starry-night1!" }
+```
+
+성공하면 `data` 없이 200이고, 요청에 실린 리프레시 토큰을 지우고 쿠키를 비운다. 비밀번호가 틀리거나 빠지면 400이다.
+401이 아닌 것은 401이 토큰 재발급으로 이어지기 때문이다. 소셜 회원이 부르면 400이다.
+
+```json
+{ "success": false, "status": 400, "message": "비밀번호가 맞지 않습니다." }
+```
+
+소셜 회원은 가입한 제공자에 한 번 더 로그인해서 탈퇴한다. 먼저 탈퇴 주소를 받는다.
+
+```
+POST /api/v1/members/me/withdrawal-ticket
+```
+
+```json
+{ "success": true, "status": 200, "message": "요청이 성공적으로 처리되었습니다.", "data": { "authorizationUrl": "/oauth2/authorization/kakao?withdraw=5f0c6c3e-0b1d-4a57-9d36-3c0b1f1f2a10" } }
+```
+
+`authorizationUrl`은 API 서버 기준 경로다. 브라우저를 API 서버 주소에 이 경로를 붙인 곳으로 보낸다. 제공자 로그인을
+마치면 서버가 회원과 저장한 장소를 지우고, 제공자에 앱 연결을 끊어 달라고 한 뒤, 리프레시 토큰 쿠키를 비우고 웹 프론트로
+돌려보낸다.
+
+| 돌아오는 주소 | 뜻 |
+|---|---|
+| `/?withdrawn=1` | 탈퇴했다. 메모리의 액세스 토큰을 버리고 로그아웃 상태로 보여 준다 |
+| `/?withdrawal=failed` | 탈퇴하지 않았다. 제공자 로그인을 취소했거나, 가입한 계정이 아닌 다른 계정으로 로그인했거나, 주소가 만료됐다. 로그인 상태는 그대로다 |
+
+- 주소는 5분 동안 한 번 쓸 수 있다. 실패했으면 주소를 다시 받는다.
+- 주소 없이 제공자 로그인만 해서는 탈퇴되지 않는다. 다른 사이트가 탈퇴 경로로 이끌어도 계정이 지워지지 않게 하려는 것이다.
+- 제공자 연결 끊기가 실패해도 탈퇴는 된다. 남은 연결은 회원이 제공자의 연결된 서비스 설정에서 끊을 수 있다.
+- 이메일 회원이 부르면 400이다.
+
+다른 기기에 남은 로그인은 그 기기가 다음에 재발급할 때 401을 받고 끝난다. 만료되지 않은 액세스 토큰으로 내 정보를
+부르면 404다.
 
 ### 닉네임 중복 검사
 

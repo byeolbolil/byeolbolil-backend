@@ -42,4 +42,9 @@ public class BookmarkDomainService {
 	public void deleteBookmark(Bookmark bookmark) {
 		bookmarkRepository.delete(bookmark);
 	}
+
+	/** 탈퇴하는 회원의 북마크. 북마크가 회원을 가리키므로 회원보다 먼저 지운다 */
+	public void deleteAllByMemberId(Long memberId) {
+		bookmarkRepository.deleteAllByMember_Id(memberId);
+	}
 }

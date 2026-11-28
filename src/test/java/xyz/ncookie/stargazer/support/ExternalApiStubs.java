@@ -3,6 +3,8 @@ package xyz.ncookie.stargazer.support;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -38,6 +40,9 @@ public class ExternalApiStubs {
 	private static final String KAKAO_KEYWORD = "https://dapi.kakao.com/v2/local/search/keyword.json";
 	private static final String KAKAO_ADDRESS = "https://dapi.kakao.com/v2/local/search/address.json";
 	private static final String RESEND_EMAILS = "https://api.resend.com/emails";
+	private static final String KAKAO_UNLINK = "https://kapi.kakao.com/v1/user/unlink";
+	private static final String NAVER_TOKEN = "https://nid.naver.com/oauth2.0/token";
+	private static final String GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
 
 	private final MockRestServiceServer server;
 
@@ -151,6 +156,44 @@ public class ExternalApiStubs {
 
 	public void resendFails() {
 		stub(HttpMethod.POST, RESEND_EMAILS, withServerError());
+	}
+
+	/** 카카오 연결 끊기. 그 회원의 액세스 토큰을 Bearer로 실어야 한다 */
+	public void kakaoUnlinkAccepts(String accessToken) {
+		server.expect(ExpectedCount.once(), requestTo(KAKAO_UNLINK))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+			.andRespond(withSuccess("{\"id\":1234}", MediaType.APPLICATION_JSON));
+	}
+
+	public void kakaoUnlinkFails() {
+		stub(HttpMethod.POST, KAKAO_UNLINK, withServerError());
+	}
+
+	/** 네이버 연동 해제. 앱 키와 회원의 액세스 토큰을 폼으로 보낸다 */
+	public void naverUnlinkAccepts(String accessToken) {
+		server.expect(ExpectedCount.once(), requestTo(NAVER_TOKEN))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content().formDataContains(java.util.Map.of(
+				"grant_type", "delete",
+				"client_id", "test-naver-id",
+				"client_secret", "test-naver-secret",
+				"access_token", accessToken)))
+			.andRespond(withSuccess("{\"access_token\":\"" + accessToken + "\",\"result\":\"success\"}",
+				MediaType.APPLICATION_JSON));
+	}
+
+	/** 네이버는 실패해도 200으로 답하고 본문에 error를 싣는다 */
+	public void naverUnlinkRejects() {
+		stub(HttpMethod.POST, NAVER_TOKEN, withSuccess(
+			"{\"error\":\"invalid_request\",\"error_description\":\"no valid data in session\"}", MediaType.APPLICATION_JSON));
+	}
+
+	public void googleRevokeAccepts(String accessToken) {
+		server.expect(ExpectedCount.once(), requestTo(GOOGLE_REVOKE))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content().formDataContains(java.util.Map.of("token", accessToken)))
+			.andRespond(withSuccess());
 	}
 
 	private void stub(HttpMethod httpMethod, String urlPrefix, ResponseCreator response) {

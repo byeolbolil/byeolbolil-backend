@@ -10,8 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -23,6 +22,8 @@ import xyz.ncookie.stargazer.global.security.jwt.JwtAuthenticationEntryPoint;
 import xyz.ncookie.stargazer.global.security.jwt.JwtAuthenticationFilter;
 import xyz.ncookie.stargazer.global.security.jwt.JwtTokenProvider;
 import xyz.ncookie.stargazer.global.security.handler.OAuth2LoginFailureHandler;
+import xyz.ncookie.stargazer.global.security.oauth.WithdrawalAuthorizationRequestResolver;
+import xyz.ncookie.stargazer.global.security.oauth.WithdrawalAwareAuthorizationRequestRepository;
 import xyz.ncookie.stargazer.global.security.service.CustomOAuth2UserService;
 import xyz.ncookie.stargazer.global.security.handler.OAuth2LoginSuccessHandler;
 import xyz.ncookie.stargazer.global.security.service.CustomUserDetailsService;
@@ -37,6 +38,8 @@ public class SecurityConfig {
 
 	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 	private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+
+	private final ClientRegistrationRepository clientRegistrationRepository;
 
 	private final JwtTokenProvider jwtTokenProvider;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
@@ -75,7 +78,11 @@ public class SecurityConfig {
 			.userDetailsService(userDetailsService)
 
 			// 소셜 로그인 설정
+			// 로그인 주소에 탈퇴 표가 붙어 오면 콜백까지 들고 간다(docs/decisions.md 2026-11-28 "회원 탈퇴는 제공자 로그인을 한 번 더 거친다")
 			.oauth2Login(oauth2 -> oauth2
+					.authorizationEndpoint(endpoint -> endpoint
+						.authorizationRequestResolver(new WithdrawalAuthorizationRequestResolver(clientRegistrationRepository))
+						.authorizationRequestRepository(new WithdrawalAwareAuthorizationRequestRepository()))
 					.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
 					.successHandler(oAuth2LoginSuccessHandler)
 					.failureHandler(oAuth2LoginFailureHandler)
@@ -88,11 +95,6 @@ public class SecurityConfig {
 		http.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
-	}
-
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
 	}
 
 	@Bean

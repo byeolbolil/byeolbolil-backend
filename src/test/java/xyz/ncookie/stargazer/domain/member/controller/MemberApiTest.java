@@ -48,7 +48,7 @@ class MemberApiTest extends IntegrationTestSupport {
 	class Me {
 
 		@Test
-		@DisplayName("회원 ID와 닉네임을 준다")
+		@DisplayName("회원 ID와 닉네임, 가입 방식을 준다")
 		void myInfo() {
 			MvcTestResult result = mvc.get().uri("/api/v1/members/me")
 				.header("Authorization", "Bearer " + jwtTokenProvider.createAccessToken(member.getId()))
@@ -59,7 +59,7 @@ class MemberApiTest extends IntegrationTestSupport {
 				  "success": true,
 				  "status": 200,
 				  "message": "요청이 성공적으로 처리되었습니다.",
-				  "data": { "memberId": %d, "nickname": "별지기" }
+				  "data": { "memberId": %d, "nickname": "별지기", "authProvider": "LOCAL" }
 				}
 				""".formatted(member.getId()));
 		}
@@ -103,7 +103,7 @@ class MemberApiTest extends IntegrationTestSupport {
 				  "success": true,
 				  "status": 200,
 				  "message": "요청이 성공적으로 처리되었습니다.",
-				  "data": { "memberId": %d, "nickname": "밤하늘 산책" }
+				  "data": { "memberId": %d, "nickname": "밤하늘 산책", "authProvider": "LOCAL" }
 				}
 				""".formatted(member.getId()));
 		}
