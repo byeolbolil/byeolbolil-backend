@@ -1,5 +1,7 @@
 package xyz.ncookie.stargazer.domain.member.entity;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,6 +32,12 @@ public class Member {
 	public static final String NICKNAME_UNIQUE = "uk_member_nickname";
 	public static final String PROVIDER_UNIQUE = "uk_member_provider";
 
+	/**
+	 * 지금 이용약관의 시행일. 프론트 /terms 페이지의 시행일과 같아야 한다. 약관을 바꾸면 둘을 같이 고치고,
+	 * 이미 가입한 회원에게 다시 동의를 받을지는 그때 정한다(docs/decisions.md 2026-11-28 "가입할 때 약관 동의를 받는다").
+	 */
+	public static final String TERMS_VERSION = "2026-11-28";
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -51,6 +59,12 @@ public class Member {
 
 	private String providerId;	// oauth2 회원만 사용
 
+	// 가입할 때 동의한 약관의 시행일과 그 시각. 이메일 가입은 동의 칸을 체크해야 하고, 소셜 가입은 버튼 아래의 고지를 보고 누른다.
+	// 이 기록을 남기기 전(2026-11-28)에 가입한 회원은 비어 있다
+	private String termsVersion;
+
+	private Instant termsAgreedAt;
+
 	@Builder
 	public Member(String email, String password, String nickname, Role role, AuthProvider authProvider, String providerId) {
 		this.email = email;
@@ -59,6 +73,9 @@ public class Member {
 		this.role = role;
 		this.authProvider = authProvider;
 		this.providerId = providerId;
+		// 회원은 가입으로만 생기고, 가입은 약관 동의를 거쳐야 한다
+		this.termsVersion = TERMS_VERSION;
+		this.termsAgreedAt = Instant.now();
 	}
 
 	public static Member oauth(String email, String nickname, AuthProvider authProvider, String providerId) {

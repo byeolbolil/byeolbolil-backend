@@ -67,6 +67,15 @@ class CustomOAuth2UserServiceTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	@DisplayName("소셜 가입도 로그인 버튼 아래의 고지를 보고 누른 것이라 약관 동의를 남긴다")
+	void firstLoginRecordsTerms() {
+		Member member = customOAuth2UserService.findOrRegister(AuthProvider.GOOGLE, GOOGLE_USER).member();
+
+		assertThat(member.getTermsVersion()).isEqualTo(Member.TERMS_VERSION);
+		assertThat(member.getTermsAgreedAt()).isNotNull();
+	}
+
+	@Test
 	@DisplayName("기본 닉네임은 이미 있는 닉네임과 겹치지 않는다")
 	void defaultNicknamesDoNotCollide() {
 		for (int i = 0; i < 30; i++) {
