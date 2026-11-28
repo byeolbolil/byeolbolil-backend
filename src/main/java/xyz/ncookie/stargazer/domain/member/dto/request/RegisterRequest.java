@@ -1,8 +1,10 @@
 package xyz.ncookie.stargazer.domain.member.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 @Schema(description = "회원가입 요청 DTO")
@@ -26,6 +28,17 @@ public record RegisterRequest(
 	@NotBlank String nickname,
 
 	@Schema(description = "이메일로 받은 여섯 자리 인증 코드 (POST /api/v1/auth/email-code)", example = "482913", requiredMode = Schema.RequiredMode.REQUIRED)
-	@NotBlank String emailCode
+	@NotBlank String emailCode,
+
+	@Schema(
+		description = "만 14세 이상이고 이용약관(/terms)과 개인정보처리방침(/privacy)에 동의했는지. true여야 가입된다",
+		example = "true",
+		requiredMode = Schema.RequiredMode.REQUIRED
+	)
+	@NotNull(message = TERMS_MESSAGE)
+	@AssertTrue(message = TERMS_MESSAGE)
+	Boolean agreedToTerms
 ) {
+
+	private static final String TERMS_MESSAGE = "만 14세 이상이고 약관에 동의해야 가입할 수 있습니다.";
 }

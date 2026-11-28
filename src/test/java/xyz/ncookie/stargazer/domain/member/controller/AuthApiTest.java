@@ -254,6 +254,33 @@ class AuthApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
+		@DisplayName("약관에 동의하지 않았거나 동의 여부를 보내지 않으면 400이다. 가입하면 동의한 약관의 시행일과 시각을 남긴다")
+		void terms() {
+			emailCodeRedisRepository.saveCode(EMAIL, EMAIL_CODE, Duration.ofMinutes(10));
+			String body = """
+				{ "email": "%s", "password": "%s", "nickname": "%s", "emailCode": "%s"%s }
+				""";
+
+			for (String agreement : new String[] {"", ", \"agreedToTerms\": false", ", \"agreedToTerms\": null"}) {
+				assertThat(postJson("/api/v1/auth/register", body.formatted(EMAIL, PASSWORD, NICKNAME, EMAIL_CODE, agreement)))
+					.hasStatus(400).bodyJson().isStrictlyEqualTo("""
+						{
+						  "success": false,
+						  "status": 400,
+						  "message": "유효성 검사에 실패하였습니다.",
+						  "data": { "agreedToTerms": "만 14세 이상이고 약관에 동의해야 가입할 수 있습니다." }
+						}
+						""");
+			}
+			assertThat(memberRepository.count()).isZero();
+
+			assertThat(registerWithCode(EMAIL, PASSWORD, NICKNAME, EMAIL_CODE)).hasStatusOk();
+			Member member = memberRepository.findByEmailAndAuthProvider(EMAIL, AuthProvider.LOCAL).orElseThrow();
+			assertThat(member.getTermsVersion()).isEqualTo(Member.TERMS_VERSION);
+			assertThat(member.getTermsAgreedAt()).isNotNull();
+		}
+
+		@Test
 		@DisplayName("비밀번호 규칙에 맞지 않으면 400이고 data에 필드별 사유가 담긴다")
 		void weakPassword() {
 			assertThat(register(EMAIL, "short", NICKNAME)).hasStatus(400).bodyJson().isStrictlyEqualTo("""
@@ -467,7 +494,7 @@ class AuthApiTest extends IntegrationTestSupport {
 
 	private MvcTestResult registerWithCode(String email, String password, String nickname, String code) {
 		return postJson("/api/v1/auth/register", """
-			{ "email": "%s", "password": "%s", "nickname": "%s", "emailCode": "%s" }
+			{ "email": "%s", "password": "%s", "nickname": "%s", "emailCode": "%s", "agreedToTerms": true }
 			""".formatted(email, password, nickname, code));
 	}
 
