@@ -1,0 +1,44 @@
+name: Test
+
+# dev에 넣기 전에 작업 브랜치에서 테스트만 돌린다. 배포는 하지 않는다.
+# 통합 테스트는 Testcontainers로 MySQL과 Redis를 띄우므로 Docker가 없는 PC에서도 여기서 확인할 수 있다.
+on:
+    push:
+        branches-ignore: [ "dev", "master" ]
+        paths-ignore:
+            - "docs/**"
+            - "**/*.md"
+            - "scripts/issues/**"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: test-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up JDK 17
+              uses: actions/setup-java@v4
+              with:
+                  java-version: '17'
+                  distribution: 'temurin'
+
+            - name: Test with Gradle
+              run: |
+                  chmod +x gradlew
+                  ./gradlew test
+
+            - name: Upload test report
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-report
+                  path: build/reports/tests/test
