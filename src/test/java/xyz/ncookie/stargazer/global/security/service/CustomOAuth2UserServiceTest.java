@@ -15,11 +15,14 @@ import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 import xyz.ncookie.stargazer.global.security.oauth.GoogleOAuth2UserInfo;
+import xyz.ncookie.stargazer.global.security.oauth.KakaoOAuth2UserInfo;
+import xyz.ncookie.stargazer.global.security.oauth.NaverOAuth2UserInfo;
 import xyz.ncookie.stargazer.global.security.oauth.OAuth2UserInfo;
 import xyz.ncookie.stargazer.support.IntegrationTestSupport;
 
 /**
  * 소셜 가입의 기본 닉네임과, 닉네임을 바꾼 뒤 다시 로그인해도 바꾼 닉네임이 남는지 고정한다.
+ * 회원은 제공자와 제공자 ID로 찾고, 이메일이 같아도 다른 제공자의 회원과 합치지 않는다.
  * 제공자의 사용자 정보 호출은 건너뛰고, 그 결과로 회원을 찾거나 가입시키는 부분만 본다.
  */
 class CustomOAuth2UserServiceTest extends IntegrationTestSupport {
@@ -84,5 +87,29 @@ class CustomOAuth2UserServiceTest extends IntegrationTestSupport {
 		assertThat(memberRepository.findById(member.getId())).get()
 			.extracting(Member::getNickname).isEqualTo("밤하늘 산책");
 		assertThat(memberRepository.count()).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("다른 제공자에 같은 이메일로 가입한 사람이 있어도 새 회원으로 가입한다")
+	void sameEmailOtherProvider() {
+		Member google = customOAuth2UserService.findOrRegister(AuthProvider.GOOGLE, GOOGLE_USER).member();
+
+		CustomOAuth2UserService.Registration naver = customOAuth2UserService.findOrRegister(AuthProvider.NAVER,
+			new NaverOAuth2UserInfo(Map.of("response", Map.of("id", "naver-1", "email", "gildong@example.com"))));
+
+		assertThat(naver.created()).isTrue();
+		assertThat(naver.member().getId()).isNotEqualTo(google.getId());
+		assertThat(memberRepository.count()).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("카카오가 이메일을 주지 않아도 가입한다")
+	void kakaoWithoutEmail() {
+		CustomOAuth2UserService.Registration registration = customOAuth2UserService.findOrRegister(AuthProvider.KAKAO,
+			new KakaoOAuth2UserInfo(Map.of("id", 1234L, "kakao_account", Map.of())));
+
+		assertThat(registration.created()).isTrue();
+		assertThat(memberRepository.findById(registration.member().getId())).get()
+			.extracting(Member::getEmail).isNull();
 	}
 }

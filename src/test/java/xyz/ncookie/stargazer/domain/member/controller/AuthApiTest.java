@@ -99,6 +99,15 @@ class AuthApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
+		@DisplayName("소셜 회원이 쓰는 이메일이면 막지 않고 보낸다")
+		void socialMemberEmail() {
+			memberRepository.save(Member.oauth(EMAIL, "소셜", AuthProvider.GOOGLE, "google-1"));
+			externalApi.resendAccepts();
+
+			assertThat(sendCode(EMAIL)).hasStatusOk();
+		}
+
+		@Test
 		@DisplayName("메일을 보내지 못하면 503이고, 코드를 지워 바로 다시 받을 수 있다")
 		void mailFails() {
 			externalApi.resendFails();
@@ -170,6 +179,17 @@ class AuthApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
+		@DisplayName("소셜 회원과 이메일이 같아도 가입할 수 있고, 소셜 회원은 그대로 남는다")
+		void sameEmailAsSocialMember() {
+			Member social = memberRepository.save(Member.oauth(EMAIL, "소셜", AuthProvider.GOOGLE, "google-1"));
+
+			assertThat(register(EMAIL, PASSWORD, NICKNAME)).hasStatusOk();
+			assertThat(login(EMAIL, PASSWORD)).hasStatusOk();
+			assertThat(memberRepository.findById(social.getId())).isPresent();
+			assertThat(memberRepository.count()).isEqualTo(2);
+		}
+
+		@Test
 		@DisplayName("다른 회원이 쓰는 닉네임이면 대소문자가 달라도 409다")
 		void duplicateNickname() {
 			register(EMAIL, PASSWORD, "Stargazer");
@@ -229,7 +249,7 @@ class AuthApiTest extends IntegrationTestSupport {
 				.isEqualTo("닉네임은 2~16자의 한글, 영문, 숫자, 밑줄로 쓰고 낱말 사이에는 공백을 하나만 둘 수 있습니다.");
 
 			assertThat(register(EMAIL, PASSWORD, "  밤하늘 산책 ")).hasStatusOk();
-			assertThat(memberRepository.findByEmail(EMAIL)).get()
+			assertThat(memberRepository.findByEmailAndAuthProvider(EMAIL, AuthProvider.LOCAL)).get()
 				.extracting(Member::getNickname).isEqualTo("밤하늘 산책");
 		}
 

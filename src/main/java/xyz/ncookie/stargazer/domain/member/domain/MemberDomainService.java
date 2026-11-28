@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.entity.Role;
 import xyz.ncookie.stargazer.domain.member.exception.MemberErrorCode;
@@ -42,8 +43,9 @@ public class MemberDomainService {
 			.orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
 	}
 
+	/** 자체 회원 중에 이 이메일을 쓰는 사람이 있는지. 소셜 회원의 이메일은 보지 않는다 */
 	public boolean isEmailDuplicated(String email) {
-		return memberRepository.existsByEmail(email);
+		return memberRepository.existsByEmailAndAuthProvider(email, AuthProvider.LOCAL);
 	}
 
 	/**

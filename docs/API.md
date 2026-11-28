@@ -1167,6 +1167,7 @@ GET /api/v1/members/exists/email?email=user@example.com
 ```
 
 로그인 없이 부른다. `data.validated`가 `true`면 쓸 수 있는 이메일이고, `false`면 이미 가입된 이메일이다.
+자체 가입 회원의 이메일만 본다. 소셜 로그인 회원이 쓰는 이메일로도 자체 가입할 수 있고, 두 계정은 따로다.
 경로의 `exists`와 뜻이 반대라는 점에 주의한다. 이메일 형식은 검사하지 않는다. `email`이 빠지면 400이다.
 
 ## 12. 인증 엔드포인트

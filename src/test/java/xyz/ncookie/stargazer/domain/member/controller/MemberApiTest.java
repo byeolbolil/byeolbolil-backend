@@ -321,6 +321,15 @@ class MemberApiTest extends IntegrationTestSupport {
 		}
 
 		@Test
+		@DisplayName("소셜 회원만 쓰는 이메일은 자체 가입에 쓸 수 있다")
+		void socialEmailIsAvailable() {
+			memberRepository.save(Member.oauth("social@example.com", "소셜", AuthProvider.KAKAO, "kakao-1"));
+
+			assertThat(check("social@example.com")).hasStatusOk().bodyJson()
+				.extractingPath("$.data.validated").isEqualTo(true);
+		}
+
+		@Test
 		@DisplayName("email이 빠지면 400이다")
 		void missingParameter() {
 			assertThat(mvc.get().uri("/api/v1/members/exists/email").exchange())
