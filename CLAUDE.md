@@ -43,7 +43,9 @@ docker-compose -f docker-compose.dev.yml up -d
 Required env vars (see `.env`, loaded via `application.yml`): `MYSQL_ENDPOINT/USERNAME/PASSWORD`, `REDIS_HOST/PORT`,
 `JWT_KEY`, and OAuth2 client id/secret triples for Google/Kakao/Naver
 (`SERVER_BASE_URL`, `CLIENT_REDIRECT_BASE_URL`) — only needed for the web OAuth2 login flow, not the mobile app API.
-Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `OPEN_METEO_BASE_URL`,
+Optional: `MET_NORWAY_USER_AGENT` (the fallback forecast source is skipped while it is empty), `RESEND_API_KEY`
+(signup verification mail; while it is empty the code is only written to the log, which is for local use),
+`MAIL_FROM`, `OPEN_METEO_BASE_URL`,
 `OPEN_METEO_MODEL`, `PHOTON_BASE_URL`, `KAKAO_REST_API_KEY` (place search uses Photon alone while it is empty; the
 key also has a caller-IP allowlist in the Kakao console, so a new server IP must be added there).
 
