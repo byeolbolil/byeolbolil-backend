@@ -251,6 +251,13 @@ they appear as untracked local files.
     `(Bortle-1)*6.25` / moon `×30` weights) had no recoverable source. They were dropped in favour of sourced values
     and the engine was removed on 2026-11-27; `docs/SCORING.md` marks which remaining weights are policy, not
     literature.
+- **Re-index the code graph after code changes (since 2026-11-28).** The `codebase-memory-mcp` server keeps a local
+  graph of this repo (project `F-stargazer`) and of the frontend (`F-stargazer-front`), and it does not update
+  itself (`auto_index` is off). After changing code (adding, moving, renaming or deleting classes and methods, or
+  before merging a unit of work), call `index_repository` with `repo_path` set to the repo root, then check
+  `index_status`. Without the MCP server, run
+  `codebase-memory-mcp cli index_repository '{"repo_path":"F:/stargazer"}'`. A graph query that comes back empty
+  or stale is not proof that code is absent; confirm with Grep or by reading the source.
 - Further docs: [docs/API.md](docs/API.md) (client-facing API reference),
   [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) (layering rules, full checklist),
   [docs/SECURITY_AUTH_GUIDE.md](docs/SECURITY_AUTH_GUIDE.md) (auth flow),
