@@ -1,0 +1,14 @@
+# 천문 현상 목록. SkyEventCatalog가 시작할 때 읽는다.
+#
+# 싣는 것: 한국천문연구원이 해마다 내는 "주목할 천문현상"의 유성우와 월식. 무엇을 실을지를 여기서 고르지 않는다.
+# 해마다 12월에 다음 해의 발표가 나오면 그 해의 줄을 더한다. 지난 줄은 지우지 않아도 된다(지난 밤은 나오지 않는다).
+#
+# 칸: id,type,name,night,peak,radiant_ra,radiant_dec,zhr,eclipse_kind,start,end,source
+# - type: METEOR_SHOWER 또는 LUNAR_ECLIPSE
+# - night: 보라고 권하는 밤이 시작하는 날짜(한국 시간). 천문연이 권한 밤을 따른다
+# - peak, start, end: UTC 시각(ISO-8601). 유성우는 극대, 월식은 가장 깊이 가려지는 시각
+# - radiant_ra, radiant_dec, zhr: 유성우만. IMO Meteor Shower Calendar의 "Working List of Visual Meteor Showers" 표
+# - eclipse_kind, start, end: 월식만. TOTAL, PARTIAL, PENUMBRAL. 반영월식은 반영식의 시작과 끝, 그 밖에는 부분식의 시작과 끝
+# - source: 마지막 칸이라 쉼표가 들어가도 된다
+2026-lunar-eclipse-0303,LUNAR_ECLIPSE,개기월식,2026-03-03,2026-03-03T11:33:42Z,,,,TOTAL,2026-03-03T09:49:48Z,2026-03-03T13:17:36Z,한국천문연구원 2026년도 주목할 천문현상(보도자료 2025-12-27) https://www.kasi.re.kr/kor/publication/post/newsMaterial/32192
+2026-geminids,METEOR_SHOWER,쌍둥이자리 유성우,2026-12-14,2026-12-14T14:00:00Z,112,33,150,,,,한국천문연구원 2026년도 주목할 천문현상(12월 14일 밤부터 15일 새벽) https://www.kasi.re.kr/kor/publication/post/newsMaterial/32192 / IMO Meteor Shower Calendar 2026 표 5와 쌍둥이자리 항목 https://www.imo.net/files/meteor-shower/cal2026.pdf

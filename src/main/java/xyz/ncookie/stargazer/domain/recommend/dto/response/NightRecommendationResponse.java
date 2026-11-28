@@ -13,6 +13,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.ClearWindow;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
 import xyz.ncookie.stargazer.domain.recommend.model.NightHour;
 import xyz.ncookie.stargazer.domain.recommend.model.NightMoon;
+import xyz.ncookie.stargazer.domain.recommend.model.NightSky;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceRecommendation;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
@@ -112,6 +113,11 @@ public record NightRecommendationResponse(
 		double moonBrightness,
 		@Schema(description = "그 밤의 달 모양과 뜨고 지는 시각")
 		Moon moon,
+		@Schema(description = "은하수 중심이 보이는 시간. 날씨는 보지 않는다. 그 밤에 뜨지 않으면 빠진다")
+		NightSkyViews.MilkyWay milkyWay,
+		@Schema(description = "그 밤을 보라고 권하는 천문 현상과 이 장소에서 보이는 구간. 없으면 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<NightSkyViews.Event> events,
 
 		@Schema(description = "예보 출처. OPEN_METEO 또는 MET_NORWAY")
 		String forecastSource,
@@ -121,7 +127,10 @@ public record NightRecommendationResponse(
 		@Schema(description = "해가 진 뒤부터 뜨기 전까지의 시간별 조건")
 		List<Hour> hours
 	) {
-		public static Place of(PlaceRecommendation recommendation, ZoneId zone) {
+		/**
+		 * @param sky 그 장소에서 본 그 밤의 하늘. 날씨와 상관없는 은하수와 현상이다
+		 */
+		public static Place of(PlaceRecommendation recommendation, NightSky sky, ZoneId zone) {
 			NightAssessment night = recommendation.night();
 			PlaceGuide guide = recommendation.place().guide();
 			return new Place(
@@ -160,6 +169,8 @@ public record NightRecommendationResponse(
 				SkyValues.rank(recommendation.light()),
 				moonBrightness(night),
 				Moon.of(night.moon(), zone),
+				NightSkyViews.milkyWayOf(sky, zone),
+				NightSkyViews.eventsOf(sky, zone),
 				recommendation.forecastSource().name(),
 				recommendation.forecastIssuedAt() != null ? format(recommendation.forecastIssuedAt(), zone) : null,
 				night.hours().stream().map(hour -> Hour.of(hour, zone)).toList()
