@@ -7,10 +7,12 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,14 @@ import xyz.ncookie.stargazer.domain.bookmark.entity.Bookmark;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetMoonCalendarCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyEventsCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.domain.NightRecommendationDomainService;
+import xyz.ncookie.stargazer.domain.recommend.domain.NightSkyDomainService;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.MoonCalendarResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyEventsResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.domain.recommend.exception.RecommendErrorCode;
@@ -36,6 +41,7 @@ import xyz.ncookie.stargazer.domain.recommend.model.ClosedPeriod;
 import xyz.ncookie.stargazer.domain.recommend.model.LightCondition;
 import xyz.ncookie.stargazer.domain.recommend.model.MoonNight;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
+import xyz.ncookie.stargazer.domain.recommend.model.NightSky;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceGuide;
 import xyz.ncookie.stargazer.domain.recommend.model.PlaceLink;
 import xyz.ncookie.stargazer.domain.recommend.model.PlacePoint;
@@ -45,6 +51,8 @@ import xyz.ncookie.stargazer.domain.recommend.model.PlaceType;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 import xyz.ncookie.stargazer.domain.recommend.model.TravelEstimate;
 import xyz.ncookie.stargazer.domain.recommend.model.WeekOutlook;
+import xyz.ncookie.stargazer.domain.skyevent.domain.SkyEventDomainService;
+import xyz.ncookie.stargazer.domain.skyevent.model.SkyEvent;
 import xyz.ncookie.stargazer.domain.spot.domain.ObservationSpotDomainService;
 import xyz.ncookie.stargazer.domain.spot.entity.ObservationSpot;
 import xyz.ncookie.stargazer.domain.skylight.domain.SkyLightDomainService;
@@ -72,6 +80,8 @@ public class NightRecommendationApplicationService {
 	private static final int MOON_CALENDAR_DAYS = 42;
 
 	private final NightRecommendationDomainService nightRecommendationDomainService;
+	private final NightSkyDomainService nightSkyDomainService;
+	private final SkyEventDomainService skyEventDomainService;
 	private final WeatherDomainService weatherDomainService;
 	private final SkyLightDomainService skyLightDomainService;
 	private final BookmarkDomainService bookmarkDomainService;
@@ -81,6 +91,8 @@ public class NightRecommendationApplicationService {
 
 	public NightRecommendationApplicationService(
 		NightRecommendationDomainService nightRecommendationDomainService,
+		NightSkyDomainService nightSkyDomainService,
+		SkyEventDomainService skyEventDomainService,
 		WeatherDomainService weatherDomainService,
 		SkyLightDomainService skyLightDomainService,
 		BookmarkDomainService bookmarkDomainService,
@@ -89,6 +101,8 @@ public class NightRecommendationApplicationService {
 		Clock clock
 	) {
 		this.nightRecommendationDomainService = nightRecommendationDomainService;
+		this.nightSkyDomainService = nightSkyDomainService;
+		this.skyEventDomainService = skyEventDomainService;
 		this.weatherDomainService = weatherDomainService;
 		this.skyLightDomainService = skyLightDomainService;
 		this.bookmarkDomainService = bookmarkDomainService;
@@ -128,8 +142,13 @@ public class NightRecommendationApplicationService {
 				recommendation.travel(), command.maxTravelMinutes()))
 			.toList();
 
+		List<SkyEvent> events = eventsOn(date);
 		List<NightRecommendationResponse.Place> places = nightRecommendationDomainService.rank(withinReach).stream()
-			.map(recommendation -> NightRecommendationResponse.Place.of(recommendation, ZONE))
+			.map(recommendation -> NightRecommendationResponse.Place.of(
+				recommendation,
+				nightSkyDomainService.nightSky(
+					recommendation.place().latitude(), recommendation.place().longitude(), date, ZONE, events),
+				ZONE))
 			.toList();
 
 		return new NightRecommendationResponse(
@@ -176,7 +195,10 @@ public class NightRecommendationApplicationService {
 			command.policy(),
 			command.maxTravelMinutes(),
 			nightRecommendationDomainService.bestLevelByNight(nightsByPlace),
-			nightRecommendationDomainService.goodCountByNight(nightsByPlace)
+			nightRecommendationDomainService.goodCountByNight(nightsByPlace),
+			skyEventDomainService.findBetween(tonight, tonight.plusDays(SELECTABLE_DAYS)).stream()
+				.collect(Collectors.groupingBy(SkyEvent::night)),
+			ZONE
 		);
 	}
 
@@ -207,9 +229,37 @@ public class NightRecommendationApplicationService {
 	 * 한 좌표에서 본 앞으로 6주의 달. 예보를 보지 않으므로 날씨가 닿지 않는 날까지 계획할 수 있다.
 	 */
 	public MoonCalendarResponse moonCalendarAt(GetMoonCalendarCommand command) {
+		LocalDate tonight = tonight();
 		List<MoonNight> nights = nightRecommendationDomainService.moonNights(
-			command.latitude(), command.longitude(), tonight(), MOON_CALENDAR_DAYS, ZONE);
-		return MoonCalendarResponse.of(command.latitude(), command.longitude(), nights, ZONE);
+			command.latitude(), command.longitude(), tonight, MOON_CALENDAR_DAYS, ZONE);
+		List<NightSky> skies = skiesOf(command.latitude(), command.longitude(), tonight, MOON_CALENDAR_DAYS);
+		LocalDate milkyWayNext = nightSkyDomainService
+			.nextMilkyWayNight(command.latitude(), command.longitude(), tonight, ZONE)
+			.orElse(null);
+		return MoonCalendarResponse.of(command.latitude(), command.longitude(), nights, skies, milkyWayNext, ZONE);
+	}
+
+	/**
+	 * 오늘 밤부터 다가오는 천문 현상. 위치를 보내면 그 자리에서 복사점이나 월식이 보이는 구간과 그 밤의 달을 함께 준다.
+	 * 예보를 보지 않으므로 날씨가 닿지 않는 날의 현상도 미리 볼 수 있다.
+	 */
+	public SkyEventsResponse eventsAt(GetSkyEventsCommand command) {
+		LocalDate tonight = tonight();
+		LocalDate forecastEnd = tonight.plusDays(SELECTABLE_DAYS);
+		List<SkyEventsResponse.Item> items = skyEventDomainService.findFrom(tonight).stream()
+			.map(event -> {
+				boolean withinForecast = event.night().isBefore(forecastEnd);
+				if (!command.hasLocation()) {
+					return SkyEventsResponse.Item.of(event, withinForecast, ZONE);
+				}
+				return SkyEventsResponse.Item.located(
+					nightSkyDomainService.nightEvent(event, command.latitude(), command.longitude(), ZONE),
+					nightSkyDomainService.nightMoon(command.latitude(), command.longitude(), event.night(), ZONE),
+					withinForecast,
+					ZONE);
+			})
+			.toList();
+		return SkyEventsResponse.of(tonight, command.latitude(), command.longitude(), items);
 	}
 
 	/**
@@ -238,7 +288,7 @@ public class NightRecommendationApplicationService {
 			return outlookOf(place, light, forecast, tonight, policy);
 		} catch (WeatherException e) {
 			log.warn("예보를 받지 못해 이번 주 밤을 비워 둡니다. place={}", place.name());
-			return new WeekOutlook(place, light, List.of(), null, null);
+			return new WeekOutlook(place, light, List.of(), null, null, List.of());
 		}
 	}
 
@@ -247,7 +297,22 @@ public class NightRecommendationApplicationService {
 	) {
 		List<NightAssessment> nights = nightRecommendationDomainService.assessNights(
 			place.latitude(), place.longitude(), tonight, SELECTABLE_DAYS, ZONE, light, forecast, policy);
-		return new WeekOutlook(place, light, nights, forecast.source(), forecast.issuedAt());
+		List<NightSky> skies = skiesOf(place.latitude(), place.longitude(), tonight, SELECTABLE_DAYS);
+		return new WeekOutlook(place, light, nights, forecast.source(), forecast.issuedAt(), skies);
+	}
+
+	/** 한 자리에서 본 from부터 days 밤의 하늘. 날씨와 상관없는 은하수와 현상이다 */
+	private List<NightSky> skiesOf(double latitude, double longitude, LocalDate from, int days) {
+		Map<LocalDate, List<SkyEvent>> events = skyEventDomainService.findBetween(from, from.plusDays(days)).stream()
+			.collect(Collectors.groupingBy(SkyEvent::night));
+		return from.datesUntil(from.plusDays(days))
+			.map(date -> nightSkyDomainService.nightSky(
+				latitude, longitude, date, ZONE, events.getOrDefault(date, List.of())))
+			.toList();
+	}
+
+	private List<SkyEvent> eventsOn(LocalDate date) {
+		return skyEventDomainService.findBetween(date, date.plusDays(1));
 	}
 
 	/**

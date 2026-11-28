@@ -19,14 +19,17 @@ import xyz.ncookie.stargazer.domain.recommend.application.NightRecommendationApp
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetMoonCalendarCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetNightRecommendationCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyCommand;
+import xyz.ncookie.stargazer.domain.recommend.application.dto.GetSkyEventsCommand;
 import xyz.ncookie.stargazer.domain.recommend.application.dto.GetWeekOutlookCommand;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetMoonCalendarRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetNightRecommendationRequest;
+import xyz.ncookie.stargazer.domain.recommend.dto.request.GetSkyEventsRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetSkyRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.request.GetWeekOutlookRequest;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.MoonCalendarResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightSummaryResponse;
+import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyEventsResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.SkyResponse;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.WeekOutlookResponse;
 import xyz.ncookie.stargazer.global.security.principal.MemberPrincipal;
@@ -110,6 +113,16 @@ public class NightRecommendationController {
 	@GetMapping("/moon")
 	public MoonCalendarResponse getMoon(@Valid @ModelAttribute GetMoonCalendarRequest request) {
 		return nightRecommendationApplicationService.moonCalendarAt(GetMoonCalendarCommand.from(request));
+	}
+
+	@Operation(
+		summary = "다가오는 천문 현상",
+		description = "오늘 밤부터 다가오는 유성우와 월식을 보라고 권하는 밤의 날짜순으로 돌려준다. lat, lon을 보내면 그 자리에서 "
+			+ "복사점이나 월식이 보이는 구간과 그 밤의 달을 함께 준다. 예보를 보지 않는다. 인증 없이 쓸 수 있다."
+	)
+	@GetMapping("/events")
+	public SkyEventsResponse getEvents(@Valid @ModelAttribute GetSkyEventsRequest request) {
+		return nightRecommendationApplicationService.eventsAt(GetSkyEventsCommand.from(request));
 	}
 
 	@Operation(

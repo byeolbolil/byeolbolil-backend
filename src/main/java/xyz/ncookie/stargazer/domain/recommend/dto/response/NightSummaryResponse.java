@@ -1,6 +1,7 @@
 package xyz.ncookie.stargazer.domain.recommend.dto.response;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse.Criteria;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationLevel;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
+import xyz.ncookie.stargazer.domain.skyevent.model.SkyEvent;
 
 @Schema(description = "오늘 밤부터 7일의 밤마다 후보 가운데 가장 좋은 등급과 별 보기 좋은 곳의 수")
 public record NightSummaryResponse(
@@ -27,6 +29,7 @@ public record NightSummaryResponse(
 	/**
 	 * @param bestLevels 밤마다 가장 좋은 등급. 평가한 장소가 없는 밤은 들어 있지 않다
 	 * @param goodCounts 밤마다 별 보기 좋은 곳(GOOD 이상)의 수. 평가한 장소가 없는 밤은 들어 있지 않다
+	 * @param events     밤마다 보라고 권하는 천문 현상. 현상이 없는 밤은 들어 있지 않다
 	 */
 	public static NightSummaryResponse of(
 		LocalDate startDate,
@@ -34,13 +37,15 @@ public record NightSummaryResponse(
 		RecommendationPolicy policy,
 		Integer maxTravelMinutes,
 		Map<LocalDate, RecommendationLevel> bestLevels,
-		Map<LocalDate, Integer> goodCounts
+		Map<LocalDate, Integer> goodCounts,
+		Map<LocalDate, List<SkyEvent>> events,
+		ZoneId zone
 	) {
 		return new NightSummaryResponse(
 			startDate.toString(),
 			Criteria.of(policy, maxTravelMinutes),
 			startDate.datesUntil(startDate.plusDays(days))
-				.map(date -> Night.of(date, bestLevels.get(date), goodCounts.get(date)))
+				.map(date -> Night.of(date, bestLevels.get(date), goodCounts.get(date), events.getOrDefault(date, List.of()), zone))
 				.toList()
 		);
 	}
@@ -55,10 +60,18 @@ public record NightSummaryResponse(
 		String level,
 		@Schema(description = "그 밤에 별 보기 좋은 곳(STRONG, GOOD)의 수. 같은 조건으로 부른 날짜별 밤 추천에서 "
 			+ "그 등급인 장소의 수와 같다. 평가한 장소가 없으면 빠진다", example = "8")
-		Integer goodCount
+		Integer goodCount,
+		@Schema(description = "그 밤을 보라고 권하는 천문 현상. 자리를 정하지 않은 값이라 보이는 구간은 없다. 없으면 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<NightSkyViews.Event> events
 	) {
-		static Night of(LocalDate date, RecommendationLevel level, Integer goodCount) {
-			return new Night(date.toString(), level != null ? level.name() : null, goodCount);
+		static Night of(LocalDate date, RecommendationLevel level, Integer goodCount, List<SkyEvent> events, ZoneId zone) {
+			return new Night(
+				date.toString(),
+				level != null ? level.name() : null,
+				goodCount,
+				events.stream().map(event -> NightSkyViews.Event.of(event, zone)).toList()
+			);
 		}
 	}
 }

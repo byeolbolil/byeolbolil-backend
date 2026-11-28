@@ -13,6 +13,7 @@ import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationRe
 import xyz.ncookie.stargazer.domain.recommend.dto.response.NightRecommendationResponse.Window;
 import xyz.ncookie.stargazer.domain.recommend.model.CandidatePlace;
 import xyz.ncookie.stargazer.domain.recommend.model.NightAssessment;
+import xyz.ncookie.stargazer.domain.recommend.model.NightSky;
 import xyz.ncookie.stargazer.domain.recommend.model.RecommendationPolicy;
 import xyz.ncookie.stargazer.domain.recommend.model.WeekOutlook;
 
@@ -98,7 +99,7 @@ public record WeekOutlookResponse(
 				outlook.forecastIssuedAt() != null
 					? outlook.forecastIssuedAt().atZone(zone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 					: null,
-				outlook.nights().stream().map(night -> Night.of(night, zone)).toList()
+				outlook.nights().stream().map(night -> Night.of(night, outlook.skyOn(night.date()), zone)).toList()
 			);
 		}
 	}
@@ -120,10 +121,15 @@ public record WeekOutlookResponse(
 		double moonBrightness,
 		@Schema(description = "그 밤의 달 모양과 뜨고 지는 시각")
 		Moon moon,
+		@Schema(description = "은하수 중심이 보이는 시간. 날씨는 보지 않는다. 그 밤에 뜨지 않으면 빠진다")
+		NightSkyViews.MilkyWay milkyWay,
+		@Schema(description = "그 밤을 보라고 권하는 천문 현상과 이 장소에서 보이는 구간. 없으면 빠진다")
+		@JsonInclude(JsonInclude.Include.NON_EMPTY)
+		List<NightSkyViews.Event> events,
 		@Schema(description = "해가 진 뒤부터 뜨기 전까지의 시간별 조건. 오늘 밤은 이미 지난 시간이 빠진다")
 		List<Hour> hours
 	) {
-		static Night of(NightAssessment night, ZoneId zone) {
+		static Night of(NightAssessment night, NightSky sky, ZoneId zone) {
 			return new Night(
 				night.date().toString(),
 				night.level().name(),
@@ -132,6 +138,8 @@ public record WeekOutlookResponse(
 				night.bestWindow() != null ? Window.of(night.bestWindow(), zone) : null,
 				NightRecommendationResponse.Place.moonBrightness(night),
 				Moon.of(night.moon(), zone),
+				NightSkyViews.milkyWayOf(sky, zone),
+				NightSkyViews.eventsOf(sky, zone),
 				night.hours().stream().map(hour -> Hour.of(hour, zone)).toList()
 			);
 		}

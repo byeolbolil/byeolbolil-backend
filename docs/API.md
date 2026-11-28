@@ -260,6 +260,7 @@ Set-Cookie: refresh_token=eyJ...; Path=/; Max-Age=1209600; Secure; HttpOnly; Sam
 | GET | `/api/v1/recommendations/week/mine` | 선택 | 저장한 장소들의 이번 주 밤 |
 | GET | `/api/v1/recommendations/sky` | 없음 | 한 좌표의 하늘 밝기 |
 | GET | `/api/v1/recommendations/moon` | 없음 | 한 좌표의 6주 달력 |
+| GET | `/api/v1/recommendations/events` | 없음 | 다가오는 유성우와 월식 |
 | GET | `/api/v1/spots` | 없음 | 관측지와 천문대 목록 |
 | GET | `/api/v1/geocode/search` | 없음 | 이름으로 장소 찾기 |
 | GET | `/api/v1/geocode/reverse` | 없음 | 좌표의 지역 이름 |
@@ -360,6 +361,8 @@ GET /api/v1/recommendations/nights/{date}
 | `moon.illuminatedFraction` | number | 달에서 밝게 보이는 면의 비율. 삭 0, 보름 1. 그 밤 자정의 값이다 |
 | `moon.waxing` | boolean | 차오르는 중이면 `true`, 기우는 중이면 `false`. 북반구에서는 차오르는 달의 오른쪽이 밝다 |
 | `moon.rise`, `moon.set` | string | 그날 정오부터 다음 날 정오 사이에 달이 뜨고 지는 시각. 분 단위다. 그 사이에 뜨거나 지지 않으면 빠진다 |
+| `milkyWay` | object | 이 장소에서 은하수 중심이 보이는 시간. 그 밤에 뜨지 않으면 빠진다. [은하수와 천문 현상](#은하수와-천문-현상) |
+| `events` | array | 그 밤을 보라고 권하는 유성우와 월식, 이 장소에서 보이는 구간. 현상이 없는 밤이면 빠진다. [은하수와 천문 현상](#은하수와-천문-현상) |
 | `forecastSource` | string | `OPEN_METEO` 또는 `MET_NORWAY` |
 | `forecastIssuedAt` | string | 예보가 만들어진 시각. 모르면 빠진다 |
 | `hours` | array | 해가 진 뒤부터 뜨기 전까지의 한 시간 칸 |
@@ -538,6 +541,7 @@ GET /api/v1/recommendations/nights
 | `nights[].date` | string | 밤이 시작하는 날짜 |
 | `nights[].level` | string | 그 밤의 후보 가운데 가장 좋은 등급. 평가한 장소가 없으면 빠진다 |
 | `nights[].goodCount` | integer | 그 밤에 `STRONG`이나 `GOOD`인 후보의 수. 같은 쿼리의 `/nights/{date}`에서 그 등급인 장소의 수와 같다. `level`이 빠지면 같이 빠진다 |
+| `nights[].events` | array | 그 밤을 보라고 권하는 유성우와 월식. 자리를 정하지 않은 값이라 `visible`, `moonless`가 없다. 현상이 없는 밤이면 빠진다 |
 
 `level`이 빠지는 경우는 셋이다. 예보가 그 밤까지 닿지 않을 때, 예보를 받지 못했을 때, 이동 시간 한도 안에 후보가
 하나도 없을 때다. 어느 경우에도 오류가 아니라 200이 온다. 화면에서는 그 밤의 표시를 비워 둔다.
@@ -606,7 +610,7 @@ GET /api/v1/recommendations/week/mine
 | `nights` | array | 날짜순의 밤. 예보가 닿지 않는 밤은 빠져서 7개보다 적을 수 있다. 예보를 받지 못한 장소는 빈 배열이다 |
 
 `nights`의 항목은 `date`와, 밤 추천의 장소 항목에 있는 `level`, `pattern`, `notes`, `bestWindow`, `moonBrightness`,
-`moon`, `hours`다. 뜻과 빠지는 조건도 같다.
+`moon`, `milkyWay`, `events`, `hours`다. 뜻과 빠지는 조건도 같다.
 
 ```
 GET /api/v1/recommendations/week?lat=37.62633&lon=128.73942
@@ -759,14 +763,120 @@ GET /api/v1/recommendations/moon?lat=37.5665&lon=126.978
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `startDate` | string | 첫 밤의 날짜 |
+| `milkyWayNextDate` | string 또는 null | 오늘 밤부터 처음으로 은하수 중심이 보이는 밤. 오늘 밤에 보이면 `startDate`와 같다. 겨울에 "언제부터 다시 보이는지"를 적는 데 쓴다. 한 해 안에 보이지 않는 자리면 `null` |
 | `nights[].date` | string | 밤이 시작하는 날짜 |
 | `nights[].moon` | object | 밤 추천의 `moon`과 같다 |
 | `nights[].dark` | object | 하늘이 어두운 구간(태양 고도 -12° 이하). 밤 추천에서 `dark`가 `true`인 칸과 같은 기준이다. 그만큼 어두워지지 않는 곳과 날이면 빠진다 |
 | `nights[].moonless` | array | `dark` 가운데 달이 지평선 아래에 있는 구간. 시간순이다. 달이 밤새 떠 있으면 빈 배열이고, 달이 밤중에 잠깐 떴다 지면 둘이다 |
 | `nights[].moonlessMinutes` | integer | `moonless` 구간 길이의 합(분). 응답에 적힌 시각으로 셈한 값이다 |
+| `nights[].milkyWay` | object | 밤 추천의 `milkyWay`와 같다. 그 밤에 뜨지 않으면 빠진다 |
+| `nights[].events` | array | 밤 추천의 `events`와 같다. 현상이 없는 밤이면 빠진다 |
 
 `moonless`의 끝이 달이 뜨고 지는 때이면 `moon.rise`, `moon.set`과 같은 시각이 온다. 가는 초승달도 떠 있으면 있는
 것으로 센다. 달이 얼마나 밝은지는 `moon.illuminatedFraction`으로 따로 보여 준다.
+
+### 은하수와 천문 현상
+
+밤 추천, 이번 주, 달력이 같은 모양으로 싣는 두 항목이다. 날씨는 보지 않고 해, 달, 별의 위치만 계산한다. 등급과
+점수에는 넣지 않는다. 은하수가 뜨지 않는 밤도 별 보기에는 좋은 밤이기 때문이다. 숫자의 근거는 `docs/SCORING.md`의
+"은하수와 천문 현상"에 있다.
+
+`milkyWay`는 은하수 중심(궁수자리 A*)이 보이는 시간이다. 하늘이 완전히 어둡고(태양 고도 -18° 아래) 중심이 고도 10°
+위에 있는 구간이다. 한국에서는 대략 2월 새벽부터 10월 초저녁까지 보이고, 11월부터 1월까지는 빠진다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `milkyWay.visible` | array | 보이는 구간. 항목은 `start`, `end`이고 분 단위다. 시간순이고 하나 이상이다 |
+| `milkyWay.moonless` | array | `visible` 가운데 달이 지평선 아래에 있는 구간. 그동안 달이 내내 떠 있으면 빈 배열이다 |
+
+`events`의 항목은 천문 현상 하나다. 싣는 것은 한국천문연구원이 해마다 내는 "주목할 천문현상"의 유성우와 월식이고,
+보라고 권하는 밤도 천문연이 권한 밤이다. 목록은 해마다 손으로 옮겨 적으므로 다음 해의 현상은 천문연 발표(12월 말)
+뒤에 생긴다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id` | string | 현상마다 다른 이름. 예: `2026-geminids` |
+| `type` | string | `METEOR_SHOWER` 유성우, `LUNAR_ECLIPSE` 월식 |
+| `name` | string | 화면에 적는 이름. 예: `쌍둥이자리 유성우` |
+| `peak` | string | 유성우는 극대 예상 시각, 월식은 가장 깊이 가려지는 시각. 분 단위다 |
+| `zhr` | integer | 유성우만. 이상적인 조건(복사점이 천정에 있고 맨눈 한계등급 6.5)에서 한 시간에 보일 유성의 수로, IMO 달력의 값이다. 실제로 보이는 수는 이보다 훨씬 적으니 "시간당 몇 개"로 바꿔 적지 않는다 |
+| `eclipseKind` | string | 월식만. `TOTAL`, `PARTIAL`, `PENUMBRAL` |
+| `start`, `end` | string | 월식만. 반영월식은 반영식, 그 밖에는 부분식의 시작과 끝 |
+| `visible` | array | 자리를 아는 응답에만. 유성우는 하늘이 완전히 어둡고 복사점이 고도 10° 위에 있는 구간, 월식은 월식 가운데 달이 떠 있는 구간이다. 그 자리에서 보이지 않으면 빈 배열이다 |
+| `moonless` | array | 자리를 아는 응답의 유성우에만. `visible` 가운데 달이 지평선 아래에 있는 구간 |
+
+```json
+"milkyWay": {
+  "visible": [{ "start": "2026-07-14T21:43:00+09:00", "end": "2026-07-15T01:57:00+09:00" }],
+  "moonless": [{ "start": "2026-07-14T21:43:00+09:00", "end": "2026-07-15T01:57:00+09:00" }]
+},
+"events": [
+  {
+    "id": "2026-geminids",
+    "type": "METEOR_SHOWER",
+    "name": "쌍둥이자리 유성우",
+    "peak": "2026-12-14T23:00:00+09:00",
+    "zhr": 150,
+    "visible": [{ "start": "2026-12-14T19:32:00+09:00", "end": "2026-12-15T06:05:00+09:00" }],
+    "moonless": [{ "start": "2026-12-14T21:52:00+09:00", "end": "2026-12-15T06:05:00+09:00" }]
+  }
+]
+```
+
+서울에서 본 값이고, 두 항목은 서로 다른 밤의 것이다. `SkyEventsApiTest`가 이 값을 고정한다.
+
+### 다가오는 천문 현상
+
+```
+GET /api/v1/recommendations/events?lat=37.5665&lon=126.978
+```
+
+오늘 밤부터 다가오는 유성우와 월식을 보라고 권하는 밤의 날짜순으로 준다. 예보를 보지 않아서 예보가 닿지 않는 날의
+현상도 미리 알 수 있다. 목록 화면에 "곧 유성우가 온다"를 알리고, 누르면 그 밤을 여는 데 쓴다. `lat`, `lon`은 선택이고,
+둘 다 보내야 그 자리에서 보이는 구간과 그 밤의 달이 들어간다. 하나만 보내면 보내지 않은 것으로 본다. 범위를 벗어나면 400이다.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `startDate` | string | 오늘 밤의 날짜. 새벽 4시 전에는 전날이다 |
+| `latitude`, `longitude` | number | 요청한 위치. 보내지 않았으면 빠진다 |
+| `events` | array | 날짜순. 지난 현상은 없고, 목록이 끝났으면 빈 배열이다 |
+| `events[].night` | string | 보라고 권하는 밤이 시작하는 날짜 |
+| `events[].withinForecast` | boolean | 그 밤이 오늘 밤부터 7일 안에 드는지. `true`면 `/nights/{night}`로 그 밤의 추천을 열 수 있고, `false`면 달력의 그 날짜를 연다 |
+| `events[].event` | object | 위 표의 현상. 위치를 보냈으면 `visible`과 유성우의 `moonless`가 들어 있다 |
+| `events[].moon` | object | 위치를 보냈을 때만. 그 자리에서 본 그 밤의 달로, 밤 추천의 `moon`과 같다 |
+| `events[].source` | string | 값을 옮겨 온 자료 |
+
+```json
+{
+  "startDate": "2026-12-08",
+  "latitude": 37.5665,
+  "longitude": 126.978,
+  "events": [
+    {
+      "night": "2026-12-14",
+      "withinForecast": true,
+      "event": {
+        "id": "2026-geminids",
+        "type": "METEOR_SHOWER",
+        "name": "쌍둥이자리 유성우",
+        "peak": "2026-12-14T23:00:00+09:00",
+        "zhr": 150,
+        "visible": [{ "start": "2026-12-14T19:32:00+09:00", "end": "2026-12-15T06:05:00+09:00" }],
+        "moonless": [{ "start": "2026-12-14T21:52:00+09:00", "end": "2026-12-15T06:05:00+09:00" }]
+      },
+      "moon": {
+        "illuminatedFraction": 0.25,
+        "waxing": true,
+        "rise": "2026-12-15T11:36:00+09:00",
+        "set": "2026-12-14T21:52:00+09:00"
+      },
+      "source": "한국천문연구원 2026년도 주목할 천문현상(12월 14일 밤부터 15일 새벽) https://www.kasi.re.kr/... / IMO Meteor Shower Calendar 2026 ..."
+    }
+  ]
+}
+```
+
+위는 `data`의 내용이다.
 
 ## 7. 관측지
 
