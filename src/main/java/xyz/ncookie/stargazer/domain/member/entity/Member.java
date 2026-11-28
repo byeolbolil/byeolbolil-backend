@@ -19,17 +19,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // 닉네임은 겹치지 않는다. 앱이 저장 전에 검사하고, 같은 순간의 두 저장은 이 제약이 막는다.
 // 비교는 컬럼의 콜레이션(utf8mb4_unicode_ci)을 따라 대소문자를 가리지 않는다(docs/decisions.md 2026-11-28)
-@Table(name = "member", uniqueConstraints = @UniqueConstraint(name = Member.NICKNAME_UNIQUE, columnNames = "nickname"))
+// 소셜 회원은 제공자와 제공자 ID로 가리킨다. 처음 로그인이 두 번 겹쳐도 회원은 하나만 생긴다.
+// 자체 회원은 제공자 ID가 없고, MySQL은 NULL끼리는 겹친다고 보지 않으므로 이 제약에 걸리지 않는다.
+@Table(name = "member", uniqueConstraints = {
+	@UniqueConstraint(name = Member.NICKNAME_UNIQUE, columnNames = "nickname"),
+	@UniqueConstraint(name = Member.PROVIDER_UNIQUE, columnNames = {"authProvider", "providerId"})
+})
 public class Member {
 
 	public static final String NICKNAME_UNIQUE = "uk_member_nickname";
+	public static final String PROVIDER_UNIQUE = "uk_member_provider";
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(nullable = false, unique = true)
-	private String email;				// 소셜 이메일 or 자체 가입 이메일
+	// 자체 회원은 로그인 아이디라 자체 회원 사이에서 겹치지 않는다(앱이 가입할 때 검사한다).
+	// 소셜 회원은 연락처일 뿐이라 다른 제공자의 회원과 겹칠 수 있고, 카카오처럼 주지 않으면 비어 있다
+	// (docs/decisions.md 2026-11-28 "소셜 계정은 이메일이 같아도 합치지 않는다")
+	private String email;
 
 	private String password;	// 자체 회원만 사용
 

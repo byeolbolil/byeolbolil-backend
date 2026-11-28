@@ -93,8 +93,7 @@ public class AuthApplicationService {
 	public TokenDto register(@Valid RegisterRequest request) {
 
 		if (memberDomainService.isEmailDuplicated(request.email())) {
-			Member findMember = authDomainService.findByEmail(request.email());
-			throw new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED, findMember.getAuthProvider().getDesc());
+			throw new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED);
 		}
 
 		String nickname = memberDomainService.validateNewNickname(request.nickname(), null);
@@ -105,9 +104,8 @@ public class AuthApplicationService {
 		try {
 			createdMember = memberRepository.saveAndFlush(Member.local(request.email(), encodedPassword, nickname));
 		} catch (DataIntegrityViolationException e) {
-			// 검사를 지난 뒤 같은 순간에 다른 가입이 같은 이메일이나 닉네임을 가져간 경우
-			RuntimeException conflict = memberDomainService.nicknameConflictOr(e);
-			throw conflict instanceof MemberException ? conflict : new MemberException(MemberErrorCode.MEMBER_EMAIL_DUPLICATED);
+			// 검사를 지난 뒤 같은 순간에 다른 가입이 같은 닉네임을 가져간 경우
+			throw memberDomainService.nicknameConflictOr(e);
 		}
 
 		return issueTokens(createdMember.getId());

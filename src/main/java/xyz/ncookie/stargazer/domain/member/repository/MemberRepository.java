@@ -15,12 +15,10 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
 	Optional<Member> findByAuthProviderAndProviderId(AuthProvider authProvider, String providerId);
 
-	boolean existsByEmail(String email);
+	boolean existsByEmailAndAuthProvider(String email, AuthProvider authProvider);
 
 	// 비교는 컬럼의 콜레이션(운영과 테스트 모두 utf8mb4_unicode_ci)을 따라 대소문자를 가리지 않는다
 	boolean existsByNickname(String nickname);
 
 	boolean existsByNicknameAndIdNot(String nickname, Long id);
-
-	Optional<Member> findByEmail(String email);
 }
