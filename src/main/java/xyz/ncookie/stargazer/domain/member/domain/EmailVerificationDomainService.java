@@ -38,6 +38,21 @@ public class EmailVerificationDomainService {
 
 	private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
 
+	/**
+	 * 코드를 받는 까닭. 가입 코드로 비밀번호를 바꾸거나 그 반대가 되지 않게 키를 나눈다.
+	 * 하루 발송량은 까닭과 상관없이 함께 센다.
+	 */
+	public enum Purpose {
+		SIGNUP(""),
+		PASSWORD_RESET("password-reset:");
+
+		private final String keyPrefix;
+
+		Purpose(String keyPrefix) {
+			this.keyPrefix = keyPrefix;
+		}
+	}
+
 	private final EmailCodeRedisRepository repository;
 	private final Clock clock;
 
@@ -45,8 +60,12 @@ public class EmailVerificationDomainService {
 
 	/** 새 코드를 만들어 저장하고 돌려준다. 너무 자주, 너무 많이 받으면 429, 하루 발송량을 넘으면 503이다 */
 	public String issue(String email) {
+		return issue(Purpose.SIGNUP, email);
+	}
 
-		String key = keyOf(email);
+	public String issue(Purpose purpose, String email) {
+
+		String key = keyOf(purpose, email);
 		if (!repository.startCooldown(key, COOLDOWN)) {
 			throw new MemberException(EmailCodeErrorCode.TOO_SOON);
 		}
@@ -65,15 +84,23 @@ public class EmailVerificationDomainService {
 
 	/** 메일을 보내지 못했으면 코드를 지우고 바로 다시 받을 수 있게 한다 */
 	public void cancel(String email) {
-		String key = keyOf(email);
+		cancel(Purpose.SIGNUP, email);
+	}
+
+	public void cancel(Purpose purpose, String email) {
+		String key = keyOf(purpose, email);
 		repository.deleteCode(key);
 		repository.clearCooldown(key);
 	}
 
 	/** 코드가 맞으면 지운다(한 번만 쓴다). 틀리면 400이고, 다섯 번 틀리면 코드를 지워 다시 받게 한다 */
 	public void verify(String email, String code) {
+		verify(Purpose.SIGNUP, email, code);
+	}
 
-		String key = keyOf(email);
+	public void verify(Purpose purpose, String email, String code) {
+
+		String key = keyOf(purpose, email);
 		String saved = repository.findCode(key);
 		if (saved == null) {
 			throw new MemberException(EmailCodeErrorCode.CODE_EXPIRED);
@@ -89,7 +116,12 @@ public class EmailVerificationDomainService {
 		repository.deleteCode(key);
 	}
 
-	static String keyOf(String email) {
+	/** 이메일을 키로 쓸 때의 꼴. 앞뒤 공백을 떼고 소문자로 바꾼다 */
+	public static String keyOf(String email) {
 		return email == null ? "" : email.strip().toLowerCase(Locale.ROOT);
+	}
+
+	private static String keyOf(Purpose purpose, String email) {
+		return purpose.keyPrefix + keyOf(email);
 	}
 }

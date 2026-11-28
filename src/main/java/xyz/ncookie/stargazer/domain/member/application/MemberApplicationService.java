@@ -137,9 +137,11 @@ public class MemberApplicationService {
 		return member.getId();
 	}
 
+	/** 북마크, 회원, 그 회원의 모든 기기의 리프레시 토큰을 지운다 */
 	private void delete(Member member) {
 
 		bookmarkDomainService.deleteAllByMemberId(member.getId());
 		memberDomainService.delete(member);
+		refreshTokenRedisRepository.deleteAllOf(member.getId());
 	}
 }

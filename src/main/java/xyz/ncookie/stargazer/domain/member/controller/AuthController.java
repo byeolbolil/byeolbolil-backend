@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import xyz.ncookie.stargazer.domain.member.application.AuthApplicationService;
 import xyz.ncookie.stargazer.domain.member.dto.request.LoginRequest;
 import xyz.ncookie.stargazer.domain.member.dto.request.RegisterRequest;
+import xyz.ncookie.stargazer.domain.member.dto.request.ResetPasswordRequest;
 import xyz.ncookie.stargazer.domain.member.dto.request.SendEmailCodeRequest;
 import xyz.ncookie.stargazer.domain.member.dto.response.AuthTokenResponse;
 import xyz.ncookie.stargazer.domain.member.dto.TokenDto;
@@ -161,6 +162,39 @@ public class AuthController {
 		return ResponseEntity.ok()
 			.header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
 			.build();
+	}
+
+	@Operation(
+		summary = "비밀번호 재설정 코드 받기",
+		description = "이메일 회원이면 여섯 자리 재설정 코드를 보냅니다. 가입 여부를 드러내지 않도록 이메일 회원이 없어도 같은 200입니다. "
+			+ "소셜 로그인으로만 쓰는 이메일이면 어느 서비스로 가입했는지 알려 주는 메일을 보냅니다. 발송 제한은 가입 인증 코드와 같습니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "요청을 받음 (메일을 보냈는지는 알려 주지 않음)"),
+		@ApiResponse(responseCode = "400", description = "이메일 형식 오류"),
+		@ApiResponse(responseCode = "429", description = "너무 자주 또는 너무 많이 요청함"),
+		@ApiResponse(responseCode = "503", description = "메일을 보내지 못함")
+	})
+	@PostMapping("/password-reset/code")
+	public void sendPasswordResetCode(
+		@RequestBody @Valid SendEmailCodeRequest request
+	) {
+		authApplicationService.sendPasswordResetCode(request.email());
+	}
+
+	@Operation(
+		summary = "비밀번호 재설정",
+		description = "재설정 코드를 확인하고 새 비밀번호를 저장합니다. 모든 기기의 로그인이 끊기므로 새 비밀번호로 다시 로그인합니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "바꿈"),
+		@ApiResponse(responseCode = "400", description = "코드가 틀렸거나 만료됨, 새 비밀번호가 규칙에 어긋남")
+	})
+	@PostMapping("/password-reset")
+	public void resetPassword(
+		@RequestBody @Valid ResetPasswordRequest request
+	) {
+		authApplicationService.resetPassword(request.email(), request.code(), request.newPassword());
 	}
 
 	private ResponseEntity<AuthTokenResponse> tokenResponse(TokenDto tokenDto) {
