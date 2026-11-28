@@ -119,6 +119,10 @@ Cross-domain communication always goes through Application-layer orchestration �
   into the `data.sql` rows by asking YouTube's oEmbed endpoint for each title and channel. Spots whose road closes in winter
   carry this season's `closed_from`/`closed_until` in `data.sql`; they are left out of the recommendation candidates
   for nights in that period (bookmarked places are still evaluated). Update the dates every season.
+- `skyevent/` — dated sky events (meteor showers and lunar eclipses) from `src/main/resources/skyevents/sky_events.csv`,
+  read into memory at startup (`SkyEventCatalog`). The list holds what the Korea Astronomy and Space Science Institute
+  (KASI) publishes as its yearly "주목할 천문현상", with radiants and ZHR from the IMO Meteor Shower Calendar. Add next
+  year's rows every December once KASI publishes; when the list runs out, events simply stop appearing.
 - `member/` — auth/account (OAuth2 + JWT), profile.
 - `bookmark/` — CRUD for SPOT-type or CUSTOM-type saved locations.
 - `recommend/` — tonight's recommendation. `engine/NightAssessmentEngine` evaluates one night per place from the
@@ -128,7 +132,11 @@ Cross-domain communication always goes through Application-layer orchestration �
   `/week?lat&lon` evaluates seven nights for any coordinate and `/week/mine` does it for every bookmark, each from
   one forecast per place and without travel time. `/sky?lat&lon` returns only the sky brightness of a point (no
   forecast) for the map's tap-anywhere card. `/moon?lat&lon` returns six weeks of moon phase, rise/set and moonless dark
-  hours for a point (no forecast, `engine/MoonCalendar`) for the header's moon calendar sheet. Thresholds cite `docs/SCORING.md` at the point of use.
+  hours for a point (no forecast, `engine/MoonCalendar`) for the header's moon calendar sheet. Night responses also carry
+  `milkyWay` (when the galactic centre is up in a fully dark sky) and `events` (that night's sky events with the radiant
+  or eclipse times at the place), computed by `NightSkyDomainService` with `engine/HorizontalCoordinates` (Meeus
+  sidereal time and coordinate transforms) and `engine/TargetVisibility`; neither enters the level or score.
+  `/events?lat&lon` lists upcoming sky events. Thresholds cite `docs/SCORING.md` at the point of use.
   Light pollution enters as a `LightCondition` of three values, none of them a Bortle class: sky brightness (ALR, the
   all-sky artificial brightness as a multiple of the natural sky, Duriscoe et al. 2018) and the mean radiance within
   1 km, both looked up by coordinate from `skylight/provider/SkyBrightnessGrid` (through `SkyLightDomainService`)
