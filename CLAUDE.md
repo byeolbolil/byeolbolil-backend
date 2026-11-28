@@ -196,6 +196,21 @@ they appear as untracked local files.
   - `git push` needs no go-ahead since 2026-11-27: push `dev` when a unit of work is merged (a backend push to `dev`
     deploys, see Infrastructure). `gh pr create` and other ways of publishing code still need the user's go-ahead.
   - Never commit secrets or the gitignored `infra/` files described above.
+  - **Several sessions may run at once (since 2026-11-28).** The user often works on more than one issue in parallel,
+    each in its own Claude session. Sessions opened on `F:/stargazer` share one working tree, so a branch checkout,
+    a `git add`, or a test run in one session picks up the other's half-done edits. To keep them apart:
+    - Do each unit of work in its own git worktree (start the session with `--worktree`, or enter one before the
+      first edit), on a branch cut from `dev`. Never switch branches in the main `F:/stargazer` checkout, and never
+      edit there while another session might be using it.
+    - At the start, run `git worktree list` and `git status`. Changes you did not make belong to another session:
+      leave them alone (no checkout, stash, reset, or commit of those files) and mention them to the user.
+    - Stage files by name, never `git add -A` or `git add .`, and check `git diff --cached` before each commit.
+    - Merging into `dev` and pushing are the shared steps. Fetch first, merge the latest `dev` into your branch and
+      rerun the tests there, then merge with `--no-ff` and push right away. If the push is rejected, fetch and merge
+      again; never force-push `dev`.
+    - Expect conflicts in shared files (`data.sql`, `docs/API.md`, `docs/decisions.md`, `docs/ROADMAP.md`,
+      `CLAUDE.md`): add entries at the end of a section rather than rewriting nearby lines.
+    - The same applies to the frontend repo at `F:/stargazer-front` (one dev server port per worktree).
 - **Tests come with every feature.** Write unit tests for domain logic, including boundary values, and
   `@SpringBootTest` integration tests for API paths, using Testcontainers for MySQL and Redis. Stub external APIs
   (weather, geocoding) with recorded responses, and never call them from tests. Make `./gradlew test` pass
