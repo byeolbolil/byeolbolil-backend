@@ -25,7 +25,12 @@ import xyz.ncookie.stargazer.domain.member.application.MemberApplicationService;
 import xyz.ncookie.stargazer.domain.member.application.dto.ModifyMemberCommand;
 import xyz.ncookie.stargazer.domain.member.dto.request.ModifyMemberRequest;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberInfoResponse;
+import jakarta.validation.Valid;
+import xyz.ncookie.stargazer.domain.member.application.AuthApplicationService;
+import xyz.ncookie.stargazer.domain.member.dto.TokenDto;
+import xyz.ncookie.stargazer.domain.member.dto.request.ChangePasswordRequest;
 import xyz.ncookie.stargazer.domain.member.dto.request.WithdrawMemberRequest;
+import xyz.ncookie.stargazer.domain.member.dto.response.AuthTokenResponse;
 import xyz.ncookie.stargazer.domain.member.dto.response.MemberValidationResponse;
 import xyz.ncookie.stargazer.domain.member.dto.response.WithdrawalTicketResponse;
 import xyz.ncookie.stargazer.global.security.jwt.RefreshToken;
@@ -39,6 +44,7 @@ import xyz.ncookie.stargazer.global.security.util.CookieUtil;
 public class MemberController {
 
 	private final MemberApplicationService memberApplicationService;
+	private final AuthApplicationService authApplicationService;
 	private final CookieUtil cookieUtil;
 
 	@Operation(
@@ -95,6 +101,36 @@ public class MemberController {
 	) {
 
 		return memberApplicationService.modifyMyInfo(principal.getMemberId(), ModifyMemberCommand.from(request));
+	}
+
+	@Operation(
+		summary = "비밀번호 변경",
+		description = "지금 비밀번호를 확인하고 새 비밀번호로 바꿉니다. 다른 기기의 로그인은 모두 끊기고, 이 요청에는 로그인처럼 "
+			+ "새 액세스 토큰과 리프레시 토큰(쿠키)을 줍니다. 소셜 회원은 비밀번호가 없어 400입니다."
+	)
+	@ApiResponses(value = {
+		@ApiResponse(
+			responseCode = "200",
+			description = "바꿈",
+			content = @Content(schema = @Schema(implementation = AuthTokenResponse.class))
+		),
+		@ApiResponse(responseCode = "400", description = "지금 비밀번호가 틀렸거나, 새 비밀번호가 규칙에 어긋나거나, 소셜 회원임"),
+		@ApiResponse(responseCode = "401", description = "인증 실패 (토큰이 유효하지 않거나 만료됨)")
+	})
+	@SecurityRequirement(name = "bearer-jwt")
+	@PatchMapping("/me/password")
+	public ResponseEntity<AuthTokenResponse> changePassword(
+		@Parameter(hidden = true)
+		@AuthenticationPrincipal MemberPrincipal principal,
+		@RequestBody @Valid ChangePasswordRequest request
+	) {
+
+		TokenDto tokens = authApplicationService.changePassword(principal.getMemberId(), request.currentPassword(),
+			request.newPassword());
+
+		return ResponseEntity.ok()
+			.header(HttpHeaders.SET_COOKIE, cookieUtil.createRefreshTokenCookie(tokens.refreshToken()).toString())
+			.body(new AuthTokenResponse(tokens.accessToken()));
 	}
 
 	@Operation(

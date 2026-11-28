@@ -75,6 +75,11 @@ public class Member {
 		this.nickname = nickname;
 	}
 
+	/** 인코딩한 비밀번호를 받는다 */
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
+	}
+
 	public static Member local(String email, String password, String nickname) {
 		return Member.builder()
 			.email(email)

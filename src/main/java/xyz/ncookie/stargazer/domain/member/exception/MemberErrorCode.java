@@ -18,6 +18,9 @@ public enum MemberErrorCode implements ErrorCode {
 	ADMIN_ONLY(HttpStatus.FORBIDDEN, "관리자만 할 수 있습니다."),
 	// 탈퇴. 비밀번호가 틀려도 401이 아니다. 클라이언트는 401을 받으면 토큰을 재발급하기 때문이다
 	PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "비밀번호가 맞지 않습니다."),
+	NO_PASSWORD(HttpStatus.BAD_REQUEST, "소셜 로그인 회원은 비밀번호가 없습니다."),
+	// 같은 이메일로 여러 번 틀리면 잠시 막는다(docs/decisions.md 2026-11-28 "이메일 로그인은 다섯 번 틀리면 15분 막는다")
+	TOO_MANY_LOGIN_FAILURES(HttpStatus.TOO_MANY_REQUESTS, "로그인을 여러 번 실패했습니다. 15분 뒤에 다시 시도해 주세요."),
 	WITHDRAWAL_NEEDS_PROVIDER(HttpStatus.BAD_REQUEST, "소셜 로그인 회원은 가입한 서비스에 다시 로그인해서 탈퇴합니다."),
 	WITHDRAWAL_NEEDS_PASSWORD(HttpStatus.BAD_REQUEST, "이메일로 가입한 회원은 비밀번호를 넣어 탈퇴합니다."),
 	WITHDRAWAL_REJECTED(HttpStatus.BAD_REQUEST, "탈퇴를 확인하지 못했습니다. 가입한 계정으로 다시 시도해 주세요.")
