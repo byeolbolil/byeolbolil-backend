@@ -4,13 +4,20 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import xyz.ncookie.stargazer.domain.member.application.MemberApplicationService;
 import xyz.ncookie.stargazer.domain.member.domain.MemberDomainService;
+import xyz.ncookie.stargazer.domain.member.exception.MemberException;
+import xyz.ncookie.stargazer.global.security.oauth.WithdrawalAwareAuthorizationRequestRepository;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
 import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
 import xyz.ncookie.stargazer.global.security.oauth.OAuth2UserInfoFactory;
@@ -23,8 +30,12 @@ import xyz.ncookie.stargazer.domain.member.repository.MemberRepository;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+	/** 탈퇴를 확인하지 못했을 때 실패 처리기에 넘기는 오류 코드 */
+	public static final String WITHDRAWAL_REJECTED = "withdrawal_rejected";
+
 	private final MemberRepository memberRepository;
 	private final MemberDomainService memberDomainService;
+	private final MemberApplicationService memberApplicationService;
 
 	@Override
 	@Transactional
@@ -36,7 +47,14 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 		String registrationId = userRequest.getClientRegistration().getRegistrationId();
 		AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
 
-		Registration registration = findOrRegister(provider, OAuth2UserInfoFactory.of(provider, oAuth2User.getAttributes()));
+		OAuth2UserInfo userInfo = OAuth2UserInfoFactory.of(provider, oAuth2User.getAttributes());
+
+		String withdrawalTicket = WithdrawalAwareAuthorizationRequestRepository.withdrawalTicket(currentRequest());
+		if (withdrawalTicket != null) {
+			return withdraw(withdrawalTicket, provider, userInfo, userRequest, oAuth2User);
+		}
+
+		Registration registration = findOrRegister(provider, userInfo);
 		Member member = registration.member();
 
 		// SecurityContext에 저장할 객체 반환
@@ -63,6 +81,28 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 					)
 				),
 				true));
+	}
+
+	/**
+	 * 앱에서 받은 탈퇴 표를 들고 제공자 로그인을 마친 경우다. 표의 회원과 방금 로그인한 계정이 같을 때만 탈퇴시킨다.
+	 * 방금 받은 액세스 토큰으로 제공자 연결을 끊는다. 가입하지 않은 계정이면 새로 가입시키지 않는다.
+	 */
+	private OAuth2User withdraw(String ticket, AuthProvider provider, OAuth2UserInfo userInfo,
+		OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
+
+		try {
+			Long memberId = memberApplicationService.withdrawSocial(ticket, provider, userInfo.getProviderId(),
+				userRequest.getAccessToken().getTokenValue());
+			return MemberPrincipal.withdrawn(memberId, oAuth2User.getAttributes());
+		} catch (MemberException e) {
+			throw new OAuth2AuthenticationException(new OAuth2Error(WITHDRAWAL_REJECTED), e.getMessage());
+		}
+	}
+
+	private static HttpServletRequest currentRequest() {
+		return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes
+			? attributes.getRequest()
+			: null;
 	}
 
 	record Registration(Member member, boolean created) {

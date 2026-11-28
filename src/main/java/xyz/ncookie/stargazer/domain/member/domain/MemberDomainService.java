@@ -2,6 +2,7 @@ package xyz.ncookie.stargazer.domain.member.domain;
 
 import java.security.SecureRandom;
 import java.text.Normalizer;
+import java.util.Optional;
 import java.util.random.RandomGenerator;
 import java.util.regex.Pattern;
 
@@ -41,6 +42,14 @@ public class MemberDomainService {
 
 		return memberRepository.findById(memberId)
 			.orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+	}
+
+	public Optional<Member> findByProvider(AuthProvider provider, String providerId) {
+		return memberRepository.findByAuthProviderAndProviderId(provider, providerId);
+	}
+
+	public void delete(Member member) {
+		memberRepository.delete(member);
 	}
 
 	/** 자체 회원 중에 이 이메일을 쓰는 사람이 있는지. 소셜 회원의 이메일은 보지 않는다 */

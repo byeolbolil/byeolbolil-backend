@@ -53,6 +53,12 @@ public class AuthApplicationService {
 
 		refreshTokenRedisRepository.delete(refreshToken);
 
+		// 탈퇴한 회원의 다른 기기에 남은 토큰. 토큰은 회원별로 찾을 수 없어 탈퇴할 때 지우지 못하고 여기서 막는다
+		if (!memberRepository.existsById(memberId)) {
+			log.debug("토큰 재발급 실패! 탈퇴한 회원입니다.");
+			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+		}
+
 		TokenDto tokens = issueTokens(memberId);
 
 		log.debug("토큰 재발급 성공!");

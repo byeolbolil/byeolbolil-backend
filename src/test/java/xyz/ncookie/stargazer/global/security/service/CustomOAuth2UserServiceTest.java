@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import xyz.ncookie.stargazer.domain.bookmark.repository.BookmarkRepository;
+import xyz.ncookie.stargazer.domain.member.application.MemberApplicationService;
 import xyz.ncookie.stargazer.domain.member.domain.MemberDomainService;
 import xyz.ncookie.stargazer.domain.member.entity.AuthProvider;
 import xyz.ncookie.stargazer.domain.member.entity.Member;
@@ -42,6 +43,9 @@ class CustomOAuth2UserServiceTest extends IntegrationTestSupport {
 	@Autowired
 	private MemberDomainService memberDomainService;
 
+	@Autowired
+	private MemberApplicationService memberApplicationService;
+
 	private CustomOAuth2UserService customOAuth2UserService;
 
 	@BeforeEach
@@ -49,7 +53,7 @@ class CustomOAuth2UserServiceTest extends IntegrationTestSupport {
 		bookmarkRepository.deleteAllInBatch();
 		memberRepository.deleteAllInBatch();
 		// 빈은 트랜잭션 프록시라 패키지 안 메서드를 부르면 대상 객체에 닿지 않을 수 있다. 저장소만 같은 것을 쓴다.
-		customOAuth2UserService = new CustomOAuth2UserService(memberRepository, memberDomainService);
+		customOAuth2UserService = new CustomOAuth2UserService(memberRepository, memberDomainService, memberApplicationService);
 	}
 
 	@Test
